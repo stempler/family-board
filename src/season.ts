@@ -6,15 +6,39 @@ function mmdd(date: Date): string {
   return `${m}-${d}`;
 }
 
-function matches(rule: SeasonRule, md: string): boolean {
-  return rule.from <= rule.to
-    ? md >= rule.from && md <= rule.to
-    : md >= rule.from || md <= rule.to; // wraps the year end
+const EASTER_REL = /^easter(?:([+-])(\d{1,2}))?$/;
+
+/** Parses "easter", "easter-N" or "easter+N" (N from 0 to 60) to its day offset from Easter Sunday; null for anything else. */
+export function easterOffset(value: string): number | null {
+  const m = EASTER_REL.exec(value);
+  if (!m) return null;
+  const n = m[2] === undefined ? 0 : Number(m[2]);
+  if (n > 60) return null;
+  return m[1] === '-' && n > 0 ? -n : n;
+}
+
+/** Resolves "MM-DD" or "easter±N" to "MM-DD" against the given Easter Sunday; `relative` tells whether it was Easter-relative. */
+export function resolveSeasonDate(value: string, easter: Date): { md: string; relative: boolean } {
+  const n = easterOffset(value);
+  if (n === null) return { md: value, relative: false };
+  return { md: mmdd(new Date(easter.getFullYear(), easter.getMonth(), easter.getDate() + n)), relative: true };
+}
+
+function matches(rule: SeasonRule, date: Date): boolean {
+  const md = mmdd(date);
+  const easter = easterSunday(date.getFullYear());
+  const from = resolveSeasonDate(rule.from, easter);
+  const to = resolveSeasonDate(rule.to, easter);
+  if (from.relative || to.relative) {
+    return from.md <= to.md && md >= from.md && md <= to.md; // never wraps
+  }
+  return from.md <= to.md
+    ? md >= from.md && md <= to.md
+    : md >= from.md || md <= to.md; // wraps the year end
 }
 
 export function activeSeason(date: Date, seasons: SeasonRule[], knownThemes: string[]): SeasonRule | null {
-  const md = mmdd(date);
-  return seasons.find((s) => knownThemes.includes(s.theme) && matches(s, md)) ?? null;
+  return seasons.find((s) => knownThemes.includes(s.theme) && matches(s, date)) ?? null;
 }
 
 /** Easter Sunday of the given year (anonymous Gregorian algorithm, Meeus/Jones/Butcher), as a local date. */

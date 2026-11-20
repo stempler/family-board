@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason, easterSunday } from '../src/season';
+import { activeSeason, easterOffset, easterSunday } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
@@ -40,6 +40,54 @@ describe('easterSunday', () => {
     for (const [year, [month, day]] of Object.entries(expected)) {
       const d = easterSunday(Number(year));
       expect([d.getFullYear(), d.getMonth() + 1, d.getDate()]).toEqual([Number(year), month, day]);
+    }
+  });
+});
+
+describe('activeSeason with easter-relative rules', () => {
+  const all = ['christmas', 'halloween', 'easter'];
+  const at = (y: number, m: number, d: number) => activeSeason(new Date(y, m - 1, d), DEFAULT_SEASONS, all)?.theme ?? null;
+  it('uses the default easter window', () => {
+    expect(at(2027, 3, 21)).toBe('easter');
+    expect(at(2027, 3, 29)).toBe('easter');
+    expect(at(2027, 3, 20)).toBeNull();
+    expect(at(2027, 3, 30)).toBeNull();
+    expect(at(2028, 4, 9)).toBe('easter');
+  });
+  it('uses the other defaults', () => {
+    expect(at(2026, 10, 28)).toBe('halloween');
+    expect(at(2026, 12, 24)).toBe('christmas');
+  });
+  it('supports mixed absolute and relative ends', () => {
+    const rule = [{ theme: 'x', from: '03-01', to: 'easter+1' }];
+    expect(activeSeason(new Date(2027, 2, 15), rule, ['x'])?.theme).toBe('x');
+  });
+  it('does not wrap rules with a relative end', () => {
+    const rule = [{ theme: 'x', from: 'easter+1', to: '03-01' }];
+    expect(activeSeason(new Date(2027, 0, 15), rule, ['x'])).toBeNull();
+  });
+  it('treats bare easter as easter+0', () => {
+    const rule = [{ theme: 'x', from: 'easter', to: 'easter' }];
+    expect(activeSeason(new Date(2027, 2, 28), rule, ['x'])?.theme).toBe('x');
+    expect(activeSeason(new Date(2027, 2, 27), rule, ['x'])).toBeNull();
+  });
+  it('skips unknown themes', () => {
+    expect(activeSeason(new Date(2027, 2, 25), DEFAULT_SEASONS, ['christmas'])).toBeNull();
+  });
+});
+
+describe('easterOffset', () => {
+  it('parses easter, easter-N and easter+N with N from 0 to 60', () => {
+    expect(easterOffset('easter')).toBe(0);
+    expect(easterOffset('easter-0')).toBe(0);
+    expect(easterOffset('easter+0')).toBe(0);
+    expect(easterOffset('easter-7')).toBe(-7);
+    expect(easterOffset('easter+60')).toBe(60);
+    expect(easterOffset('easter-60')).toBe(-60);
+  });
+  it('returns null for anything else', () => {
+    for (const v of ['easter+61', 'easter-61', 'easter+100', 'easter+007', 'ostern', 'easter+', 'Easter-7', '12-01']) {
+      expect(easterOffset(v), v).toBeNull();
     }
   });
 });
