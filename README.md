@@ -39,7 +39,7 @@ after `taskmate.add_points` and the Christmas scene, and writes screenshots to
 | `overview_entity` | `sensor.taskmate_overview` | TaskMate overview sensor. |
 | `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). |
 | `kids` | required, non-empty | One entry per kid, see below. |
-| `seasons` | `[{theme: christmas, from: "12-01", to: "12-26"}]` | Seasonal theme overrides. `from`/`to` are `MM-DD`, inclusive, and may wrap the year end. A theme with its own seasonal scene (currently `christmas`) shows one shared scene across the board; any other theme is used for every kid's half. |
+| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not. `seasons: []` turns seasons off. A theme with its own seasonal scene (currently `christmas`) shows one shared scene across the board; any other theme is used for every kid's half. |
 | `reward_icons` | `{}` | Map of reward id or name to an emoji or `mdi:...` icon. Default: TaskMate's own MDI icon. |
 
 `kids[]` entries:

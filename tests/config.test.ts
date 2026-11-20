@@ -38,6 +38,46 @@ describe('normalizeConfig', () => {
       normalizeConfig({ ...base, seasons: [{ theme: 'x', from: '12-01', to: '13-01' }] }),
     ).toThrow(/MM-DD/);
   });
+  it('accepts easter-relative season dates', () => {
+    for (const v of ['easter', 'easter-7', 'easter+1', 'easter+60', 'easter-0', 'easter+0']) {
+      expect(normalizeConfig({ ...base, seasons: [{ theme: 'x', from: v, to: '12-26' }] }).seasons[0].from).toBe(v);
+    }
+  });
+  it('rejects invalid easter-relative season dates', () => {
+    for (const v of ['easter+61', 'easter-61', 'ostern', 'easter+', 'easter 7', 'Easter-7', 'easter+100']) {
+      expect(() => normalizeConfig({ ...base, seasons: [{ theme: 'x', from: '01-01', to: v }] })).toThrow(/MM-DD or easter/);
+      expect(() => normalizeConfig({ ...base, seasons: [{ theme: 'x', from: v, to: '01-01' }] })).toThrow(/MM-DD or easter/);
+    }
+  });
+  it('rejects easter-relative rules whose from is after to in every year', () => {
+    const rules: [string, string][] = [['easter+1', 'easter-1'], ['05-01', 'easter'], ['12-20', 'easter'], ['easter+1', '03-01']];
+    for (const [from, to] of rules) {
+      expect(() => normalizeConfig({ ...base, seasons: [{ theme: 'x', from: '01-01', to: '01-02' }, { theme: 'x', from, to }] }))
+        .toThrow("seasons[1]: from is after to (Easter-relative rules don't wrap the year end)");
+    }
+  });
+  it('accepts easter-relative rules that match in some year', () => {
+    const rules: [string, string][] = [
+      ['03-01', 'easter+1'], ['easter-7', 'easter+1'], ['easter', 'easter'], ['04-01', 'easter'], ['easter', '04-01'], ['easter-60', '12-31'],
+    ];
+    for (const [from, to] of rules) {
+      expect(normalizeConfig({ ...base, seasons: [{ theme: 'x', from, to }] }).seasons[0]).toEqual({ theme: 'x', from, to });
+    }
+  });
+  it('still lets absolute-only rules wrap the year end', () => {
+    expect(normalizeConfig({ ...base, seasons: [{ theme: 'x', from: '12-20', to: '01-06' }] }).seasons[0].to).toBe('01-06');
+  });
+  it('trims the season theme', () => {
+    expect(normalizeConfig({ ...base, seasons: [{ theme: ' x ', from: '01-01', to: '01-02' }] }).seasons[0].theme).toBe('x');
+  });
+  it('defaults to christmas, halloween and easter seasons', () => {
+    expect(DEFAULT_SEASONS).toEqual([
+      { theme: 'christmas', from: '12-01', to: '12-26' },
+      { theme: 'halloween', from: '10-24', to: '10-31' },
+      { theme: 'easter', from: 'easter-7', to: 'easter+1' },
+    ]);
+    expect(normalizeConfig(base).seasons).toEqual(DEFAULT_SEASONS);
+  });
   it('validates colour and tap_path', () => {
     expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 't', colour: 5 }] })).toThrow(/colour/);
     expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 't', tap_path: 'x' }] })).toThrow(/tap_path/);
