@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Family Board Playground</title>
+  <style>
+    body { margin: 0; font: 14px system-ui, sans-serif; display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+    #controls { padding: 12px; border-right: 1px solid #ccc; overflow-y: auto; }
+    #stage { padding: 12px; }
+    family-board-card, ha-card { display: block; }
+    fieldset { margin: 0 0 12px; }
+    label { display: block; margin: 4px 0; }
+    input[type=range] { width: 100%; }
+    @media (max-width: 800px) { body { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="controls"></div>
+  <div id="stage"><family-board-card></family-board-card></div>
+  <script type="module" src="./playground.ts"></script>
+</body>
+</html>

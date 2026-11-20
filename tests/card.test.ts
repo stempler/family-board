@@ -75,6 +75,14 @@ describe('family-board-card element', () => {
     expect(el.shadowRoot!.textContent).toContain(de.missing);
   });
 
+  it('uses the now property for the date (christmas scene on 10 December)', async () => {
+    const el = await make();
+    el.now = () => new Date(2026, 11, 10);
+    el.hass = { states };
+    await el.updateComplete;
+    expect(el.shadowRoot!.innerHTML).toContain('data-theme="christmas"');
+  });
+
   it('navigates on a tap of the season scene in a kid half (10 December)', async () => {
     const el = await make();
     el.now = () => new Date(2026, 11, 10);
