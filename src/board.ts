@@ -122,7 +122,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
   const hw = W / model.kids.length;
   const halves: Half[] = model.kids.map((kid, i) => {
     const kc = config.kids.find((k) => k.id === kid.id);
-    const theme = seasonal ?? getTheme(kc?.theme ?? '');
+    const theme = seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
     const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom: newItemsFrom(opts.prevPoints?.[kid.id], kid.points, theme.capacity), seedKey: `${kid.id}:scene` };
     return { kid, box, theme, showNumber: kc?.show_number ?? false, ctx };
@@ -138,12 +138,16 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
   body += halves.map((half, i) => {
     const { kid, box, theme } = half;
     let inner = '';
-    if (!seasonal) inner += `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${H}" fill="${esc(theme.background)}"/>`;
+    // Season mode: the shared scene sits below every half, so each half gets a transparent hit target above it.
+    inner += seasonal
+      ? `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${H}" fill="transparent" pointer-events="all"/>`
+      : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${H}" fill="${esc(theme.background)}"/>`;
     if (!kid.found) inner += text(box.x + box.w / 2, H / 2, 22, de.kidNotFound);
     else if (!seasonal) inner += scene(theme, theme.renderHalf(half.ctx));
     inner += header(half, i) + jarRow(half, span);
-    inner += text(box.x + box.w - MARGIN, HINT_Y, 11, de.tapHint, 'end', ' opacity="0.6"');
-    return `<g data-kid-half="${esc(kid.id)}">${inner}</g>`;
+    const tappable = kid.found && !!config.kids.find((k) => k.id === kid.id)?.tap_path;
+    if (tappable) inner += text(box.x + box.w - MARGIN, HINT_Y, 11, de.tapHint, 'end', ' opacity="0.6"');
+    return `<g data-kid-half="${esc(kid.id)}"${tappable ? ' data-tappable="true"' : ''}>${inner}</g>`;
   }).join('');
   if (span) {
     body += model.sharedJars.slice(0, sharedFit(model.sharedJars.length)).map((jar, i) =>
