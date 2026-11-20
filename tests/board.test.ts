@@ -69,6 +69,42 @@ describe('renderBoard', () => {
     expect(out.match(/data-item="/g) ?? []).toHaveLength(8);
   });
 
+  describe('seasons without a shared scene', () => {
+    const withSeasons = (seasons: CardConfig['seasons']): CardConfig => ({ ...twoKids, seasons });
+
+    it('applies a theme without a season scene to every half', () => {
+      const cfg = withSeasons([{ theme: 'dino', from: '07-01', to: '08-31' }]);
+      const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: new Date(2026, 6, 15) });
+      expect(group(out, 'data-kid-half="k1"')).toContain('data-theme="dino"');
+      expect(group(out, 'data-kid-half="k2"')).toContain('data-theme="dino"');
+      expect(out).not.toContain('data-theme="lego"');
+    });
+
+    it('still finds a christmas rule listed after a non-matching rule', () => {
+      const cfg = withSeasons([{ theme: 'dino', from: '07-01', to: '08-31' }, { theme: 'christmas', from: '12-01', to: '12-26' }]);
+      const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: DECEMBER });
+      expect(out.match(/data-theme="/g) ?? []).toHaveLength(1);
+      expect(out).toContain('data-theme="christmas"');
+    });
+
+    it('skips a rule with an unknown theme', () => {
+      const cfg = withSeasons([{ theme: 'nope', from: '06-01', to: '06-30' }]);
+      const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: JUNE });
+      expect(group(out, 'data-kid-half="k1"')).toContain('data-theme="lego"');
+      expect(group(out, 'data-kid-half="k2"')).toContain('data-theme="dino"');
+    });
+  });
+
+  it('gives every half a transparent hit target above the season scene in December', () => {
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: DECEMBER });
+    const sceneEnd = out.indexOf(group(out, 'data-theme="christmas"')) + group(out, 'data-theme="christmas"').length;
+    for (const [id, x] of [['k1', '0'], ['k2', '400']]) {
+      const half = group(out, `data-kid-half="${id}"`);
+      expect(half).toContain(`<rect x="${x}" y="0" width="400" height="450" fill="transparent" pointer-events="all"/>`);
+      expect(out.indexOf(`data-kid-half="${id}"`)).toBeGreaterThan(sceneEnd);
+    }
+  });
+
   it('centres a shared jar at the bottom on the divider', () => {
     const shared: SharedJar = { id: 's1', name: 'Zoo', icon: { kind: 'emoji', value: '🦁' }, goal: 100, contributions: { k1: 20, k2: 10 } };
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3)], [shared]), twoKids, { date: JUNE });
@@ -122,10 +158,25 @@ describe('renderBoard', () => {
     expect(out).toContain('>1234<');
   });
 
-  it('shows the tap hint in every half', () => {
-    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: JUNE });
-    expect(group(out, 'data-kid-half="k1"')).toContain(de.tapHint);
-    expect(group(out, 'data-kid-half="k2"')).toContain(de.tapHint);
+  it('shows the tap hint and marks the half tappable only with a tap_path', () => {
+    const cfg = config([
+      { id: 'k1', theme: 'lego', show_number: false, tap_path: '/lovelace/k1' },
+      { id: 'k2', theme: 'dino', show_number: false },
+    ]);
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: JUNE });
+    const h1 = group(out, 'data-kid-half="k1"');
+    const h2 = group(out, 'data-kid-half="k2"');
+    expect(h1).toContain(de.tapHint);
+    expect(out).toContain('data-kid-half="k1" data-tappable="true"');
+    expect(h2).not.toContain(de.tapHint);
+    expect(out).not.toContain('data-kid-half="k2" data-tappable');
+  });
+
+  it('shows no tap hint for a kid that was not found', () => {
+    const cfg = config([{ id: 'k1', theme: 'lego', show_number: false, tap_path: '/x' }]);
+    const out = renderBoard(model([kid('k1', 0, { found: false })]), cfg, { date: JUNE });
+    expect(group(out, 'data-kid-half="k1"')).not.toContain(de.tapHint);
+    expect(out).not.toContain('data-tappable');
   });
 
   it('uses an avatar image when given', () => {

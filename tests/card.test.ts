@@ -1,0 +1,118 @@
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import fixture from './fixtures/docs-sample.json';
+import { de } from '../src/i18n';
+import type { HassStates } from '../src/adapter';
+
+vi.mock('../src/board', async (orig) => {
+  const mod = await orig<typeof import('../src/board')>();
+  return { ...mod, renderBoard: vi.fn(mod.renderBoard) };
+});
+
+import { renderBoard } from '../src/board';
+import { FamilyBoardCard } from '../src/family-board-card';
+
+const states = fixture as unknown as HassStates;
+
+beforeAll(() => {
+  expect(customElements.get('family-board-card')).toBe(FamilyBoardCard);
+});
+
+async function make(config: unknown = { kids: [{ id: 'k1', theme: 'lego', tap_path: '/family-board/aufgaben' }, { id: 'k2', theme: 'dino' }] }) {
+  const el = document.createElement('family-board-card') as FamilyBoardCard;
+  document.body.appendChild(el);
+  el.setConfig(config);
+  return el;
+}
+
+describe('family-board-card element', () => {
+  it('renders one half per kid', async () => {
+    const el = await make();
+    el.hass = { states };
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelectorAll('[data-kid-half]').length).toBe(2);
+  });
+
+  it('setConfig throws on an empty config', async () => {
+    const el = await make();
+    expect(() => el.setConfig({})).toThrow();
+  });
+
+  it('re-renders only when the model changed', async () => {
+    const el = await make();
+    vi.mocked(renderBoard).mockClear();
+    el.hass = { states };
+    await el.updateComplete;
+    el.hass = { states: JSON.parse(JSON.stringify(states)) };
+    await el.updateComplete;
+    expect(renderBoard).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates on tap of a kid half with tap_path', async () => {
+    const el = await make();
+    el.hass = { states };
+    await el.updateComplete;
+    const fired = vi.fn();
+    window.addEventListener('location-changed', fired);
+    el.shadowRoot!.querySelector('[data-kid-half="k1"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    expect(location.pathname).toBe('/family-board/aufgaben');
+    expect(fired).toHaveBeenCalledTimes(1);
+    window.removeEventListener('location-changed', fired);
+  });
+
+  it('ignores taps on kids without tap_path', async () => {
+    const el = await make();
+    el.hass = { states };
+    await el.updateComplete;
+    history.pushState(null, '', '/x');
+    el.shadowRoot!.querySelector('[data-kid-half="k2"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    expect(location.pathname).toBe('/x');
+  });
+
+  it('shows the missing text without states', async () => {
+    const el = await make();
+    el.hass = { states: {} };
+    await el.updateComplete;
+    expect(el.shadowRoot!.textContent).toContain(de.missing);
+  });
+
+  it('navigates on a tap of the season scene in a kid half (10 December)', async () => {
+    const el = await make();
+    el.now = () => new Date(2026, 11, 10);
+    el.hass = { states };
+    await el.updateComplete;
+    history.pushState(null, '', '/x');
+    const hit = el.shadowRoot!.querySelector('[data-kid-half="k1"] > rect[fill="transparent"]')!;
+    hit.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    expect(location.pathname).toBe('/family-board/aufgaben');
+  });
+
+  it('keeps a render error inside set hass, shows the fallback and retries on the next update', async () => {
+    const el = await make();
+    vi.mocked(renderBoard).mockImplementationOnce(() => { throw new Error('boom'); });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => { el.hass = { states }; }).not.toThrow();
+    await el.updateComplete;
+    expect(el.shadowRoot!.textContent).toContain(de.renderError);
+    error.mockRestore();
+    el.hass = { states: JSON.parse(JSON.stringify(states)) };
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelectorAll('[data-kid-half]').length).toBe(2);
+  });
+
+  it('builds a stub config from the TaskMate children when hass is given', () => {
+    expect(FamilyBoardCard.getStubConfig({ states })).toEqual({ kids: [{ id: 'k1', theme: 'lego' }, { id: 'k2', theme: 'dino' }] });
+  });
+
+  it('has a valid placeholder stub config without hass', async () => {
+    const stub = FamilyBoardCard.getStubConfig();
+    expect(stub).toEqual({ kids: [{ id: 'kind-1', theme: 'lego' }] });
+    const el = await make();
+    expect(() => el.setConfig(stub)).not.toThrow();
+    expect(FamilyBoardCard.getStubConfig({ states: {} })).toEqual(stub);
+  });
+
+  it('exposes card metadata', () => {
+    expect(new FamilyBoardCard().getCardSize()).toBe(8);
+    expect((window as any).customCards).toContainEqual({ type: 'family-board-card', name: 'Family Board', description: 'Gezeichnete Punkteanzeige für TaskMate' });
+  });
+});

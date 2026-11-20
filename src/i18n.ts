@@ -3,4 +3,5 @@ export const de = {
   kidNotFound: 'Kind nicht gefunden',
   tapHint: 'Antippen → Aufgaben',
   noKids: 'Noch keine Kinder eingerichtet',
+  renderError: 'Die Anzeige hatte ein Problem. Bitte Seite neu laden.',
 } as const;

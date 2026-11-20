@@ -37,6 +37,11 @@ function rewardIcon(r: Rec, config: CardConfig): IconRef {
   return parseIcon(raw, DEFAULT_REWARD_ICON);
 }
 
+/** The TaskMate child ids listed by the overview entity (empty when it is missing). */
+export function childIds(states: HassStates, overviewEntity: string): string[] {
+  return recs(states[overviewEntity]?.attributes?.children).map((c) => str(c.id)).filter((id) => id !== '');
+}
+
 export function toBoardModel(states: HassStates, config: CardConfig): BoardModel {
   const overview = states[config.overview_entity];
   const children = overview?.attributes?.children;
