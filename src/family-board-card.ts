@@ -4,8 +4,10 @@ import patrickHand from '@fontsource/patrick-hand/files/patrick-hand-latin-400-n
 import { childIds, toBoardModel, type HassStates } from './adapter';
 import { renderBoard } from './board';
 import { normalizeConfig, type CardConfig } from './config';
+import { animCss } from './draw/anim';
 import { esc, INK, PAPER } from './draw/sketch';
 import { de } from './i18n';
+import { THEMES, themeCss } from './themes/registry';
 
 interface Hass { states: HassStates }
 
@@ -34,22 +36,37 @@ function localDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+const baseStyles = css`
+  ha-card { padding: 0; background: ${unsafeCSS(PAPER)}; overflow: hidden; display: block; }
+  svg { display: block; width: 100%; height: auto; }
+  [data-kid-half][data-tappable] { cursor: pointer; }
+  @keyframes fb-drop {
+    from { transform: translateY(-40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .fb-new { animation: fb-drop 700ms ease-out both; }
+  .fb-anim {
+    animation-duration: var(--t, 10s);
+    animation-delay: var(--d, 0s);
+    animation-iteration-count: infinite;
+    transform-box: fill-box;
+  }
+  ${unsafeCSS(animCss)}
+  @media (prefers-reduced-motion: reduce) {
+    .fb-new { animation: none; }
+    .fb-anim { animation: none !important; }
+  }
+`;
+
 export class FamilyBoardCard extends LitElement {
   static properties = { _svg: { state: true } };
 
-  static styles = css`
-    ha-card { padding: 0; background: ${unsafeCSS(PAPER)}; overflow: hidden; display: block; }
-    svg { display: block; width: 100%; height: auto; }
-    [data-kid-half][data-tappable] { cursor: pointer; }
-    @keyframes fb-drop {
-      from { transform: translateY(-40px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .fb-new { animation: fb-drop 700ms ease-out both; }
-    @media (prefers-reduced-motion: reduce) {
-      .fb-new { animation: none; }
-    }
-  `;
+  static styles = [baseStyles, unsafeCSS(themeCss())];
+
+  /** Registered theme ids (read by the browser check). */
+  static get themeIds(): string[] {
+    return Object.keys(THEMES);
+  }
 
   static getStubConfig(hass?: Hass): Record<string, unknown> {
     const ids = hass ? childIds(hass.states, 'sensor.taskmate_overview') : [];

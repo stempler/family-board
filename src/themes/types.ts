@@ -10,6 +10,7 @@ export interface Theme {
   background: string; // half background colour
   renderHalf(ctx: HalfContext): string; // the kid's scene inside ctx.box, no jars or header
   renderSeasonScene?(halves: HalfContext[], box: Box): string; // shared landscape with one object per kid; only for seasonal themes
+  css?: string; // keyframes and classes for this theme's ambient animation, all prefixed fb-<id>-
 }
 
 /** Wraps one drawn item in the marker group every theme must emit. */

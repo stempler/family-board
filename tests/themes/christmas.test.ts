@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { THEMES, getTheme } from '../../src/themes/registry';
-import { contractCtx, coordsOutside, runThemeContract } from './theme-contract';
+import { afterItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const christmas = THEMES.christmas;
 
@@ -29,31 +29,29 @@ describe('christmas season scene', () => {
     expect(out).not.toContain('NaN');
     expect(coordsOutside(out, box)).toEqual([]);
   });
+  it('lets 28 flakes fall over the scene', () => {
+    expect(out.match(/class="fb-anim fb-fall"/g) ?? []).toHaveLength(28);
+  });
   it('uses the kid colour for the ribbon', () => {
     expect(out).toContain('#d9534f');
   });
 });
 
-/** Markup drawn after the last ornament (star, presents, ribbon, ...). */
-function afterOrnaments(svg: string): string {
-  const open = svg.lastIndexOf('<g class="fb-item');
-  let depth = 0;
-  for (const m of svg.slice(open).matchAll(/<g[\s>]|<\/g>/g)) {
-    depth += m[0] === '</g>' ? -1 : 1;
-    if (depth === 0) return svg.slice(open + m.index! + 4);
-  }
-  throw new Error('unclosed group');
-}
+describe('christmas half', () => {
+  it('lets 13 flakes fall', () => {
+    expect(christmas.renderHalf(contractCtx(christmas, 7)).match(/class="fb-anim fb-fall"/g) ?? []).toHaveLength(13);
+  });
+});
 
 describe('christmas decorations after the ornaments', () => {
   it('keep their wobble when an ornament is added (half)', () => {
     const half = (points: number) => christmas.renderHalf(contractCtx(christmas, points));
-    expect(afterOrnaments(half(8))).toBe(afterOrnaments(half(7)));
+    expect(afterItems(half(8))).toBe(afterItems(half(7)));
   });
   it('keep their wobble when an ornament is added (season scene)', () => {
     const box = { x: 0, y: 0, w: 800, h: 450 };
     const scene = (points: number) => christmas.renderSeasonScene!([contractCtx(christmas, points, points, { x: 0, y: 0, w: 400, h: 450 }, 'k1')], box);
-    expect(afterOrnaments(scene(8))).toBe(afterOrnaments(scene(7)));
+    expect(afterItems(scene(8))).toBe(afterItems(scene(7)));
   });
 });
 

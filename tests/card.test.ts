@@ -10,6 +10,7 @@ vi.mock('../src/board', async (orig) => {
 
 import { renderBoard } from '../src/board';
 import { FamilyBoardCard } from '../src/family-board-card';
+import { THEMES } from '../src/themes/registry';
 
 const states = fixture as unknown as HassStates;
 
@@ -117,6 +118,21 @@ describe('family-board-card element', () => {
     const el = await make();
     expect(() => el.setConfig(stub)).not.toThrow();
     expect(FamilyBoardCard.getStubConfig({ states: {} })).toEqual(stub);
+  });
+
+  it('styles include reduced motion and every theme\'s css', () => {
+    const styles = [FamilyBoardCard.styles].flat(Infinity) as Array<{ cssText: string }>;
+    const text = styles.map((s) => s.cssText).join('\n');
+    expect(text).toContain('prefers-reduced-motion');
+    expect(text).toContain('.fb-anim');
+    expect(text).toContain('animation: none');
+    for (const theme of Object.values(THEMES)) {
+      if (theme.css) expect(text, theme.id).toContain(theme.css.trim().slice(0, 40));
+    }
+  });
+
+  it('lists the registered theme ids', () => {
+    expect(FamilyBoardCard.themeIds).toEqual(Object.keys(THEMES));
   });
 
   it('exposes card metadata', () => {

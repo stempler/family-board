@@ -1,3 +1,4 @@
+import { timing } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
 import { item, type HalfContext, type Theme } from './types';
@@ -97,7 +98,7 @@ function baseplate(sk: Sketch, p: Placement): string {
 }
 
 /** A little builder in the kid's colour, standing on the baseplate next to the tower and waving. */
-function minifig(sk: Sketch, p: Placement, colour: string): string {
+function minifig(sk: Sketch, p: Placement, colour: string, seedKey: string): string {
   const [fx, fy] = at(p, MID + 108, BASE); // between the feet
   const k = p.s * 1.3;
   const f = (dx: number, dy: number): [number, number] => [fx + dx * k, fy + dy * k];
@@ -112,18 +113,34 @@ function minifig(sk: Sketch, p: Placement, colour: string): string {
   const [ex, ey] = f(0, -45);
   const face = `<circle cx="${num(ex - 2.4 * k)}" cy="${num(ey)}" r="${num(k)}" fill="${INK}"/><circle cx="${num(ex + 2.4 * k)}" cy="${num(ey)}" r="${num(k)}" fill="${INK}"/>` +
     sk.path(`M ${num(ex - 3 * k)} ${num(ey + 3 * k)} Q ${num(ex)} ${num(ey + 6 * k)} ${num(ex + 3 * k)} ${num(ey + 3 * k)}`, { strokeWidth: 1.2, roughness: 0.3 });
-  return legs + armL + armR + torso + hand + head + face;
+  // The raised arm and hand wave together, pivoting at the shoulder (bottom left of the group); the torso hides the joint.
+  const wave = `<g class="fb-anim fb-lego-wave" style="${timing(`${seedKey}:wave`, [9, 11])}">${armR}${hand}</g>`;
+  return legs + armL + wave + torso + head + face;
 }
 
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
   const p = placement(ctx.box);
-  return `<g>${baseplate(sk, p)}${minifig(sk, p, ctx.kid.colour)}${tower(sk, p, ctx)}</g>`;
+  return `<g>${baseplate(sk, p)}${minifig(sk, p, ctx.kid.colour, ctx.seedKey)}${tower(sk, p, ctx)}</g>`;
 }
+
+// At rest for 80 % of the cycle, then three swings of ±20° around the shoulder, then back to rest.
+const css = `
+  @keyframes fb-lego-wave {
+    0%, 80%, 100% { transform: rotate(0deg); }
+    83% { transform: rotate(-20deg); }
+    86.5% { transform: rotate(20deg); }
+    90% { transform: rotate(-20deg); }
+    93.5% { transform: rotate(20deg); }
+    97% { transform: rotate(0deg); }
+  }
+  .fb-lego-wave { animation-name: fb-lego-wave; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 100%; }
+`;
 
 export const lego: Theme = {
   id: 'lego',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,
+  css,
 };
