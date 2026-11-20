@@ -4,7 +4,7 @@
 
 A custom Home Assistant Lovelace card that shows the kids' points from
 [TaskMate](https://github.com/tempus2016/taskmate) (Home Assistant integration) as a hand-drawn-style picture (ornaments on a
-tree, bricks in a LEGO tower, eggs in a dino nest), plus savings jars. It runs
+tree, bricks in a LEGO tower, eggs in a dino nest, stars in a night sky), plus savings jars. It runs
 on a landscape tablet in the living room. The kids tap it themselves; the card
 is read-only and only navigates (tapping a kid opens their TaskMate view).
 Everything shown to the kids is in German. Design:
@@ -16,19 +16,21 @@ Tools come from [mise](https://mise.jdx.dev).
 
 ```sh
 mise install
-mise run dev      # theme playground (no Home Assistant needed)
+mise run dev      # theme playground (no Home Assistant needed), gallery at /gallery.html
 mise run test     # unit tests
 mise run ha:up    # local Home Assistant with TaskMate, the card and demo data
 ```
 
-Other tasks: `typecheck`, `build`, `ha:down`, `ha:reset`, `ha:seed`, `ha:screenshot`, `fixtures:capture`.
+Other tasks: `typecheck`, `build`, `gallery:shots`, `ha:down`, `ha:reset`, `ha:seed`, `ha:screenshot`, `fixtures:capture`.
 
 `ha:seed` overwrites the dev dashboard `/family-board` with the demo config, so
 edits made to it in the UI are lost on the next seed.
 
 `ha:screenshot` opens the board in the local Home Assistant with Playwright (in
 Docker, `mcr.microsoft.com/playwright`), checks the tap navigation, a new item
-after `taskmate.add_points` and the Christmas scene, and writes screenshots to
+after `taskmate.add_points`, the Christmas scene, every favourite theme (both
+kids on it, seasons off, animated) and every season scene, and writes
+screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
 `dev/screenshots/` (or `$FB_SCREENSHOT_DIR`). Each run gives Mia one more point.
 
 ## Card configuration
@@ -39,7 +41,7 @@ after `taskmate.add_points` and the Christmas scene, and writes screenshots to
 | `overview_entity` | `sensor.taskmate_overview` | TaskMate overview sensor. |
 | `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). |
 | `kids` | required, non-empty | One entry per kid, see below. |
-| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not. `seasons: []` turns seasons off. A theme with its own seasonal scene (currently `christmas`) shows one shared scene across the board; any other theme is used for every kid's half. |
+| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`) shows one shared scene across the board; any other theme is used for every kid's half. |
 | `reward_icons` | `{}` | Map of reward id or name to an emoji or `mdi:...` icon. Default: TaskMate's own MDI icon. |
 
 `kids[]` entries:
@@ -47,7 +49,7 @@ after `taskmate.add_points` and the Christmas scene, and writes screenshots to
 | Field | Default | Description |
 |---|---|---|
 | `id` | required | TaskMate child id (see below). |
-| `theme` | required | Favourite theme: `christmas`, `lego` or `dino`. Unknown themes fall back to `lego`. |
+| `theme` | required | Favourite theme, any id from [Themes](#themes). Unknown themes fall back to `lego`. |
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
 | `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. |
 | `show_number` | `false` | Also show the point total as a number. |
@@ -81,6 +83,56 @@ Adding the card in the dashboard editor pre-fills the ids of all TaskMate
 children.
 
 The card resource is `/local/family-board/family-board-card.js` (type: JavaScript module).
+
+## Themes
+
+| Id | Name | What the kid sees |
+|---|---|---|
+| `christmas` | Weihnachten | Ornaments on a Christmas tree; falling snow. Season scene: one big tree per kid in a snowy landscape. |
+| `lego` | LEGO | A tower of bricks. |
+| `dino` | Dino | Eggs in a dino nest. |
+| `wizard` | Zauberschule | Gems filling an hourglass in a wizard's tower room, with an owl and a candle. |
+| `racing` | Rennstrecke | Medals and trophies on a shelf and podium, a race car on the track. |
+| `space` | Weltraum | Stars and planets in constellations; a rocket on the moon, an occasional comet. |
+| `rescue` | Rettungshunde | Badges and bones at a dog house with a pup. |
+| `chess` | Schach | Pawns and queens on a chessboard, with a king and a knight beside it. |
+| `halloween` | Halloween | Candy in a pumpkin bucket. Season scene: a spooky night with a ghost. |
+| `easter` | Ostern | Painted eggs in a basket on a meadow with a bunny. Season scene: one basket per kid. |
+
+`christmas`, `halloween` and `easter` also have a season scene (see `seasons`
+above); all others are favourites only. Preview them with `mise run dev`: the
+playground has a theme picker per kid and a "Saison" switch: "nach Datum" (the
+default) uses the date field with seasons on, "keine" sets today and turns
+seasons off, and each season option sets a date inside that season.
+
+### Animations
+
+Every theme has a little ambient animation (snow, twinkling stars, a wagging
+tail, ...). It is pure CSS (`@keyframes` on `transform` and `opacity`), no
+timers, and it is deterministic: the same input gives the same picture. A board
+keeps to about 60 animated elements. Under `prefers-reduced-motion: reduce`
+all ambient animation and the drop of a new item stop, and the still picture
+looks complete.
+
+### Gallery
+
+`mise run dev` also serves `/gallery.html`, with every theme (and each season
+scene) side by side. `mise run gallery:shots` screenshots it with reduced
+motion into `dev/screenshots/` (or `$FB_SCREENSHOT_DIR`), which is handy for
+reviewing all themes in one go.
+
+### Adding a theme
+
+1. Create `src/themes/<id>.ts` exporting a `Theme` (`renderHalf`, and for a seasonal theme `renderSeasonScene`) and register it in `src/themes/registry.ts`. The id is English and lowercase.
+2. Give it `css` for its ambient animation:
+   - every `@keyframes` name and class starts with `fb-<id>-`;
+   - the rules set only `animation-name`, `animation-timing-function`, `transform-origin` and `transform-box`; duration, delay and iteration come from the shared `.fb-anim` rule through `--t` and `--d`;
+   - animated elements carry `class="fb-anim fb-<id>-..."`, at least 1 and at most 30 per half (a season scene at most 60), and never together with `fb-item` (wrap the item's body in an inner group instead).
+3. Use only escaped text (`esc`) and `num` for numbers, keep the drawing inside the half, and draw extra scenery with its own sketch key so existing shapes don't re-wobble when items are added.
+   Sketch keys: scenery drawn after the items uses its own sketch key (`${seedKey}:<name>`), so adding an item never re-wobbles it.
+4. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` and, for a seasonal theme, `runSeasonContract(theme)`, plus theme-specific checks.
+5. For a seasonal theme: add a default rule to `seasons` (config) and mark each kid's object with `data-season-kid` and `data-cx`.
+6. The gallery lists every registered theme (and every season scene) by itself: look at it with `mise run dev` and `mise run gallery:shots`, then run `mise run ha:screenshot` (it checks each theme in the local Home Assistant).
 
 ## Updating TaskMate
 
