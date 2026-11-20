@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason } from '../src/season';
+import { activeSeason, easterSunday } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
@@ -29,5 +29,17 @@ describe('activeSeason', () => {
   });
   it('uses the local date, not UTC', () => {
     expect(activeSeason(new Date(2026, 11, 1, 0, 30), DEFAULT_SEASONS, ['christmas'])?.theme).toBe('christmas');
+  });
+});
+
+describe('easterSunday', () => {
+  it('computes Easter Sunday', () => {
+    const expected: Record<number, [number, number]> = {
+      2026: [4, 5], 2027: [3, 28], 2028: [4, 16], 2029: [4, 1], 2030: [4, 21],
+    };
+    for (const [year, [month, day]] of Object.entries(expected)) {
+      const d = easterSunday(Number(year));
+      expect([d.getFullYear(), d.getMonth() + 1, d.getDate()]).toEqual([Number(year), month, day]);
+    }
   });
 });
