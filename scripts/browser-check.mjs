@@ -7,6 +7,8 @@
 //   ha-aufgaben.png     after tapping Mia's half (must land on /family-board/aufgaben)
 //   ha-board-after.png  ~1s after taskmate.add_points (Mia, 1 point, reason "Test")
 //   ha-board-season.png with a christmas season covering today; then a tap on a tree must navigate too
+//   ha-theme-<id>.png   both kids on each favourite theme (no season scene), seasons off
+//   ha-season-<id>.png  each season theme (christmas, halloween, easter) as a season covering today
 // The dashboard config is restored at the end. Note: every run gives Mia one more point.
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -158,6 +160,46 @@ try {
   await page.mouse.click(tree.x + tree.width / 2, tree.y + tree.height * 0.6);
   await page.waitForURL((u) => u.pathname === TASKS, { timeout: 10_000 }).catch(() => {});
   check(new URL(page.url()).pathname === TASKS, `tap on Mia's tree navigates to ${TASKS} (got ${new URL(page.url()).pathname})`);
+
+  // Every theme: favourites per kid (seasons off), then each season scene via a rule covering today.
+  const themeIds = await page.evaluate(() => customElements.get('family-board-card').themeIds);
+  log(`themes: ${themeIds.join(', ')}`);
+  const seasonThemes = ['christmas', 'halloween', 'easter'];
+  check(seasonThemes.every((id) => themeIds.includes(id)), 'season themes are registered');
+  const favourites = themeIds.filter((id) => !seasonThemes.includes(id));
+  const withCard = (patch) => {
+    const config = structuredClone(original);
+    Object.assign(config.views[0].cards[0], patch);
+    return config;
+  };
+  const animCount = () => page.locator('family-board-card .fb-anim').count();
+  for (const id of favourites) {
+    const config = withCard({ seasons: [] });
+    config.views[0].cards[0].kids = config.views[0].cards[0].kids.map((k) => ({ ...k, theme: id }));
+    await ws.call({ type: 'lovelace/config/save', url_path: DASHBOARD, config });
+    await openBoard(page);
+    const shown = await inspect(page);
+    await page.screenshot({ path: join(out, `ha-theme-${id}.png`) });
+    const anims = await animCount();
+    log(`theme ${id}: [data-theme] ${shown.themes.join()}, fb-anim ${anims}`);
+    check(shown.themes.length === 2 && shown.themes.every((t) => t === id), `theme ${id}: both halves show it`);
+    check(anims >= 1, `theme ${id}: has animated elements`);
+  }
+  for (const id of seasonThemes) {
+    await ws.call({
+      type: 'lovelace/config/save',
+      url_path: DASHBOARD,
+      config: withCard({ seasons: [{ theme: id, from: mmdd(from), to: mmdd(to) }] }),
+    });
+    await openBoard(page);
+    const shown = await inspect(page);
+    await page.screenshot({ path: join(out, `ha-season-${id}.png`) });
+    const anims = await animCount();
+    const marked = await page.locator('family-board-card [data-season-kid]').count();
+    log(`season ${id}: [data-theme] ${shown.themes.join()}, fb-anim ${anims}, kid objects ${marked}`);
+    check(shown.themes.join() === id, `season ${id}: scene theme is ${id}`);
+    check(anims >= 1 && marked === 2, `season ${id}: animated, one object per kid`);
+  }
 } catch (err) {
   await page.screenshot({ path: join(out, 'ha-error.png') }).catch(() => {});
   log(`failed at ${page.url()}; console errors:\n  ${consoleErrors.join('\n  ')}`);
