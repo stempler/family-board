@@ -286,6 +286,17 @@ describe('renderBoard', () => {
       });
     }
 
+    for (const id of ['christmas', 'halloween']) {
+      it(`with five kids on ${id}`, () => {
+        const ids = ['k1', 'k2', 'k3', 'k4', 'k5'];
+        const five = model(ids.map((k) => kid(k, 1000)));
+        const cfg: CardConfig = { ...config(ids.map((k) => ({ id: k, theme: id, show_number: false }))), seasons: [] };
+        const n = animated(renderBoard(five, cfg, { date: JUNE }));
+        expect(n).toBeGreaterThan(0);
+        expect(n).toBeLessThanOrEqual(60);
+      });
+    }
+
     // One date inside each default season whose theme draws a shared season scene.
     const seasonDates = new Map<string, Date>();
     for (let day = 0; day < 366; day++) {

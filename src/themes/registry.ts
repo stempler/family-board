@@ -1,6 +1,7 @@
 import { chess } from './chess';
 import { christmas } from './christmas';
 import { dino } from './dino';
+import { halloween } from './halloween';
 import { lego } from './lego';
 import { racing } from './racing';
 import { rescue } from './rescue';
@@ -8,7 +9,7 @@ import { space } from './space';
 import type { Theme } from './types';
 import { wizard } from './wizard';
 
-export const THEMES: Record<string, Theme> = { christmas, lego, dino, wizard, racing, space, rescue, chess };
+export const THEMES: Record<string, Theme> = { christmas, lego, dino, wizard, racing, space, rescue, chess, halloween };
 
 export function getTheme(id: string): Theme {
   return Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES.lego;

@@ -17,6 +17,11 @@ export function timing(key: string, [min, max]: [number, number], dSpan?: number
   return `--t:${num(t)}s;--d:-${num(d)}s`;
 }
 
+/** A particle count that scales with the box width: `perHalf` in a standard 400-wide half, at least 1. */
+export function scaledCount(perHalf: number, box: Box): number {
+  return Math.max(1, Math.round(perHalf * box.w / 400));
+}
+
 const FALL = 40; // px a flake moves above and below its resting position
 
 /** `count` plain circles resting at seeded positions inside `box`; snow falls through its resting point, sparkles pulse in place. */
