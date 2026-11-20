@@ -1,5 +1,6 @@
 import '../src/family-board-card';
 import type { FamilyBoardCard } from '../src/family-board-card';
+import { easterSunday } from '../src/season';
 import { THEMES } from '../src/themes/registry';
 import { makeFakeHass, type FakeJar, type FakeKid } from './fake-hass';
 
@@ -12,13 +13,14 @@ const jars: FakeJar[] = [
   { id: 'j2', name: 'Familienausflug', icon: '✈️', goal: 40, allocations: { k1: 5, k2: 8 }, shared: true, assignedTo: [] },
 ];
 let date = new Date();
+let seasonsOff = false;
 let jarCounter = jars.length;
 
 const card = document.querySelector('family-board-card') as FamilyBoardCard;
 const controls = document.getElementById('controls')!;
 
 function applyConfig(): void {
-  card.setConfig({ kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour })) });
+  card.setConfig({ kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour })), ...(seasonsOff ? { seasons: [] } : {}) });
 }
 
 function push(): void {
@@ -47,9 +49,29 @@ function renderControls(): void {
   dateInput.value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   dateInput.addEventListener('change', () => {
     const [y, m, d] = dateInput.value.split('-').map(Number);
-    if (y) { date = new Date(y, m - 1, d); push(); }
+    if (y) { date = new Date(y, m - 1, d); seasonsOff = false; applyConfig(); renderControls(); push(); }
   });
-  controls.append(el('fieldset', {}, el('legend', { textContent: 'Datum' }), dateInput));
+  const seasonSelect = el('select');
+  const today = new Date();
+  const year = date.getFullYear();
+  const seasonOptions: [string, string, Date | null][] = [
+    ['auto', 'nach Datum', null],
+    ['', 'keine', today],
+    ['christmas', 'Weihnachten', new Date(year, 11, 15)],
+    ['halloween', 'Halloween', new Date(year, 9, 28)],
+    ['easter', 'Ostern', easterSunday(year)],
+  ];
+  for (const [value, label] of seasonOptions) seasonSelect.append(el('option', { value, textContent: label }));
+  seasonSelect.addEventListener('change', () => {
+    const chosen = seasonOptions.find(([value]) => value === seasonSelect.value)!;
+    if (chosen[2]) date = chosen[2];
+    seasonsOff = chosen[0] === '';
+    applyConfig();
+    renderControls();
+    push();
+  });
+  seasonSelect.value = seasonsOff ? '' : seasonOptions.find(([v, , d]) => v !== '' && d && d.toDateString() === date.toDateString())?.[0] ?? 'auto';
+  controls.append(el('fieldset', {}, el('legend', { textContent: 'Datum' }), dateInput, el('label', {}, 'Saison: ', seasonSelect)));
 
   for (const k of kids) {
     const name = el('input', { type: 'text', value: k.name });
