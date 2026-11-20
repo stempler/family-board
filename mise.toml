@@ -1,0 +1,21 @@
+[tools]
+node = "26.13.1"
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[tasks.test]
+description = "Run unit tests"
+run = "vitest run"
+
+[tasks.typecheck]
+description = "Type-check the project"
+run = "tsc --noEmit"
+
+[tasks.build]
+description = "Build dist/family-board-card.js"
+run = "vite build"
+
+[tasks.dev]
+description = "Start the theme playground"
+run = "vite dev/"

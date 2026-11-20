@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v5
+      - run: npm ci
+      - run: mise run typecheck
+      - run: mise run test
+      - run: mise run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: family-board-card
+          path: dist/family-board-card.js
