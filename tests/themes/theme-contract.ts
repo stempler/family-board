@@ -25,6 +25,17 @@ export function coordsOutside(svg: string, box: Box): string[] {
   return bad;
 }
 
+/** Markup drawn after the last counted item (scenery in front of the items). */
+export function afterItems(svg: string): string {
+  const open = svg.lastIndexOf('<g class="fb-item');
+  let depth = 0;
+  for (const m of svg.slice(open).matchAll(/<g[\s>]|<\/g>/g)) {
+    depth += m[0] === '</g>' ? -1 : 1;
+    if (depth === 0) return svg.slice(open + m.index! + 4);
+  }
+  throw new Error('unclosed group');
+}
+
 export function runThemeContract(theme: Theme): void {
   describe(`theme contract: ${theme.id}`, () => {
     for (const points of [0, 7, 30, 1000]) {
@@ -45,8 +56,26 @@ export function runThemeContract(theme: Theme): void {
         it('is deterministic', () => {
           expect(theme.renderHalf(contractCtx(theme, points))).toBe(out);
         });
+        it('animates between 1 and 30 elements', () => {
+          const n = (out.match(/class="fb-anim/g) ?? []).length;
+          expect(n).toBeGreaterThanOrEqual(1);
+          expect(n).toBeLessThanOrEqual(30);
+        });
+        it('never animates a counted item directly', () => {
+          const both = (out.match(/class="[^"]*"/g) ?? []).filter((c) => c.includes('fb-item') && c.includes('fb-anim'));
+          expect(both).toEqual([]);
+        });
       });
     }
+
+    it('prefixes its css', () => {
+      const css = theme.css ?? '';
+      // Keyframe blocks hold percentages like 86.5%, so class selectors are only read outside them.
+      const outside = css.replace(/@keyframes\s+[\w-]+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '');
+      expect(outside).not.toContain('@keyframes');
+      const names = [...css.matchAll(/@keyframes\s+([\w-]+)/g), ...outside.matchAll(/\.([\w-]+)/g)].map((m) => m[1]);
+      for (const name of names) expect(name.startsWith(`fb-${theme.id}-`), name).toBe(true);
+    });
 
     it('marks items from newFrom as fb-new', () => {
       const out = theme.renderHalf(contractCtx(theme, 7, 5));

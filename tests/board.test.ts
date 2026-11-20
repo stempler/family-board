@@ -3,6 +3,8 @@ import { newItemsFrom, renderBoard } from '../src/board';
 import { DEFAULT_SEASONS, type CardConfig, type KidConfig } from '../src/config';
 import { de } from '../src/i18n';
 import type { BoardModel, Kid, SharedJar } from '../src/model';
+import { activeSeason } from '../src/season';
+import { THEMES } from '../src/themes/registry';
 
 const JUNE = new Date(2026, 5, 1);
 const DECEMBER = new Date(2026, 11, 10);
@@ -269,5 +271,37 @@ describe('renderBoard', () => {
     expect(n).toBeGreaterThan(3);
     expect(n).toBeLessThan(20);
     expect(half).toContain('data-jar="j0"');
+  });
+
+  describe('stays within the animation budget', () => {
+    const busy = model([kid('k1', 1000), kid('k2', 37)]);
+    const animated = (svg: string) => (svg.match(/class="fb-anim/g) ?? []).length;
+
+    for (const id of Object.keys(THEMES)) {
+      it(`with both kids on ${id}`, () => {
+        const cfg: CardConfig = { ...config([{ id: 'k1', theme: id, show_number: false }, { id: 'k2', theme: id, show_number: false }]), seasons: [] };
+        const n = animated(renderBoard(busy, cfg, { date: JUNE }));
+        expect(n).toBeGreaterThan(0);
+        expect(n).toBeLessThanOrEqual(60);
+      });
+    }
+
+    // One date inside each default season whose theme draws a shared season scene.
+    const seasonDates = new Map<string, Date>();
+    for (let day = 0; day < 366; day++) {
+      const date = new Date(2026, 0, 1 + day);
+      const rule = activeSeason(date, DEFAULT_SEASONS, Object.keys(THEMES));
+      if (rule && THEMES[rule.theme].renderSeasonScene && !seasonDates.has(rule.theme)) seasonDates.set(rule.theme, date);
+    }
+    it('finds a season scene to check', () => expect(seasonDates.size).toBeGreaterThan(0));
+    for (const [theme, date] of seasonDates) {
+      it(`in the ${theme} season`, () => {
+        const out = renderBoard(busy, twoKids, { date });
+        expect(out).toContain(`data-theme="${theme}"`);
+        const n = animated(out);
+        expect(n).toBeGreaterThan(0);
+        expect(n).toBeLessThanOrEqual(60);
+      });
+    }
   });
 });

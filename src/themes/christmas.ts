@@ -1,3 +1,4 @@
+import { particles, twinkle } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, esc, num, type Sketch } from '../draw/sketch';
 import { item, type HalfContext, type Theme } from './types';
@@ -116,7 +117,7 @@ function tree(sk: Sketch, late: Sketch, p: Placement, ctx: HalfContext): string 
     return sk.path(moved, { stroke: GOLD, strokeWidth: 2.5 * p.s, roughness: 0.8 });
   }).join('');
   const [sx, sy] = at(p, MID, 31);
-  const topStar = late.polygon(starPoints(sx, sy, 19 * p.s), { fill: GOLD, strokeWidth: 2, roughness: 0.6 });
+  const topStar = `<g ${twinkle(ctx.seedKey)}>${late.polygon(starPoints(sx, sy, 19 * p.s), { fill: GOLD, strokeWidth: 2, roughness: 0.6 })}</g>`;
   return trunk + crown + garlands + ornaments(sk, p, ctx) + topStar;
 }
 
@@ -126,17 +127,6 @@ function placement(box: Box, cx: number, width: number): Placement {
   const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
   const s = Math.min(height / UNITS_H, (width * 0.45) / HALF_W);
   return { cx, top: top + (height - UNITS_H * s), s };
-}
-
-/** Deterministic flakes sprinkled over a box (golden-ratio sequence). */
-function snowflakes(box: Box, count: number): string {
-  let out = '';
-  for (let i = 1; i <= count; i++) {
-    const x = box.x + box.w * ((i * 0.618034 + 0.11) % 1);
-    const y = box.y + box.h * ((i * 0.414214 + 0.05) % 1);
-    out += `<circle cx="${num(x)}" cy="${num(y)}" r="${num(1.6 + (i % 3) * 0.8)}" fill="${SNOW}" opacity="0.9"/>`;
-  }
-  return out;
 }
 
 function presents(sk: Sketch, p: Placement, colour: string): string {
@@ -158,7 +148,8 @@ function renderHalf(ctx: HalfContext): string {
   const [gx, gy] = at(p, MID, BASE + 2);
   const ground = sk.ellipse(gx, gy, 220 * p.s, 22 * p.s, { fill: SNOW, strokeWidth: 2, roughness: 1 });
   const late = createSketch(`${ctx.seedKey}:late`);
-  return `<g>${snowflakes(box, 18)}${ground}${tree(sk, late, p, ctx)}${presents(late, p, ctx.kid.colour)}</g>`;
+  // Snow is plain circles appended last, so it falls in front of the scene and touches no rough.js call index.
+  return `<g>${ground}${tree(sk, late, p, ctx)}${presents(late, p, ctx.kid.colour)}${particles(`${ctx.seedKey}:snow`, box, 13, 'snow')}</g>`;
 }
 
 function ribbon(sk: Sketch, p: Placement, colour: string): string {
@@ -188,7 +179,8 @@ function snowman(sk: Sketch, cx: number, bottom: number, size: number): string {
 }
 
 function renderSeasonScene(halves: HalfContext[], box: Box): string {
-  const sk = createSketch(`season:${halves.map((h) => h.seedKey).join('|')}`);
+  const key = `season:${halves.map((h) => h.seedKey).join('|')}`;
+  const sk = createSketch(key);
   const bandL = box.x + box.w / 2 - 40;
   const bandR = box.x + box.w / 2 + 40;
   const hillY = box.y + box.h * 0.74;
@@ -213,7 +205,7 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
     return `<g data-tree="${esc(ctx.kid.id)}" data-cx="${num(cx)}">${tree(createSketch(ctx.seedKey), late, p, ctx)}${ribbon(late, p, ctx.kid.colour)}</g>`;
   }).join('');
   const man = snowman(sk, box.x + box.w / 2, box.y + box.h * SCENE_BOTTOM, Math.min(80, box.h * 0.2));
-  return `<g>${sky}${snowflakes(box, 60)}${hill}${trees}${man}</g>`;
+  return `<g>${sky}${hill}${trees}${man}${particles(`${key}:snow`, box, 28, 'snow')}</g>`;
 }
 
 export const christmas: Theme = {
