@@ -21,6 +21,11 @@
 #
 # 5. Tablet kiosk: use a kiosk browser (or the HA companion app with its kiosk setting) in landscape,
 #    fullscreen, with the screen always on (disable sleep/screen timeout, keep charging).
+#
+# 6. Open item: nothing returns the tablet from the TaskMate task view to the picture yet (TaskMate's
+#    kiosk card only goes back to its own face picker when idle). Options (see README, "Tablet: back
+#    to the picture"): kiosk browser idle reload of the start URL (Fully Kiosk "Timer to Reload/Go to
+#    Start URL"), browser_mod idle navigation, or a "Zurück" button card in the task view.
 services:
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:2026.11.2 # keep equal to dev/ha/compose.yaml
