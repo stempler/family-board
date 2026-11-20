@@ -1,0 +1,22 @@
+{
+  "sensor.taskmate_overview": {
+    "state": "2",
+    "attributes": {
+      "children": [
+        { "id": "k1", "name": "Mia", "spendable_balance": 12, "color": "#ff0000", "avatar": "mdi:cat" },
+        { "id": "k2", "name": "Ben", "spendable_balance": -3 }
+      ]
+    }
+  },
+  "sensor.taskmate_rewards": {
+    "state": "4",
+    "attributes": {
+      "rewards": [
+        { "id": "r1", "name": "Lego Set", "cost": 50, "icon": "mdi:toy-brick", "pool_enabled": true, "is_jackpot": false, "is_available": true, "assigned_to": ["k1"], "pool_allocations": { "k1": 22 } },
+        { "id": "r2", "name": "Ice Cream", "cost": 20, "icon": "mdi:ice-cream", "pool_enabled": true, "is_jackpot": false, "is_available": true, "assigned_to": [], "pool_allocations": {} },
+        { "id": "r3", "name": "Family Trip", "cost": 40, "icon": "mdi:airplane", "pool_enabled": true, "is_jackpot": true, "is_available": true, "assigned_to": [], "pool_allocations": { "k1": 5, "k2": 8, "kX": 3 } },
+        { "id": "r4", "name": "Screen Time", "cost": 10, "pool_enabled": false, "is_jackpot": false, "is_available": true, "assigned_to": [] }
+      ]
+    }
+  }
+}
