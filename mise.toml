@@ -56,6 +56,24 @@ FB_HA_TOKEN="$(cat dev/ha/.token)" docker run --rm --network host --ipc host -e 
   mcr.microsoft.com/playwright:v1.65.1-noble node scripts/browser-check.mjs /out
 '''
 
+[tasks."gallery:shots"]
+description = "Screenshot every theme of the gallery page with Playwright in Docker (FB_SCREENSHOT_DIR, default dev/screenshots)"
+run = '''
+out="${FB_SCREENSHOT_DIR:-$PWD/dev/screenshots}"
+mkdir -p "$out"
+vite dev/ --port 5173 --strictPort >/dev/null 2>&1 &
+server=$!
+trap 'kill $server 2>/dev/null' EXIT
+for _ in $(seq 60); do
+  curl -sf -o /dev/null http://localhost:5173/gallery.html && break
+  sleep 0.5
+done
+curl -sf -o /dev/null http://localhost:5173/gallery.html || { echo "dev server did not start" >&2; exit 1; }
+docker run --rm --network host --ipc host \
+  -v "$PWD:/work:ro" -v "$out:/out" -w /work \
+  mcr.microsoft.com/playwright:v1.65.1-noble node scripts/gallery-shots.mjs /out
+'''
+
 [tasks."fixtures:capture"]
 description = "Capture TaskMate sensor states from the local Home Assistant into tests/fixtures"
 run = "node scripts/capture-fixtures.mjs"
