@@ -1,0 +1,32 @@
+# Example production Home Assistant for the family board (HA Container).
+# Copy to the home server and adjust paths. Not used by the local dev setup (see dev/ha/compose.yaml).
+#
+# One-time setup after the first start:
+#
+# 1. Install HACS (HA Container has no add-on store, so use the HACS download script):
+#      docker compose exec homeassistant bash -c "wget -O - https://get.hacs.xyz | bash -"
+#    (equivalently, run the script on the host inside ./config so HACS lands in config/custom_components/hacs)
+#    Restart Home Assistant, then add the HACS integration under Settings > Devices & services.
+#
+# 2. Install TaskMate through HACS, pinned to the version in taskmate.version (repo root):
+#    HACS > TaskMate > Redownload > pick that exact version. Then disable auto-update for it
+#    (HACS > TaskMate > three-dot menu > untick "Show update notifications"/auto-update), so updates happen
+#    on purpose after reading the release notes (see README, "Updating TaskMate").
+#
+# 3. Deploy the card: see README, "Deploy". The card file lives in ./config/www/family-board/.
+#
+# 4. Create a non-admin Home Assistant user for the tablet (Settings > People > Users, e.g. "Kinder"):
+#    untick "Administrator", and log the tablet in with it. Make a dashboard with the card and the
+#    TaskMate kiosk view(s) as that user's default.
+#
+# 5. Tablet kiosk: use a kiosk browser (or the HA companion app with its kiosk setting) in landscape,
+#    fullscreen, with the screen always on (disable sleep/screen timeout, keep charging).
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.11.2 # keep equal to dev/ha/compose.yaml
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+    environment:
+      TZ: Europe/Berlin
