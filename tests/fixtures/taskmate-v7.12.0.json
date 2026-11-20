@@ -1,0 +1,457 @@
+{
+  "sensor.taskmate_overview": {
+    "state": "2",
+    "attributes": {
+      "tour": {},
+      "today_day_of_week": "friday",
+      "streak_reset_mode": "reset",
+      "weekend_multiplier": 2,
+      "streak_milestones_enabled": true,
+      "streak_milestones": "3:5, 7:10, 14:20, 30:50, 60:100, 100:200",
+      "perfect_week_enabled": true,
+      "perfect_week_bonus": 50,
+      "streak_requires_all_chores": false,
+      "streak_freeze_max": 2,
+      "streak_freeze_earn_every": 7,
+      "perfect_week_requires_all_chores": false,
+      "total_children": 2,
+      "total_chores": 2,
+      "total_rewards": 4,
+      "total_points_available": 19,
+      "total_chores_completed": 0,
+      "total_completions_all_time": 0,
+      "total_pending_completions": 0,
+      "points_name": "Stars",
+      "points_icon": "mdi:star",
+      "card_design": "classic",
+      "set_times_layout": "rows",
+      "chore_sort": "manual",
+      "parent_user_ids": [],
+      "children": [
+        {
+          "level": 1,
+          "level_progress": 39,
+          "level_target": 100,
+          "id": "a872165c268b415d",
+          "name": "Mia",
+          "points": 12,
+          "pending_points": 0,
+          "tour_done": false,
+          "color": "#d9534f",
+          "committed_points": 0,
+          "allocated_points": 27,
+          "spendable_balance": 12,
+          "chore_order": [],
+          "current_streak": 0,
+          "best_streak": 0,
+          "season_points": 39,
+          "total_points_earned": 39,
+          "total_chores_completed": 0,
+          "avatar": "mdi:account-circle",
+          "avatar_image": "",
+          "week_points_earned": 0,
+          "week_points_available": 72,
+          "last_completion_date": null,
+          "streak_paused": false,
+          "on_vacation": false,
+          "streak_milestones_achieved": [],
+          "streak_freezes": 0,
+          "awarded_perfect_weeks": [],
+          "career_score": 39,
+          "total_penalties_received": 0,
+          "quests": [],
+          "avatar_options": [
+            {
+              "id": "starter",
+              "label": "Starter",
+              "icon": "mdi:account-circle",
+              "unlocked": true,
+              "requirement": ""
+            },
+            {
+              "id": "rocket",
+              "label": "Rocket",
+              "icon": "mdi:rocket-launch",
+              "unlocked": false,
+              "requirement": "Level 3",
+              "unlock_type": "level",
+              "unlock_value": 3
+            },
+            {
+              "id": "robot",
+              "label": "Robot",
+              "icon": "mdi:robot-happy",
+              "unlocked": false,
+              "requirement": "Level 5",
+              "unlock_type": "level",
+              "unlock_value": 5
+            },
+            {
+              "id": "ninja",
+              "label": "Ninja",
+              "icon": "mdi:ninja",
+              "unlocked": false,
+              "requirement": "Level 10",
+              "unlock_type": "level",
+              "unlock_value": 10
+            },
+            {
+              "id": "crown",
+              "label": "Royalty",
+              "icon": "mdi:crown",
+              "unlocked": false,
+              "requirement": "500 earned",
+              "unlock_type": "points",
+              "unlock_value": 500
+            },
+            {
+              "id": "trophy",
+              "label": "Champion",
+              "icon": "mdi:trophy",
+              "unlocked": false,
+              "requirement": "1000 earned",
+              "unlock_type": "points",
+              "unlock_value": 1000
+            },
+            {
+              "id": "fire",
+              "label": "On Fire",
+              "icon": "mdi:fire",
+              "unlocked": false,
+              "requirement": "7-day streak",
+              "unlock_type": "streak",
+              "unlock_value": 7
+            },
+            {
+              "id": "diamond",
+              "label": "Diamond",
+              "icon": "mdi:diamond-stone",
+              "unlocked": false,
+              "requirement": "30-day streak",
+              "unlock_type": "streak",
+              "unlock_value": 30
+            }
+          ],
+          "challenges": [],
+          "earn_rate": 2.8,
+          "tomorrow": [
+            "488865c3694c403f",
+            "a9f89607d5ac4db7"
+          ]
+        },
+        {
+          "level": 1,
+          "level_progress": 15,
+          "level_target": 100,
+          "id": "78de72ee54854842",
+          "name": "Ben",
+          "points": 7,
+          "pending_points": 0,
+          "tour_done": false,
+          "color": "#3b7dd8",
+          "committed_points": 0,
+          "allocated_points": 8,
+          "spendable_balance": 7,
+          "chore_order": [],
+          "current_streak": 0,
+          "best_streak": 0,
+          "season_points": 15,
+          "total_points_earned": 15,
+          "total_chores_completed": 0,
+          "avatar": "mdi:account-circle",
+          "avatar_image": "",
+          "week_points_earned": 0,
+          "week_points_available": 72,
+          "last_completion_date": null,
+          "streak_paused": false,
+          "on_vacation": false,
+          "streak_milestones_achieved": [],
+          "streak_freezes": 0,
+          "awarded_perfect_weeks": [],
+          "career_score": 15,
+          "total_penalties_received": 0,
+          "quests": [],
+          "avatar_options": [
+            {
+              "id": "starter",
+              "label": "Starter",
+              "icon": "mdi:account-circle",
+              "unlocked": true,
+              "requirement": ""
+            },
+            {
+              "id": "rocket",
+              "label": "Rocket",
+              "icon": "mdi:rocket-launch",
+              "unlocked": false,
+              "requirement": "Level 3",
+              "unlock_type": "level",
+              "unlock_value": 3
+            },
+            {
+              "id": "robot",
+              "label": "Robot",
+              "icon": "mdi:robot-happy",
+              "unlocked": false,
+              "requirement": "Level 5",
+              "unlock_type": "level",
+              "unlock_value": 5
+            },
+            {
+              "id": "ninja",
+              "label": "Ninja",
+              "icon": "mdi:ninja",
+              "unlocked": false,
+              "requirement": "Level 10",
+              "unlock_type": "level",
+              "unlock_value": 10
+            },
+            {
+              "id": "crown",
+              "label": "Royalty",
+              "icon": "mdi:crown",
+              "unlocked": false,
+              "requirement": "500 earned",
+              "unlock_type": "points",
+              "unlock_value": 500
+            },
+            {
+              "id": "trophy",
+              "label": "Champion",
+              "icon": "mdi:trophy",
+              "unlocked": false,
+              "requirement": "1000 earned",
+              "unlock_type": "points",
+              "unlock_value": 1000
+            },
+            {
+              "id": "fire",
+              "label": "On Fire",
+              "icon": "mdi:fire",
+              "unlocked": false,
+              "requirement": "7-day streak",
+              "unlock_type": "streak",
+              "unlock_value": 7
+            },
+            {
+              "id": "diamond",
+              "label": "Diamond",
+              "icon": "mdi:diamond-stone",
+              "unlocked": false,
+              "requirement": "30-day streak",
+              "unlock_type": "streak",
+              "unlock_value": 30
+            }
+          ],
+          "challenges": [],
+          "earn_rate": 1.1,
+          "tomorrow": [
+            "488865c3694c403f",
+            "a9f89607d5ac4db7"
+          ]
+        }
+      ],
+      "time_boundaries": {
+        "morning_start": "06:00",
+        "morning_end": "12:00",
+        "afternoon_start": "12:00",
+        "afternoon_end": "17:00",
+        "evening_start": "17:00",
+        "evening_end": "21:00",
+        "night_start": "21:00",
+        "night_end": "23:59"
+      },
+      "time_periods": [
+        {
+          "id": "morning",
+          "label": "",
+          "start": "06:00",
+          "end": "12:00",
+          "icon": "mdi:weather-sunny"
+        },
+        {
+          "id": "afternoon",
+          "label": "",
+          "start": "12:00",
+          "end": "17:00",
+          "icon": "mdi:white-balance-sunny"
+        },
+        {
+          "id": "evening",
+          "label": "",
+          "start": "17:00",
+          "end": "21:00",
+          "icon": "mdi:weather-sunset"
+        },
+        {
+          "id": "night",
+          "label": "",
+          "start": "21:00",
+          "end": "23:59",
+          "icon": "mdi:weather-night"
+        }
+      ],
+      "vacation_active": false,
+      "vacation_name": "",
+      "vacation_end": "",
+      "vacation_periods": [],
+      "season_month": "2026-11",
+      "season_champions": [],
+      "family_goal": {
+        "enabled": false,
+        "name": "",
+        "target": 0,
+        "reward": "",
+        "progress": 19,
+        "achieved": false
+      },
+      "companion_entities": {
+        "chores": "sensor.taskmate_chores",
+        "chore_availability": "sensor.taskmate_chore_availability",
+        "rewards": "sensor.taskmate_rewards",
+        "activity": "sensor.taskmate_activity",
+        "incentives": "sensor.taskmate_incentives",
+        "pending_approvals": "sensor.taskmate_pending_approvals",
+        "bounties": "sensor.taskmate_bounties",
+        "auctions": "sensor.taskmate_auctions",
+        "chore_board": "sensor.taskmate_chore_board"
+      },
+      "badge_entities": {
+        "a872165c268b415d": "sensor.taskmate_mia_badges",
+        "78de72ee54854842": "sensor.taskmate_ben_badges"
+      },
+      "icon": "mdi:clipboard-check-multiple",
+      "friendly_name": "TaskMate Overview"
+    }
+  },
+  "sensor.taskmate_rewards": {
+    "state": "4",
+    "attributes": {
+      "rewards": [
+        {
+          "id": "b7a94d84b5774aec",
+          "name": "LEGO-Set",
+          "cost": 50,
+          "description": "",
+          "icon": "mdi:toy-brick",
+          "assigned_to": [
+            "a872165c268b415d"
+          ],
+          "is_jackpot": false,
+          "pool_enabled": true,
+          "calculated_costs": {
+            "a872165c268b415d": 50
+          },
+          "pool_allocations": {
+            "a872165c268b415d": 22
+          },
+          "jackpot_pool_total": null,
+          "quantity": null,
+          "expires_at": null,
+          "is_sold_out": false,
+          "is_expired": false,
+          "is_available": true,
+          "days_until_expiry": null
+        },
+        {
+          "id": "b2841012b81e46d7",
+          "name": "Kino",
+          "cost": 20,
+          "description": "",
+          "icon": "mdi:movie-open",
+          "assigned_to": [],
+          "is_jackpot": false,
+          "pool_enabled": true,
+          "calculated_costs": {
+            "a872165c268b415d": 20,
+            "78de72ee54854842": 20
+          },
+          "pool_allocations": {
+            "a872165c268b415d": 0,
+            "78de72ee54854842": 0
+          },
+          "jackpot_pool_total": null,
+          "quantity": null,
+          "expires_at": null,
+          "is_sold_out": false,
+          "is_expired": false,
+          "is_available": true,
+          "days_until_expiry": null
+        },
+        {
+          "id": "a01cc7449603447b",
+          "name": "Pizza-Abend",
+          "cost": 40,
+          "description": "",
+          "icon": "mdi:pizza",
+          "assigned_to": [],
+          "is_jackpot": true,
+          "pool_enabled": true,
+          "calculated_costs": {
+            "a872165c268b415d": 40,
+            "78de72ee54854842": 40
+          },
+          "pool_allocations": {
+            "a872165c268b415d": 5,
+            "78de72ee54854842": 8
+          },
+          "jackpot_pool_total": 13,
+          "quantity": null,
+          "expires_at": null,
+          "is_sold_out": false,
+          "is_expired": false,
+          "is_available": true,
+          "days_until_expiry": null
+        },
+        {
+          "id": "7619fa93807743c3",
+          "name": "30 Min. Bildschirmzeit",
+          "cost": 10,
+          "description": "",
+          "icon": "mdi:tablet",
+          "assigned_to": [],
+          "is_jackpot": false,
+          "pool_enabled": false,
+          "calculated_costs": {
+            "a872165c268b415d": 10,
+            "78de72ee54854842": 10
+          },
+          "pool_allocations": {
+            "a872165c268b415d": 0,
+            "78de72ee54854842": 0
+          },
+          "jackpot_pool_total": null,
+          "quantity": null,
+          "expires_at": null,
+          "is_sold_out": false,
+          "is_expired": false,
+          "is_available": true,
+          "days_until_expiry": null
+        }
+      ],
+      "pending_reward_claims": [],
+      "pool_allocations": [
+        {
+          "child_id": "a872165c268b415d",
+          "reward_id": "b7a94d84b5774aec",
+          "allocated_points": 22,
+          "id": "c00acc75cdc94b8e"
+        },
+        {
+          "child_id": "a872165c268b415d",
+          "reward_id": "a01cc7449603447b",
+          "allocated_points": 5,
+          "id": "0ee827da71804065"
+        },
+        {
+          "child_id": "78de72ee54854842",
+          "reward_id": "a01cc7449603447b",
+          "allocated_points": 8,
+          "id": "d516e07cd13840a4"
+        }
+      ],
+      "icon": "mdi:gift-outline",
+      "friendly_name": "TaskMate Rewards"
+    }
+  }
+}

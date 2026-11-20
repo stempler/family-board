@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 import { normalizeConfig } from '../src/config';
 import { parseIcon, toBoardModel, type HassStates } from '../src/adapter';
@@ -58,5 +59,31 @@ describe('parseIcon', () => {
     expect(parseIcon('🧱', fb)).toEqual({ kind: 'emoji', value: '🧱' });
     expect(parseIcon(undefined, fb)).toEqual(fb);
     expect(parseIcon('', fb)).toEqual(fb);
+  });
+});
+
+const captured = Object.entries(
+  import.meta.glob<HassStates>('./fixtures/taskmate-*.json', { eager: true, import: 'default' }),
+);
+
+describe.each(captured)('captured TaskMate data %s', (_file, data) => {
+  const children = (data['sensor.taskmate_overview'].attributes.children as { id: string }[]).map((c) => c.id);
+  const m = toBoardModel(data, cfg(children));
+
+  it('finds both kids with their points', () => {
+    expect(m.status).toBe('ok');
+    expect(m.kids.filter((k) => k.found)).toHaveLength(2);
+    expect(m.kids.map((k) => k.points)).toEqual([12, 7]);
+  });
+  it('maps jars per kid', () => {
+    const mia = m.kids[0].jars;
+    expect(mia.map((j) => j.name)).toContain('Kino');
+    const lego = mia.find((j) => j.name === 'LEGO-Set');
+    expect([lego?.current, lego?.goal]).toEqual([22, 50]);
+    expect(m.kids[1].jars.map((j) => j.name)).toEqual(['Kino']);
+  });
+  it('maps the shared jar', () => {
+    expect(m.sharedJars.map((j) => j.name)).toEqual(['Pizza-Abend']);
+    expect(Object.values(m.sharedJars[0].contributions).reduce((a, b) => a + b, 0)).toBe(13);
   });
 });

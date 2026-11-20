@@ -19,3 +19,43 @@ run = "vite build"
 [tasks.dev]
 description = "Start the theme playground"
 run = "vite dev/"
+
+[tasks."ha:up"]
+description = "Start the local Home Assistant with TaskMate, the card and demo data"
+depends = ["build"]
+run = [
+  "node scripts/fetch-taskmate.mjs",
+  "docker compose -f dev/ha/compose.yaml up -d",
+  "node scripts/dev-bootstrap.mjs",
+]
+
+[tasks."ha:down"]
+description = "Stop the local Home Assistant"
+run = "docker compose -f dev/ha/compose.yaml down"
+
+[tasks."ha:reset"]
+description = "Stop the local Home Assistant and delete its config and token"
+# Delete from inside a container: with rootful Docker the config files belong to root.
+# A plain `docker run` (not `compose run`) so the card's bind mount inside config is not in use.
+run = [
+  "docker compose -f dev/ha/compose.yaml down",
+  "docker run --rm -v \"$PWD/dev/ha:/ha\" --entrypoint sh \"$(docker compose -f dev/ha/compose.yaml config --images)\" -c 'rm -rf /ha/config /ha/.token'",
+]
+
+[tasks."ha:seed"]
+description = "Bootstrap the running local Home Assistant (idempotent)"
+run = "node scripts/dev-bootstrap.mjs"
+
+[tasks."ha:screenshot"]
+description = "Screenshot the board in the local Home Assistant with Playwright in Docker (FB_SCREENSHOT_DIR, default dev/screenshots)"
+run = '''
+out="${FB_SCREENSHOT_DIR:-$PWD/dev/screenshots}"
+mkdir -p "$out"
+FB_HA_TOKEN="$(cat dev/ha/.token)" docker run --rm --network host --ipc host -e FB_HA_TOKEN \
+  -v "$PWD:/work:ro" -v "$out:/out" -w /work \
+  mcr.microsoft.com/playwright:v1.65.1-noble node scripts/browser-check.mjs /out
+'''
+
+[tasks."fixtures:capture"]
+description = "Capture TaskMate sensor states from the local Home Assistant into tests/fixtures"
+run = "node scripts/capture-fixtures.mjs"
