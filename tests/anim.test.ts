@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { particles, rand, timing, twinkle } from '../src/draw/anim';
+import { particles, rand, scaledCount, timing, twinkle } from '../src/draw/anim';
 
 const box = { x: 400, y: 0, w: 400, h: 450 };
 
@@ -67,5 +67,14 @@ describe('particles', () => {
 describe('twinkle', () => {
   it('is a class and timing style attribute string', () => {
     expect(twinkle('s')).toMatch(/^class="fb-anim fb-twinkle" style="--t:[\d.]+s;--d:-[\d.]+s"$/);
+  });
+});
+
+describe('scaledCount', () => {
+  it('scales a per-half count with the box width, keeping at least 1', () => {
+    expect(scaledCount(13, { x: 400, y: 0, w: 400, h: 450 })).toBe(13);
+    expect(scaledCount(14, { x: 0, y: 0, w: 800, h: 450 })).toBe(28);
+    expect(scaledCount(13, { x: 0, y: 0, w: 160, h: 450 })).toBe(5);
+    expect(scaledCount(6, { x: 0, y: 0, w: 10, h: 450 })).toBe(1);
   });
 });

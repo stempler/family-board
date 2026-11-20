@@ -1,4 +1,4 @@
-import { particles, twinkle } from '../draw/anim';
+import { particles, scaledCount, twinkle } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, esc, num, type Sketch } from '../draw/sketch';
 import { item, type HalfContext, type Theme } from './types';
@@ -149,7 +149,7 @@ function renderHalf(ctx: HalfContext): string {
   const ground = sk.ellipse(gx, gy, 220 * p.s, 22 * p.s, { fill: SNOW, strokeWidth: 2, roughness: 1 });
   const late = createSketch(`${ctx.seedKey}:late`);
   // Snow is plain circles appended last, so it falls in front of the scene and touches no rough.js call index.
-  return `<g>${ground}${tree(sk, late, p, ctx)}${presents(late, p, ctx.kid.colour)}${particles(`${ctx.seedKey}:snow`, box, 13, 'snow')}</g>`;
+  return `<g>${ground}${tree(sk, late, p, ctx)}${presents(late, p, ctx.kid.colour)}${particles(`${ctx.seedKey}:snow`, box, scaledCount(13, box), 'snow')}</g>`;
 }
 
 function ribbon(sk: Sketch, p: Placement, colour: string): string {
@@ -202,10 +202,10 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
     const cx = (a + b) / 2;
     const p = placement(box, cx, Math.max(b - a, 0));
     const late = createSketch(`${ctx.seedKey}:late`);
-    return `<g data-tree="${esc(ctx.kid.id)}" data-cx="${num(cx)}">${tree(createSketch(ctx.seedKey), late, p, ctx)}${ribbon(late, p, ctx.kid.colour)}</g>`;
+    return `<g data-tree="${esc(ctx.kid.id)}" data-season-kid="${esc(ctx.kid.id)}" data-cx="${num(cx)}">${tree(createSketch(ctx.seedKey), late, p, ctx)}${ribbon(late, p, ctx.kid.colour)}</g>`;
   }).join('');
   const man = snowman(sk, box.x + box.w / 2, box.y + box.h * SCENE_BOTTOM, Math.min(80, box.h * 0.2));
-  return `<g>${sky}${hill}${trees}${man}${particles(`${key}:snow`, box, 28, 'snow')}</g>`;
+  return `<g>${sky}${hill}${trees}${man}${particles(`${key}:snow`, box, scaledCount(14, box), 'snow')}</g>`;
 }
 
 export const christmas: Theme = {
