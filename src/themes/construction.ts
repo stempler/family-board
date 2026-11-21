@@ -6,8 +6,8 @@ import { item, type HalfContext, type Theme } from './types';
 // A building site, drawn in "site units": bare earth from the horizon (y 100) down. A yellow excavator
 // with a cab stripe in the kid colour digs at a heap of earth on the left; at the right a wall rises from
 // a concrete foundation, red clay bricks laid in running bond from the bottom left. A barrier with a
-// warning light and a traffic cone stand at the back. Pallets stacked with bricks stand in rows of ten on
-// the earth in front of the wall and the excavator.
+// warning light and a traffic cone stand at the back. Pallets stacked with bricks stand on the earth in front
+// of the wall and the excavator: a front row of six big ones first, then two rows of twelve smaller ones behind.
 const MID = 160;
 const UNITS_W = 320;
 const UNITS_H = 260;
@@ -40,12 +40,24 @@ const PER_ROW = 5;
 const ROWS = 6;
 const WALL_X = 176; // left edge of the bottom row
 const WALL_BASE = 186; // top of the foundation
+const WALL_MID = WALL_X + (BOND_X * PER_ROW + BOND_X / 2) / 2;
 
-const PALLET_W = 28; // a pallet stacked with bricks: 28 x 20 units
+const PALLET_W = 28; // a pallet stacked with bricks at scale 1: 28 x 20 units
 const PALLET_H = 20;
+const BIG = 1.5; // the front row: 42 x 30, three bricks tall, so a pallet reads as "ten"
+const BACK = 0.8; // the rows behind: 22.4 x 16, still clearly bigger than a brick
 
-/** Pallet spots in front of the wall and the excavator: three rows of ten, 30 apart, the back row first, each row from the wall side. */
-const PALLETS: Pt[] = [204, 226, 248].flatMap((y) => Array.from({ length: 10 }, (_, i): Pt => [295 - 30 * i, y]));
+/** `n` pallet spots [x, y, scale] at scale `k` in a row centred on `y` and on the half, 2.5 units apart, the one nearest the wall's middle first. */
+const palletRow = (n: number, y: number, k: number): [number, number, number][] =>
+  Array.from({ length: n }, (_, i): [number, number, number] => [MID + (PALLET_W * k + 2.5) * (i - (n - 1) / 2), y, k])
+    .sort((a, b) => Math.abs(a[0] - WALL_MID) - Math.abs(b[0] - WALL_MID));
+
+/** Pallet spots: the big front row first, then the back rows, the one nearer the wall first; 30, as many as the grouping can ask for. */
+const PALLETS: [number, number, number][] = [
+  ...palletRow(6, 259.5 - (PALLET_H * BIG) / 2, BIG),
+  ...palletRow(12, 193 + (PALLET_H * BACK) / 2, BACK),
+  ...palletRow(12, 211 + (PALLET_H * BACK) / 2, BACK),
+];
 
 /** Brick spots in the wall: row by row from the bottom, left to right; every second row offset by half a brick. */
 const BRICKS: Pt[] = Array.from({ length: ROWS * PER_ROW }, (_, i): Pt => {
@@ -55,19 +67,19 @@ const BRICKS: Pt[] = Array.from({ length: ROWS * PER_ROW }, (_, i): Pt => {
 
 const CAPACITY = BRICKS.length;
 
-export interface Spot { kind: 'big' | 'small'; x: number; y: number } // site units, centre of the footprint
+export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number } // site units, centre of the footprint; k scales a pallet
 
 /** Where the items go: pallets on their spots, bricks into the wall, both in order. */
 export function spots(big: number, small: number): Spot[] {
   return [
-    ...PALLETS.slice(0, big).map(([x, y]): Spot => ({ kind: 'big', x, y })),
-    ...BRICKS.slice(0, small).map(([x, y]): Spot => ({ kind: 'small', x, y })),
+    ...PALLETS.slice(0, big).map(([x, y, k]): Spot => ({ kind: 'big', x, y, k })),
+    ...BRICKS.slice(0, small).map(([x, y]): Spot => ({ kind: 'small', x, y, k: 1 })),
   ];
 }
 
 /** The box a drawn item covers, in site units: [left, top, right, bottom]. */
 export function footprint(s: Spot): [number, number, number, number] {
-  const [w, h] = s.kind === 'big' ? [PALLET_W, PALLET_H] : [BRICK_W, BRICK_H];
+  const [w, h] = s.kind === 'big' ? [PALLET_W * s.k, PALLET_H * s.k] : [BRICK_W, BRICK_H];
   return [s.x - w / 2, s.y - h / 2, s.x + w / 2, s.y + h / 2];
 }
 
@@ -85,27 +97,29 @@ function brick(sk: Sketch, p: Placement, x: number, y: number): string {
   return body + stroke(p, [l + 3, t + 2.2], [l + BRICK_W - 6, t + 2.2], '#e2876a', 1.2);
 }
 
-/** A wooden pallet with its footprint centred on (x, y) in units: a deck on three blocks, stacked with two layers of bricks. */
-function pallet(sk: Sketch, p: Placement, x: number, y: number): string {
-  const [l, t, b] = [x - PALLET_W / 2, y - PALLET_H / 2, y + PALLET_H / 2];
-  const blocks = [l + 1, x - 2.5, l + PALLET_W - 6].map((bx) =>
-    `<rect x="${num(at(p, bx, 0)[0])}" y="${num(at(p, 0, b - 3)[1])}" width="${num(5 * p.s)}" height="${num(3 * p.s)}" fill="${WOOD_DARK}"/>`).join('');
-  const deck = sk.rect(...at(p, l, b - 6), PALLET_W * p.s, 3 * p.s, { fill: WOOD, stroke: WOOD_DARK, strokeWidth: 1.2, roughness: 0.3 });
-  const stack = sk.rect(...at(p, l + 1.5, t), (PALLET_W - 3) * p.s, (PALLET_H - 6) * p.s, { fill: BRICK, stroke: BRICK_DARK, strokeWidth: 1.6, roughness: 0.4 });
+/** A wooden pallet with its footprint centred on (x, y) in units, scaled by `k`: a deck on three blocks, stacked with two layers of bricks. */
+function pallet(sk: Sketch, p: Placement, x: number, y: number, k: number): string {
+  const [w, h] = [PALLET_W * k, PALLET_H * k];
+  const [l, t, b] = [x - w / 2, y - h / 2, y + h / 2];
+  const blocks = [l + k, x - 2.5 * k, l + w - 6 * k].map((bx) =>
+    `<rect x="${num(at(p, bx, 0)[0])}" y="${num(at(p, 0, b - 3 * k)[1])}" width="${num(5 * k * p.s)}" height="${num(3 * k * p.s)}" fill="${WOOD_DARK}"/>`).join('');
+  const deck = sk.rect(...at(p, l, b - 6 * k), w * p.s, 3 * k * p.s, { fill: WOOD, stroke: WOOD_DARK, strokeWidth: 1.2, roughness: 0.3 });
+  const stack = sk.rect(...at(p, l + 1.5 * k, t), (w - 3 * k) * p.s, (h - 6 * k) * p.s, { fill: BRICK, stroke: BRICK_DARK, strokeWidth: 1.6, roughness: 0.4 });
   // Joints: one bed joint between the layers, three bricks in the lower layer and two and two halves in the upper one.
-  const mid = t + (PALLET_H - 6) / 2;
-  const w3 = (PALLET_W - 3) / 3;
+  const [sl, sr] = [l + 1.5 * k, l + w - 1.5 * k];
+  const mid = t + (h - 6 * k) / 2;
+  const w3 = (sr - sl) / 3;
   const joints = [
-    stroke(p, [l + 1.5, mid], [l + PALLET_W - 1.5, mid], BRICK_DARK, 1),
-    ...[1, 2].map((i) => stroke(p, [l + 1.5 + i * w3, mid], [l + 1.5 + i * w3, b - 6], BRICK_DARK, 1)),
-    ...[0.5, 1.5, 2.5].map((i) => stroke(p, [l + 1.5 + i * w3, t], [l + 1.5 + i * w3, mid], BRICK_DARK, 1)),
+    stroke(p, [sl, mid], [sr, mid], BRICK_DARK, 1),
+    ...[1, 2].map((i) => stroke(p, [sl + i * w3, mid], [sl + i * w3, b - 6 * k], BRICK_DARK, 1)),
+    ...[0.5, 1.5, 2.5].map((i) => stroke(p, [sl + i * w3, t], [sl + i * w3, mid], BRICK_DARK, 1)),
   ].join('');
   return blocks + deck + stack + joints;
 }
 
 function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return spots(ctx.groups.big, ctx.groups.small).map((s, i) =>
-    s.kind === 'big' ? item('big', i, ctx, pallet(sk, p, s.x, s.y)) : item('small', i, ctx, brick(sk, p, s.x, s.y)),
+    s.kind === 'big' ? item('big', i, ctx, pallet(sk, p, s.x, s.y, s.k)) : item('small', i, ctx, brick(sk, p, s.x, s.y)),
   ).join('');
 }
 
