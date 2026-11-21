@@ -8,7 +8,7 @@
 //   ha-board-after.png  ~1s after taskmate.add_points (Mia, 1 point, reason "Test")
 //   ha-board-season.png with a christmas season covering today; then a tap on a tree must navigate too
 //   ha-theme-<id>.png   both kids on each favourite theme (no season scene), seasons off
-//   ha-season-<id>.png  each season theme (christmas, halloween, easter) as a season covering today
+//   ha-season-<id>.png  each registered season theme (FamilyBoardCard.seasonThemeIds) as a season covering today
 // The dashboard config is restored at the end. Note: every run gives Mia one more point.
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -164,8 +164,9 @@ try {
   // Every theme: favourites per kid (seasons off), then each season scene via a rule covering today.
   const themeIds = await page.evaluate(() => customElements.get('family-board-card').themeIds);
   log(`themes: ${themeIds.join(', ')}`);
-  const seasonThemes = ['christmas', 'halloween', 'easter'];
-  check(seasonThemes.every((id) => themeIds.includes(id)), 'season themes are registered');
+  const seasonThemes = await page.evaluate(() => customElements.get('family-board-card').seasonThemeIds);
+  log(`season themes: ${seasonThemes.join(', ')}`);
+  check(seasonThemes.length > 0 && seasonThemes.every((id) => themeIds.includes(id)), 'season themes are registered');
   const favourites = themeIds.filter((id) => !seasonThemes.includes(id));
   const withCard = (patch) => {
     const config = structuredClone(original);

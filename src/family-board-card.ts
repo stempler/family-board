@@ -7,7 +7,7 @@ import { normalizeConfig, type CardConfig } from './config';
 import { animCss } from './draw/anim';
 import { esc, INK, PAPER } from './draw/sketch';
 import { de } from './i18n';
-import { THEMES, themeCss } from './themes/registry';
+import { THEMES, seasonThemeIds, themeCss } from './themes/registry';
 
 interface Hass { states: HassStates }
 
@@ -66,6 +66,11 @@ export class FamilyBoardCard extends LitElement {
   /** Registered theme ids (read by the browser check). */
   static get themeIds(): string[] {
     return Object.keys(THEMES);
+  }
+
+  /** Ids of the registered themes that have a season scene (read by the browser check). */
+  static get seasonThemeIds(): string[] {
+    return seasonThemeIds();
   }
 
   static getStubConfig(hass?: Hass): Record<string, unknown> {

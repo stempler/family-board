@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderBoard } from '../src/board';
 import { DEFAULT_SEASONS, type CardConfig, type KidConfig } from '../src/config';
 import type { BoardModel, Kid } from '../src/model';
-import { easterSunday } from '../src/season';
+import { seasonStart } from '../src/season';
 import { THEMES } from '../src/themes/registry';
 
 // Whole-board SVG snapshots. Rendering is deterministic (seeded wobble, fixed item spots), so any change to these
@@ -65,11 +65,8 @@ describe('board snapshots', () => {
     });
   }
 
-  const SEASON_DATES: Record<string, Date> = {
-    christmas: new Date(2026, 11, 15),
-    halloween: new Date(2026, 9, 28),
-    easter: easterSunday(2027),
-  };
+  // The date of each season scene comes from the theme's default season rule.
+  const SEASON_DATES: Record<string, Date> = Object.fromEntries(DEFAULT_SEASONS.map((r) => [r.theme, seasonStart(r, 2026)]));
   it('covers every theme with a season scene', () => {
     const seasonal = Object.values(THEMES).filter((t) => t.renderSeasonScene).map((t) => t.id);
     expect(Object.keys(SEASON_DATES).sort()).toEqual(seasonal.sort());
