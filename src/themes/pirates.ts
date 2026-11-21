@@ -6,8 +6,9 @@ import { item, type HalfContext, type Theme } from './types';
 // A beach in front of the sea, drawn in "beach units": the horizon is at y 70, the sand starts at the
 // shore (y 140) and runs to the bottom (y 240). An open treasure chest stands in the middle (x 106..194),
 // its lid up; gold coins heap up in its opening and then lie on the sand in front of it. Gold bars are
-// stacked in two little pyramids beside the chest. A small sailing ship with a plain pennant in the kid
-// colour bobs on the sea, a palm leans in from the left. Generic pirates: no skull, no flag logo.
+// stacked beside the chest and pile up on the sand in front of the stacks. A small sailing ship with a
+// plain pennant in the kid colour bobs on the sea, a palm leans in from the left. Generic pirates: no
+// skull, no flag logo.
 const MID = 160;
 const UNITS_W = 320;
 const UNITS_H = 240;
@@ -38,20 +39,24 @@ const COIN_W = 16; // a coin lies flat: 16 x 9 units
 const COIN_H = 9;
 const BAR_W = 26; // a gold bar: 26 units at the bottom, 18 at the top, 12 tall
 const BAR_H = 12;
-const SPILL = 0.6; // scale of a bar lying on a coin spot, so it fits the coin pitch
 
 /**
- * Bar spots, bottom row first: a pyramid of 4-3-2-1 right of the chest, then one of 3-2-1 left of it.
- * 29 apart in a row and 14 between rows, so no two bars touch.
+ * Bar spots, one for every bar the grouping can ask for (at most one per coin spot), 29 apart in a row and
+ * 14 between rows, so no two bars touch: a stack of 4-4-3-2-1 right of the chest (bottom row first), a pyramid
+ * of 3-2-1 left of it, then a small pile on the sand in front of each, beside the coin rows.
  */
 const BARS: Pt[] = [
   [214, 202], [243, 202], [272, 202], [301, 202],
-  [228.5, 188], [257.5, 188], [286.5, 188],
-  [243, 174], [272, 174],
-  [257.5, 160],
+  [214, 188], [243, 188], [272, 188], [301, 188],
+  [228.5, 174], [257.5, 174], [286.5, 174],
+  [243, 160], [272, 160],
+  [257.5, 146],
   [90, 202], [61, 202], [32, 202],
   [75.5, 188], [46.5, 188],
   [61, 174],
+  [243, 216], [272, 216], [301, 216],
+  [256, 230], [285, 230],
+  [57, 216], [47, 230],
 ];
 
 /** The two rows of coins in front of the chest, centre outwards: at the coin pitch of 20, so they never touch. */
@@ -72,24 +77,19 @@ const COINS: Pt[] = [
 
 const CAPACITY = COINS.length;
 
-export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number; slot: number } // beach units; k scales the drawing; slot is the coin spot, -1 on a bar spot
+export interface Spot { kind: 'big' | 'small'; x: number; y: number } // beach units
 
-/** Where the items go: bars first on their own spots, then on coin spots (smaller); coins fill the remaining coin spots in order. */
+/** Where the items go: bars on their own spots, coins on the coin spots in order. Never more items than coin spots. */
 export function spots(big: number, small: number): Spot[] {
-  const out: Spot[] = [];
-  let slot = 0;
-  for (let i = 0; i < big && slot < COINS.length; i++) {
-    if (i < BARS.length) out.push({ kind: 'big', x: BARS[i][0], y: BARS[i][1], k: 1, slot: -1 });
-    else out.push({ kind: 'big', x: COINS[slot][0], y: COINS[slot][1], k: SPILL, slot: slot++ });
-  }
-  for (let i = 0; i < small && slot < COINS.length; i++, slot++) out.push({ kind: 'small', x: COINS[slot][0], y: COINS[slot][1], k: 1, slot });
-  return out;
+  const bars = BARS.slice(0, Math.min(big, CAPACITY)).map(([x, y]): Spot => ({ kind: 'big', x, y }));
+  const coins = COINS.slice(0, Math.max(0, Math.min(small, CAPACITY - bars.length))).map(([x, y]): Spot => ({ kind: 'small', x, y }));
+  return [...bars, ...coins];
 }
 
 /** The box a drawn item covers, in beach units: [left, top, right, bottom]. */
 export function footprint(s: Spot): [number, number, number, number] {
   const [w, h] = s.kind === 'big' ? [BAR_W, BAR_H] : [COIN_W, COIN_H];
-  return [s.x - (w / 2) * s.k, s.y - (h / 2) * s.k, s.x + (w / 2) * s.k, s.y + (h / 2) * s.k];
+  return [s.x - w / 2, s.y - h / 2, s.x + w / 2, s.y + h / 2];
 }
 
 /** A gold coin lying flat at (x, y) in units, with a rim. */
@@ -100,19 +100,19 @@ function coin(sk: Sketch, p: Placement, x: number, y: number): string {
   return body + rim;
 }
 
-/** A gold bar at (x, y) in units, scaled by `k`: a trapezoid with a shine along its top. */
-function bar(sk: Sketch, p: Placement, x: number, y: number, k: number): string {
-  const [bw, tw, h] = [(BAR_W / 2) * k, (BAR_W / 2 - 4) * k, (BAR_H / 2) * k];
+/** A gold bar at (x, y) in units: a trapezoid with a shine along its top. */
+function bar(sk: Sketch, p: Placement, x: number, y: number): string {
+  const [bw, tw, h] = [BAR_W / 2, BAR_W / 2 - 4, BAR_H / 2];
   const body = sk.polygon([at(p, x - bw, y + h), at(p, x + bw, y + h), at(p, x + tw, y - h), at(p, x - tw, y - h)], { fill: GOLD, stroke: INK, strokeWidth: 1.6, roughness: 0.4 });
-  const [x0, y0] = at(p, x - tw + 2 * k, y - h + 3 * k);
-  const [x1] = at(p, x + tw - 6 * k, y);
-  const shine = `<line x1="${num(x0)}" y1="${num(y0)}" x2="${num(x1)}" y2="${num(y0)}" stroke="#fff6c2" stroke-width="${num(Math.max(1, 1.6 * k * p.s))}" stroke-linecap="round" opacity="0.9"/>`;
+  const [x0, y0] = at(p, x - tw + 2, y - h + 3);
+  const [x1] = at(p, x + tw - 6, y);
+  const shine = `<line x1="${num(x0)}" y1="${num(y0)}" x2="${num(x1)}" y2="${num(y0)}" stroke="#fff6c2" stroke-width="${num(Math.max(1, 1.6 * p.s))}" stroke-linecap="round" opacity="0.9"/>`;
   return body + shine;
 }
 
 function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return spots(ctx.groups.big, ctx.groups.small).map((s, i) =>
-    s.kind === 'big' ? item('big', i, ctx, bar(sk, p, s.x, s.y, s.k)) : item('small', i, ctx, coin(sk, p, s.x, s.y)),
+    s.kind === 'big' ? item('big', i, ctx, bar(sk, p, s.x, s.y)) : item('small', i, ctx, coin(sk, p, s.x, s.y)),
   ).join('');
 }
 
@@ -190,11 +190,11 @@ function chest(sk: Sketch, p: Placement): string {
   return `<g data-part="chest">${lid}${lidBand}${body}${planks}${strap(116)}${strap(178)}${lock}${hole}${hold}</g>`;
 }
 
-/** A starfish, a shell and a seagull, drawn after the items with their own sketch. */
+/** A starfish, a shell on the shore and a seagull, drawn after the items with their own sketch. */
 function extras(sk: Sketch, p: Placement): string {
   const star = sk.polygon(starPoints(...at(p, 20, 228), 9 * p.s), { fill: STARFISH, strokeWidth: 1.4, roughness: 0.4 });
-  const shell = sk.path(moved(p, 'M 289 233 Q 298 212 307 233 Q 298 236 289 233 Z'), { fill: SHELL, strokeWidth: 1.4, roughness: 0.4 }) +
-    sk.path(moved(p, 'M 298 233 L 298 219 M 293 233 L 296 221 M 303 233 L 300 221'), { stroke: '#c98b8d', strokeWidth: 1, roughness: 0.3 });
+  const shell = sk.path(moved(p, 'M 74 158 Q 83 137 92 158 Q 83 161 74 158 Z'), { fill: SHELL, strokeWidth: 1.4, roughness: 0.4 }) +
+    sk.path(moved(p, 'M 83 158 L 83 144 M 78 158 L 81 146 M 88 158 L 85 146'), { stroke: '#c98b8d', strokeWidth: 1, roughness: 0.3 });
   const gull = sk.path(moved(p, 'M 108 34 Q 113 27 118 34 Q 123 27 128 34'), { strokeWidth: 1.8, roughness: 0.4 });
   return `<g data-part="beach">${star}${shell}</g><g data-part="gull">${gull}</g>`;
 }

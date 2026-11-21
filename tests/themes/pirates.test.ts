@@ -60,15 +60,21 @@ describe('pirates item layout', () => {
     return bad;
   };
 
-  it('keeps a gold bar clearly bigger than a coin', () => {
-    const area = (s: Spot) => { const [l, t, r, b] = footprint(s); return (r - l) * (b - t); };
-    expect(area(spots(1, 0)[0])).toBeGreaterThan(1.5 * area(spots(0, 1)[0]));
+  const area = (s: Spot) => { const [l, t, r, b] = footprint(s); return (r - l) * (b - t); };
+
+  it('has a bar spot for every bar the grouping can ask for', () => {
+    let most = 0;
+    for (let n = 0; n <= 20000; n++) most = Math.max(most, groupItems(n, pirates.capacity).big);
+    expect(spots(most, 0)).toHaveLength(most);
+  });
+  it('keeps every gold bar clearly bigger than a coin', () => {
+    const small = area(spots(0, 1)[0]);
+    for (const s of spots(pirates.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
   });
   it('keeps every bar spot clear of every coin spot and of each other', () => {
-    const bars = spots(pirates.capacity, 0).filter((s) => s.slot < 0);
-    expect(overlapping([...bars, ...spots(0, pirates.capacity)])).toEqual([]);
+    expect(overlapping([...spots(pirates.capacity, 0), ...spots(0, pirates.capacity)])).toEqual([]);
   });
-  for (const points of [27, 37, 199, 1000]) {
+  for (const points of [27, 37, 172, 199, 270, 300, 1000]) {
     it(`draws no two items on top of each other at ${points} points`, () => {
       const { big, small } = groupItems(points, pirates.capacity);
       const list = spots(big, small);
