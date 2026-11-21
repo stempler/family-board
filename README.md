@@ -241,6 +241,20 @@ screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
 4. `mise run test`.
 5. Read the TaskMate release notes.
 
+## Dependency updates
+
+[Renovate](https://docs.renovatebot.com) (`renovate.json5`) opens the update pull requests once a week, for versions
+that are at least three days old:
+
+- **Merged by Renovate when CI is green:** minor and patch updates of the development tooling (npm
+  `devDependencies`, Node in `mise.toml`, the Playwright image) and of the GitHub Actions.
+- **Waiting for a person:** every major update, Home Assistant, and the packages bundled into the card (Lit,
+  Rough.js, the font). For a bundled package, check its licence against `THIRD-PARTY-NOTICES.md`.
+- **Not covered:** TaskMate, see above.
+
+The Playwright image in `mise.toml` and the npm package `playwright-core` are updated together, as are the two
+Home Assistant compose files.
+
 ## Release
 
 ```sh

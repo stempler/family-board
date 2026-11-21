@@ -1,0 +1,57 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:recommended', 'schedule:weekly'],
+
+  // Wait a few days before proposing a new version, so a broken or withdrawn release never arrives here.
+  minimumReleaseAge: '3 days',
+
+  // Renovate merges by itself once CI is green. GitHub's own auto-merge is not used: master has no
+  // required status checks, so GitHub would merge without waiting for CI.
+  platformAutomerge: false,
+
+  customManagers: [
+    {
+      // The Playwright Docker image in the mise tasks must have the same version as the npm package
+      // playwright-core. Reading it as that npm package puts both into one pull request.
+      customType: 'regex',
+      managerFilePatterns: ['/^mise\\.toml$/'],
+      matchStrings: ['mcr\\.microsoft\\.com/playwright:v(?<currentValue>\\d+\\.\\d+\\.\\d+)-noble'],
+      depNameTemplate: 'playwright-core',
+      datasourceTemplate: 'npm',
+      depTypeTemplate: 'devDependencies',
+    },
+  ],
+
+  packageRules: [
+    {
+      description: 'Development tooling: minor and patch updates merge by themselves when CI is green',
+      matchManagers: ['npm', 'custom.regex'],
+      matchDepTypes: ['devDependencies'],
+      matchUpdateTypes: ['minor', 'patch'],
+      automerge: true,
+    },
+    {
+      description: 'Node (mise) and GitHub Actions: minor, patch and commit pin updates merge by themselves',
+      matchManagers: ['mise', 'github-actions'],
+      matchUpdateTypes: ['minor', 'patch', 'digest', 'pinDigest'],
+      automerge: true,
+    },
+    {
+      description: 'Bundled into the card: always reviewed by a person',
+      matchManagers: ['npm'],
+      matchDepTypes: ['dependencies'],
+      automerge: false,
+      prBodyNotes: [
+        'This package is bundled into the released card. Compare the `LICENSE` file in the new version with `THIRD-PARTY-NOTICES.md` and update the notices if it changed.',
+      ],
+    },
+    {
+      description: 'Home Assistant: always reviewed by a person, together with TaskMate (README, "Updating TaskMate")',
+      matchManagers: ['docker-compose'],
+      automerge: false,
+      prBodyNotes: [
+        'Check the pinned TaskMate version (`taskmate.version`) against this Home Assistant version: `mise run ha:reset && mise run ha:up`, then `mise run fixtures:capture` and `mise run test`.',
+      ],
+    },
+  ],
+}
