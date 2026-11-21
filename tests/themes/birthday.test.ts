@@ -189,7 +189,14 @@ describe('birthday item layout', () => {
   });
   it('keeps every present clearly bigger than a balloon', () => {
     const small = area(spots(0, 1)[0]);
+    expect(area(spots(1, 0)[0])).toBeGreaterThan(2.5 * small);
     for (const s of spots(birthday.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
+  });
+  it('keeps every present inside the party units', () => {
+    for (const s of spots(birthday.capacity, 0)) {
+      const [l, t, r, b] = footprint(s);
+      expect(l >= 0 && r <= 340 && t >= 0 && b <= 270, `present at ${s.x},${s.y}`).toBe(true);
+    }
   });
   it('keeps the presents apart', () => {
     expect(overlapping(spots(birthday.capacity, 0))).toEqual([]);

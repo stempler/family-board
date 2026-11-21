@@ -30,10 +30,11 @@ const GOAL_GROUND = 192; // goal line
 const BALL_D = 20; // a football: 20 units across
 const TROPHY_W = 30; // a trophy with its handles: 30 x 42 units
 const TROPHY_H = 42;
+const BIG = 1.5; // scale of a trophy on its own spot in front of the goal: about three balls tall, it reads as "ten"
 const SPILL = 0.7; // scale of a trophy standing on a ball spot: still clearly bigger than a ball
 
-/** Trophy spots in front of the goal, middle ones first: 36 apart, so no two touch. Spots are footprint centres. */
-const TROPHIES: Pt[] = [[66, 233], [102, 233], [30, 233], [138, 233]];
+/** Trophy spots in front of the goal, the middle one first: 47 apart, so no two touch. Spots are footprint centres. */
+const TROPHIES: Pt[] = [[70.5, 226.5], [117.5, 226.5], [23.5, 226.5]];
 
 /** One row of five balls at a pitch of 30, left to right. */
 const row = (y: number): Pt[] => Array.from({ length: 5 }, (_, i): Pt => [180 + 30 * i, y]);
@@ -50,7 +51,7 @@ export function spots(big: number, small: number): Spot[] {
   const out: Spot[] = [];
   let slot = 0;
   for (let i = 0; i < big && slot < BALLS.length; i++) {
-    if (i < TROPHIES.length) out.push({ kind: 'big', x: TROPHIES[i][0], y: TROPHIES[i][1], k: 1, slot: -1 });
+    if (i < TROPHIES.length) out.push({ kind: 'big', x: TROPHIES[i][0], y: TROPHIES[i][1], k: BIG, slot: -1 });
     else out.push({ kind: 'big', x: BALLS[slot][0], y: BALLS[slot][1], k: SPILL, slot: slot++ });
   }
   for (let i = 0; i < small && slot < BALLS.length; i++, slot++) out.push({ kind: 'small', x: BALLS[slot][0], y: BALLS[slot][1], k: 1, slot });
@@ -137,8 +138,8 @@ function goalFrame(sk: Sketch, p: Placement): string {
 
 const SHOT_X = 112; // the shot ball at rest, in the net
 const SHOT_Y = 183;
-const SHOT_R = 9;
-const SHOT_FROM: Pt = [158, 250]; // where it is kicked from, between the trophies and the balls
+export const SHOT_R = 9;
+export const SHOT_FROM: Pt = [158, 250]; // where it is kicked from, between the trophies and the balls, clear of both
 
 /** One extra ball (not counted), the kid's match ball with patches in the kid colour, that bounces from the front of the pitch into the net once per cycle; at rest it lies in the net. */
 function shot(sk: Sketch, p: Placement, ctx: HalfContext): string {

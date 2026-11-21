@@ -9,8 +9,8 @@ import { item, type HalfContext, type Theme } from './types';
 // show the kid's age (not counted items): up to 10 in one row on the top tier, 11 to 20 in two rows, the
 // second on the ledge of the lower tier; without a known age a cherry sits on top instead. The points are
 // balloons, each on its string, in columns of five left and right of the cake; presents (the big items)
-// stand in a row on the floor in front of the table and then stack up on the table from below, taking the
-// place of the balloons.
+// stand in a row of big boxes on the floor in front of the table and then stack up on the table from below,
+// smaller, taking the place of the balloons.
 const MID = 170;
 const UNITS_W = 340;
 const UNITS_H = 270;
@@ -41,17 +41,20 @@ const FLOOR_Y = 260;
 
 /** A cake tier: left, right, the centre of its top ellipse, its bottom edge and the top ellipse's half-height, in units. */
 interface Tier { l: number; r: number; t: number; b: number; ry: number }
-const TOP_TIER: Tier = { l: 124, r: 216, t: 146, b: 178, ry: 6 };
+const TOP_TIER: Tier = { l: 118, r: 222, t: 146, b: 178, ry: 6 };
 const LOW_TIER: Tier = { l: 106, r: 234, t: 176, b: PLATE_TOP - 3, ry: 9 };
 
 const CANDLE_H = 24; // a candle with its flame, standing on its base
+const CANDLE_W = 5;
 const MAX_CANDLES = 20;
 const ROW = 10; // candles in one row
 const LIT = 8; // only the first candles' flames flicker
 
 const BALLOON_W = 16; // a balloon with its string: 16 x 26 units
 const BALLOON_H = 26;
-const PRESENT = 26; // a present: a 26 x 26 box with a lid, a ribbon and a flat bow
+const PRESENT = 26; // a present stacked on the table: a 26 x 26 box with a lid, a ribbon and a flat bow
+const FLOOR_W = 44; // a present on the floor: a 44 x 50 box, about two balloons tall, so it reads as "ten"
+const FLOOR_H = 50;
 const PITCH = 28; // the grid of balloon and stacked present spots beside the cake
 
 /** The grid beside the cake, three columns either side, five rows from the table up; columns inner ones first, alternating sides. */
@@ -65,17 +68,17 @@ const BALLOON_CELLS: { x: number; y: number; slot: number }[] = COLUMNS.flatMap(
 /** Presents stacked on the table: the bottom row first (inner columns first), then the rows above; they take balloon cells. */
 const STACK_CELLS = ROWS.flatMap((y) => COLUMNS.map((x) => BALLOON_CELLS.find((c) => c.x === x && c.y === y)!));
 
-/** The row of presents on the floor in front of the table, 30 apart, centre outwards. */
-const FLOOR_ROW: Pt[] = Array.from({ length: 11 }, (_, i): Pt => [20 + 30 * i, FLOOR_Y + 9 - PRESENT / 2])
+/** The row of big presents on the floor in front of the table, 46 apart, centre outwards, standing on the bottom edge. */
+const FLOOR_ROW: Pt[] = Array.from({ length: 7 }, (_, i): Pt => [MID + 46 * (i - 3), UNITS_H - 1 - FLOOR_H / 2])
   .sort((a, b) => Math.abs(a[0] - MID) - Math.abs(b[0] - MID) || a[0] - b[0]);
 
 const CAPACITY = BALLOON_CELLS.length;
 
-export interface Spot { kind: 'big' | 'small'; x: number; y: number; slot: number } // party units, centre of the footprint; slot is the grid cell, -1 on the floor
+export interface Spot { kind: 'big' | 'small'; x: number; y: number; slot: number } // party units, centre of the footprint; slot is the grid cell, -1 on the floor (a big present)
 
 /**
  * Where the items go: presents on the floor first, then stacked on the table from below; balloons fill the
- * grid cells the presents left free, column by column. 41 present spots, more than the 30 the grouping can ask for.
+ * grid cells the presents left free, column by column. 37 present spots, more than the 30 the grouping can ask for.
  */
 export function spots(big: number, small: number): Spot[] {
   const out: Spot[] = [];
@@ -93,9 +96,12 @@ export function spots(big: number, small: number): Spot[] {
   return out;
 }
 
+/** Width and height of a spot's item: a balloon, a big present on the floor or a present stacked on the table. */
+const size = (s: Spot): [number, number] => (s.kind === 'small' ? [BALLOON_W, BALLOON_H] : s.slot < 0 ? [FLOOR_W, FLOOR_H] : [PRESENT, PRESENT]);
+
 /** The box a drawn item covers, in party units: [left, top, right, bottom]. */
 export function footprint(s: Spot): [number, number, number, number] {
-  const [w, h] = s.kind === 'big' ? [PRESENT, PRESENT] : [BALLOON_W, BALLOON_H];
+  const [w, h] = size(s);
   return [s.x - w / 2, s.y - h / 2, s.x + w / 2, s.y + h / 2];
 }
 
@@ -109,21 +115,26 @@ function balloon(sk: Sketch, p: Placement, x: number, y: number, colour: string)
   return `<g data-part="balloon">${string}${knot}${body}${shine}</g>`;
 }
 
-/** A wrapped present whose footprint is centred on (x, y): a box with a lid, a ribbon down the front and a flat bow on the lid. */
-function present(sk: Sketch, p: Placement, x: number, y: number, [wrap, ribbon]: [string, string]): string {
-  const h = PRESENT / 2;
-  const box = sk.rect(...at(p, x - h + 1, y - h + 5), (PRESENT - 2) * p.s, (PRESENT - 5) * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
-  const lid = sk.rect(...at(p, x - h, y - h), PRESENT * p.s, 6 * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
-  const band = sk.rect(...at(p, x - 2, y - h), 4 * p.s, PRESENT * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
-  const loops = [-1, 1].map((d) => sk.path(moved(p, `M ${x} ${y - h + 3} C ${x + d * 8} ${y - h - 0.5} ${x + d * 9} ${y - h + 6.5} ${x} ${y - h + 3} Z`), { fill: ribbon, strokeWidth: 1.1, roughness: 0.3 })).join('');
-  const knot = sk.circle(...at(p, x, y - h + 3), 3.4 * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
+/**
+ * A wrapped present whose `w` x `h` footprint is centred on (x, y): a box with a lid, a ribbon down the front and a
+ * bow on the lid; the bow sits inside the footprint's top, the lid below it.
+ */
+function present(sk: Sketch, p: Placement, x: number, y: number, w: number, h: number, [wrap, ribbon]: [string, string]): string {
+  const k = w / PRESENT; // ribbon and bow grow with the box
+  const [l, t] = [x - w / 2, y - h / 2];
+  const lidH = 6 * k;
+  const box = sk.rect(...at(p, l + k, t + lidH - k), (w - 2 * k) * p.s, (h - lidH + k) * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
+  const lid = sk.rect(...at(p, l, t), w * p.s, lidH * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
+  const band = sk.rect(...at(p, x - 2 * k, t), 4 * k * p.s, h * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
+  const loops = [-1, 1].map((d) => sk.path(moved(p, `M ${x} ${t + 3 * k} C ${x + d * 8 * k} ${t - 0.5 * k} ${x + d * 9 * k} ${t + 6.5 * k} ${x} ${t + 3 * k} Z`), { fill: ribbon, strokeWidth: 1.1, roughness: 0.3 })).join('');
+  const knot = sk.circle(...at(p, x, t + 3 * k), 3.4 * k * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
   return `<g data-part="present">${box}${lid}${band}${loops}${knot}</g>`;
 }
 
 function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
   let presents = 0;
   return spots(ctx.groups.big, ctx.groups.small).map((s, i) => {
-    if (s.kind === 'big') return item('big', i, ctx, present(sk, p, s.x, s.y, WRAPS[presents++ % WRAPS.length]));
+    if (s.kind === 'big') return item('big', i, ctx, present(sk, p, s.x, s.y, ...size(s), WRAPS[presents++ % WRAPS.length]));
     const [col, row] = [Math.floor(s.slot / ROWS.length), s.slot % ROWS.length];
     return item('small', i, ctx, balloon(sk, p, s.x, s.y, BALLOONS[(col * 3 + row) % BALLOONS.length]));
   }).join('');
@@ -136,7 +147,7 @@ function candleSpots(age: number | undefined): { row: number; x: number; base: n
   const rows = n <= ROW ? [n] : [Math.ceil(n / 2), Math.floor(n / 2)];
   return rows.flatMap((k, row) => {
     // Top tier: on its top, a little in front of the centre. Lower tier: on the front of its ledge, following the curve.
-    const [room, gap] = row === 0 ? [82, 12] : [104, 13];
+    const [room, gap] = row === 0 ? [96, 12] : [104, 13];
     const step = k > 1 ? Math.min(gap, room / (k - 1)) : 0;
     return Array.from({ length: k }, (_, i) => {
       const dx = (i - (k - 1) / 2) * step;
@@ -149,10 +160,10 @@ function candleSpots(age: number | undefined): { row: number; x: number; base: n
 
 /** A striped candle standing on (x, base) in units, with its flame on top; the flame flickers when `flicker` is a seed key. */
 function candle(sk: Sketch, p: Placement, x: number, base: number, row: number, colour: string, flicker?: string): string {
-  const body = sk.rect(...at(p, x - 3, base - 15), 6 * p.s, 15 * p.s, { fill: colour, strokeWidth: 1.2, roughness: 0.3 });
+  const body = sk.rect(...at(p, x - CANDLE_W / 2, base - 15), CANDLE_W * p.s, 15 * p.s, { fill: colour, strokeWidth: 1.2, roughness: 0.3 });
   const stripes = [5, 10].map((dy) => {
-    const [x0, y0] = at(p, x - 3, base - dy + 2);
-    const [x1, y1] = at(p, x + 3, base - dy - 2);
+    const [x0, y0] = at(p, x - CANDLE_W / 2, base - dy + 2);
+    const [x1, y1] = at(p, x + CANDLE_W / 2, base - dy - 2);
     return `<line x1="${num(x0)}" y1="${num(y0)}" x2="${num(x1)}" y2="${num(y1)}" stroke="#ffffff" stroke-width="${num(Math.max(0.8, 1.4 * p.s))}" opacity="0.85"/>`;
   }).join('');
   const [wx, wy0] = at(p, x, base - 15);

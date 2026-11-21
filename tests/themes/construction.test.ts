@@ -61,6 +61,10 @@ describe('construction half', () => {
 describe('construction item layout', () => {
   const { overlapping, area } = layout(footprint);
 
+  it('has a spot for as many big items as the grouping can ask for', () => {
+    expect(spots(construction.capacity, 0)).toHaveLength(construction.capacity);
+  });
+
   it('lays the bricks in running bond from the bottom left, five to a row', () => {
     const bricks = spots(0, 10);
     expect(bricks[0].x).toBe(Math.min(...bricks.map((s) => s.x)));
@@ -74,7 +78,14 @@ describe('construction item layout', () => {
   });
   it('keeps every pallet clearly bigger than a brick', () => {
     const small = area(spots(0, 1)[0]);
+    expect(area(spots(1, 0)[0])).toBeGreaterThan(2.5 * small);
     for (const s of spots(construction.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
+  });
+  it('keeps every pallet on the earth in front of the wall, inside the site units', () => {
+    for (const s of spots(construction.capacity, 0)) {
+      const [l, t, r, b] = footprint(s);
+      expect(l >= 0 && r <= 320 && t >= 192 && b <= 260, `pallet at ${s.x},${s.y}`).toBe(true);
+    }
   });
   it('keeps every pallet spot clear of every brick spot and of each other', () => {
     expect(overlapping([...spots(construction.capacity, 0), ...spots(0, construction.capacity)])).toEqual([]);

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
-import { footprint, spots } from '../../src/themes/football';
+import { footprint, SHOT_FROM, SHOT_R, spots } from '../../src/themes/football';
 import { THEMES } from '../../src/themes/registry';
-import { layout } from './layout';
+import { GAP, layout } from './layout';
 import { beforeItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const football = THEMES.football;
@@ -69,9 +69,27 @@ describe('football half', () => {
 describe('football item layout', () => {
   const { overlapping, area } = layout(footprint);
 
+  it('has a spot for as many big items as the grouping can ask for', () => {
+    expect(spots(football.capacity, 0)).toHaveLength(football.capacity);
+  });
+
   it('keeps every trophy clearly bigger than a ball, also on a ball spot', () => {
     const small = area(spots(0, 1)[0]);
+    expect(area(spots(1, 0)[0])).toBeGreaterThan(2.5 * small);
     for (const s of spots(football.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
+  });
+  it('kicks the shot ball off clear of every trophy spot', () => {
+    const [x, y] = SHOT_FROM;
+    for (const s of spots(football.capacity, 0)) {
+      const [l, t, r, b] = footprint(s);
+      expect(l >= x + SHOT_R + GAP || x - SHOT_R >= r + GAP || t >= y + SHOT_R + GAP || y - SHOT_R >= b + GAP, `trophy at ${s.x},${s.y}`).toBe(true);
+    }
+  });
+  it('keeps every trophy inside the pitch units', () => {
+    for (const s of spots(football.capacity, 0)) {
+      const [l, t, r, b] = footprint(s);
+      expect(l >= 0 && r <= 320 && t >= 0 && b <= 260, `trophy at ${s.x},${s.y}`).toBe(true);
+    }
   });
   it('keeps every trophy spot clear of every ball spot and of each other', () => {
     const own = spots(football.capacity, 0).filter((s) => s.slot < 0);
