@@ -236,9 +236,12 @@ first run.
     (`kids: Mia=…, Ben=…`).
 - **Give points:** Developer tools → Actions → `taskmate.add_points` with
   `child_id`, `points` and `reason`. The board updates live.
-- **Card changes:** run `mise run build` and reload the page with the cache
-  bypassed (Ctrl+Shift+R). `dist/` is mounted into Home Assistant as
-  `/local/family-board/`.
+- **Card changes:** run `mise run ha:up` again and reload the page. It rebuilds
+  the card and puts a hash of the build into the card's resource URL
+  (`/local/family-board/family-board-card.js?v=<hash>`), so the browser cannot
+  keep running an older build from its cache. After a bare `mise run build`
+  the URL is unchanged: reload with the cache bypassed (Ctrl+Shift+R).
+  `dist/` is mounted into Home Assistant as `/local/family-board/`.
 - **Stop or reset:**
   - `mise run ha:down` stops Home Assistant and keeps its data.
   - `mise run ha:reset` deletes the config and the token, so the next
