@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderBoard } from '../src/board';
 import { DEFAULT_SEASONS, type CardConfig, type KidConfig } from '../src/config';
 import type { BoardModel, Kid } from '../src/model';
-import { seasonStart } from '../src/season';
+import { activeSeason, seasonStart } from '../src/season';
 import { THEMES } from '../src/themes/registry';
 
 // Whole-board SVG snapshots. Rendering is deterministic (seeded wobble, fixed item spots), so any change to these
@@ -86,6 +86,13 @@ describe('board snapshots', () => {
   it('covers every theme with a season scene', () => {
     const seasonal = Object.values(THEMES).filter((t) => t.renderSeasonScene).map((t) => t.id);
     expect(Object.keys(SEASON_DATES).sort()).toEqual(seasonal.sort());
+  });
+  it('shows each season theme on its snapshot date (no earlier default rule overlaps it)', () => {
+    const themeIds = Object.keys(THEMES);
+    expect(DEFAULT_SEASONS.map((r) => r.theme), 'one default rule per season theme').toEqual([...new Set(DEFAULT_SEASONS.map((r) => r.theme))]);
+    for (const [id, date] of Object.entries(SEASON_DATES)) {
+      expect(activeSeason(date, DEFAULT_SEASONS, themeIds)?.theme, `on ${date.toDateString()} the default seasons show another theme than ${id}`).toBe(id);
+    }
   });
   for (const [id, date] of Object.entries(SEASON_DATES)) {
     it(`season scene ${id}`, async () => {
