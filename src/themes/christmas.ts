@@ -168,7 +168,7 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
   const trees = halves.map((ctx) => {
     const { cx, p } = seasonPlacement(box, ctx.box, UNITS);
     const late = createSketch(`${ctx.seedKey}:late`);
-    return seasonKid(ctx.kid.id, cx, tree(createSketch(ctx.seedKey), late, p, ctx) + ribbon(late, p, ctx.kid.colour), `data-tree="${esc(ctx.kid.id)}" `);
+    return seasonKid(ctx.kid.id, cx, tree(createSketch(ctx.seedKey), late, p, ctx) + ribbon(late, p, ctx.kid.colour), `data-tree="${esc(ctx.kid.id)}"`);
   }).join('');
   const man = snowman(sk, box.x + box.w / 2, box.y + box.h * SCENE_BOTTOM, Math.min(80, box.h * 0.2));
   return `<g>${sky}${hill}${trees}${man}${particles(`${key}:snow`, box, scaledCount(14, box), 'snow')}</g>`;
@@ -176,6 +176,7 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
 
 export const christmas: Theme = {
   id: 'christmas',
+  label: 'Weihnachten',
   capacity: 30,
   background: SKY,
   renderHalf,
