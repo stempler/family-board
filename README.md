@@ -12,7 +12,7 @@ Everything shown to the kids is in German. Design:
 
 ![Two kids on the dino theme: eggs in a nest beside a dino, savings jars below](docs/images/board-dino.png)
 
-![The Christmas season scene: one tree with ornaments per kid](docs/images/board-season-christmas.png)
+![Two kids on the space theme: stars in constellations above a rocket on the moon](docs/images/board-space.png)
 
 ## Install
 
