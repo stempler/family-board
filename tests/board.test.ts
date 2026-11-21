@@ -259,6 +259,30 @@ describe('renderBoard', () => {
     expect(out).not.toContain('data-tappable');
   });
 
+  it('draws the season scene only for found kids and keeps a not-found half untappable', () => {
+    const cfg = config([
+      { id: 'k1', theme: 'bricks', show_number: true, tap_path: '/x' },
+      { id: 'k2', theme: 'dino', show_number: true, tap_path: '/y' },
+    ]);
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 0, { found: false })]), cfg, { date: DECEMBER });
+    expect(out).toContain('data-season-kid="k1"');
+    expect(out).not.toContain('data-season-kid="k2"');
+    expect(group(out, 'data-kid-half="k2"')).toContain(de.kidNotFound);
+    expect(out).toContain('data-kid-half="k1" data-tappable="true"');
+    expect(out).not.toContain('data-kid-half="k2" data-tappable');
+  });
+
+  it('shows the tap hint in the christmas season scene only with a tap_path', () => {
+    const cfg = config([
+      { id: 'k1', theme: 'bricks', show_number: false, tap_path: '/x' },
+      { id: 'k2', theme: 'dino', show_number: false },
+    ]);
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: DECEMBER });
+    expect(out).toContain('data-theme="christmas"');
+    expect(group(out, 'data-kid-half="k1"')).toContain(de.tapHint);
+    expect(group(out, 'data-kid-half="k2"')).not.toContain(de.tapHint);
+  });
+
   it('uses an avatar image when given', () => {
     const out = renderBoard(model([kid('k1', 5, { avatarImage: '/local/a.png?x=1&y=2' })]), twoKids, { date: JUNE });
     expect(out).toContain('<image href="/local/a.png?x=1&amp;y=2"');

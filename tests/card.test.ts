@@ -69,6 +69,17 @@ describe('family-board-card element', () => {
     expect(location.pathname).toBe('/x');
   });
 
+  it('ignores taps on a kid that is not found, even with a tap_path', async () => {
+    const el = await make({ kids: [{ id: 'no-such-kid', theme: 'bricks', tap_path: '/family-board/aufgaben' }] });
+    el.hass = { states };
+    await el.updateComplete;
+    history.pushState(null, '', '/x');
+    const half = el.shadowRoot!.querySelector('[data-kid-half="no-such-kid"]')!;
+    expect(half.textContent).toContain(de.kidNotFound);
+    half.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    expect(location.pathname).toBe('/x');
+  });
+
   it('shows the missing text without states', async () => {
     const el = await make();
     el.hass = { states: {} };
