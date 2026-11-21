@@ -10,8 +10,17 @@ export function contractKid(points: number, id = 'k1', colour = '#d9534f'): Kid 
   return { id, name: 'Anna', colour, avatar: { kind: 'emoji', value: '🙂' }, points, jars: [], found: true };
 }
 
-export function contractCtx(theme: Theme, points: number, newFrom = points, box: Box = contractBox, id = 'k1', newTo = points): HalfContext {
-  return { kid: contractKid(points, id), box, groups: groupItems(points, theme.capacity), newFrom, newTo, seedKey: `${id}:${theme.id}` };
+/** A context for `points`; newFrom/newTo default to "nothing new" (from the theme's `items` hook when it has one). */
+export function contractCtx(theme: Theme, points: number, newFrom?: number, box: Box = contractBox, id = 'k1', newTo?: number): HalfContext {
+  const none = theme.items ? theme.items(points, undefined) : { newFrom: points, newTo: points };
+  return { kid: contractKid(points, id), box, groups: groupItems(points, theme.capacity), newFrom: newFrom ?? none.newFrom, newTo: newTo ?? none.newTo, seedKey: `${id}:${theme.id}` };
+}
+
+/** How many data-item elements `theme` draws for `points`. */
+export function itemCount(theme: Theme, points: number): number {
+  if (theme.items) return theme.items(points, undefined).total;
+  const g = groupItems(points, theme.capacity);
+  return g.big + g.small;
 }
 
 export function coordsOutside(svg: string, box: Box): string[] {
@@ -49,8 +58,8 @@ export function runThemeContract(theme: Theme): void {
         const out = theme.renderHalf(ctx);
 
         it('draws one data-item per grouped item', () => {
-          expect(out.match(/data-item="(small|big)"/g) ?? []).toHaveLength(ctx.groups.big + ctx.groups.small);
-          expect(out.match(/data-item="big"/g) ?? []).toHaveLength(ctx.groups.big);
+          expect(out.match(/data-item="(small|big)"/g) ?? []).toHaveLength(itemCount(theme, points));
+          if (!theme.items) expect(out.match(/data-item="big"/g) ?? []).toHaveLength(ctx.groups.big);
         });
         it('has no NaN', () => {
           expect(out).not.toContain('NaN');

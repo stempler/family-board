@@ -1,44 +1,53 @@
-import { timing } from '../draw/anim';
+import { rand, timing } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { groupItems, newItemRange, type ItemGroups, type NewRange } from '../items';
+import { CAPTURE_ORDER, parsePlacement, POSITIONS } from './chess-positions';
 import { item, type HalfContext, type Theme } from './types';
 
-// A chessboard on a green games table, drawn in "table units": the board is a
-// 6×6 parallelogram (seen at a slight angle, each row further back shifts a
-// little to the right), a big friendly king stands on the table at the left and
-// a knight at the front right. Pieces in the kid's colour stand one per square:
-// queens (big items) first, then pawns, filling the near row left to right and
-// then the rows behind it, so nothing moves once it is placed. The king and the
-// knight are ivory and stand off the board, so they never look like a point.
-const MID = 160;
-const UNITS_W = 320;
-const TOP = 4; // room above the board for the crown of a queen on the back row
-const TABLE_EDGE = 248; // front edge of the table top; the king and the knight stand just behind it
-const BOTTOM = 258; // bottom of the table's front edge
-const UNITS_H = BOTTOM - TOP;
+// The kid plays one game after another. Every point captures one of the opponent's 15 pieces
+// (the king is never captured); the 16th point is the checkmate, the game is won and a new one
+// starts. Points → wins = floor(points / 16), captured = points mod 16.
+//
+// The scene, in "scene units" (fitted into the scene band of the half), seen from the front:
+// a wall shelf at the top holds one toppled dark king per won game (kings merge into trophies,
+// minimal replacement, see groupItems); below it a green games table with a top-down 8×8 board
+// showing POSITIONS[captured] (kid = white, drawn in the kid colour; opponent = dark), and the
+// captured pieces lined up beside the board in two rows of 8 along its right edge.
+//
+// Counted items (data-item), in this order: shelf trophies (big), shelf kings (small), then the
+// captured pieces in capture order. The board pieces are scenery.
 
-const N = 6; // squares per side; capacity is N × N
-const CAPACITY = N * N;
-const SQ_W = 34; // width of a square
-const SQ_D = 31; // depth of a square (foreshortened)
-const SKEW = 6; // how far each row further back shifts right
-const NEAR_X = 64; // near-left corner of the playing squares
-const NEAR_Y = 214;
-const FRAME = 0.24; // frame width, in squares
-const FRAME_FACE = 10; // height of the board's front face
+export const SHELF_CAP = 10; // kings and trophies on the shelf
+export const SHELF_UNITS: readonly number[] = [5, 25, 125]; // wins per trophy
+
+const W = 300; // scene width
+const H = 280; // scene height
+const MID = W / 2;
+
+const SHELF_Y = 32; // top of the shelf plank; shelf items stand on it
+const SLOT_W = 29; // shelf slot pitch
+const TABLE_Y = 46; // top edge of the table
+const S = 26; // board square size
+const FRAME = 9; // board frame width
+const BX = 18; // left edge of the squares
+const BY = 59; // top edge of the squares (rank 8)
+const CAP_X = [251, 279]; // centres of the two captured rows, beside the board's right edge
+const PIECE_K = 0.95; // piece size relative to the drawings below (base 16 wide, up to 25 tall)
+const BASE_INSET = 3.5; // a piece stands this far above the bottom of its square
+const KING_K = 1.05; // size of a toppled king on the shelf
 
 const WALL = '#f4e4d0';
+const SHELF_WOOD = '#8a5a34';
 const FELT = '#5c9a7c';
-const FELT_DARK = '#447a60';
 const TABLE_WOOD = '#7a4a2a';
 const FRAME_WOOD = '#6b4423';
-const FRAME_FACE_WOOD = '#55361c';
 const LIGHT_SQ = '#fbf1dc';
 const DARK_SQ = '#c49a6c';
-const IVORY = '#fbf5e6';
-const IVORY_SHADE = '#e8dcc2';
+const DARK_PIECE = '#2f2723';
+const DARK_DETAIL = '#e8dcc2';
 const GOLD = '#f2c12e';
-const CHEEK = '#f4a7a0';
+const GOLD_DARK = '#c99a12';
 
 const SCENE_TOP = 0.17; // leave room for the board header
 const SCENE_BOTTOM = 0.79; // leave room for the jar row
@@ -47,183 +56,199 @@ type Pt = [number, number];
 
 interface Placement { cx: number; top: number; s: number }
 
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Rewrites every "x y" pair of a path in table units into board coordinates. */
-function moved(p: Placement, d: string): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, +x, +y).map(num).join(' '));
-}
-
-/** Like `moved`, for a path drawn around (0, 0): scaled by `k` and placed at (cx, cy). */
-function shape(p: Placement, cx: number, cy: number, d: string, k = 1): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, cx + k * +x, cy + k * +y).map(num).join(' '));
-}
-
-/** Fits the table into the scene band of `box`, horizontally centred, standing on the band's bottom. */
+/** Fits the scene into the scene band of `box`, horizontally centred, vertically centred in the band. */
 function placement(box: Box): Placement {
   const top = box.y + box.h * SCENE_TOP;
   const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (box.w * 0.92) / UNITS_W);
-  return { cx: box.x + box.w / 2, top: top + (height - UNITS_H * s), s };
+  const s = Math.min(height / H, (box.w * 0.92) / W);
+  return { cx: box.x + box.w / 2, top: top + (height - H * s) / 2, s };
 }
 
-/** A point on the board, `u` squares from the left edge and `v` squares back from the near edge, in table units. */
-function boardPt(u: number, v: number): Pt {
-  return [NEAR_X + u * SQ_W + v * SKEW, NEAR_Y - v * SQ_D];
+function at(p: Placement, x: number, y: number): Pt {
+  return [p.cx + (x - MID) * p.s, p.top + y * p.s];
 }
 
-/** Square slots in filling order: near row left to right, then each row further back. The piece stands a little in front of the square's centre. */
-const SLOTS: { x: number; y: number; row: number }[] = Array.from({ length: CAPACITY }, (_, i) => {
-  const row = Math.floor(i / N);
-  const [x, y] = boardPt((i % N) + 0.5, row + 0.26);
-  return { x, y, row };
-});
+/** Maps a drawing's local coordinates (piece base centre at 0 0, y up is negative) into the half. */
+type Local = (x: number, y: number) => Pt;
 
-const quad = (p: Placement, pts: Pt[]): Pt[] => pts.map(([x, y]) => at(p, x, y));
-
-function table(sk: Sketch, p: Placement): string {
-  const top = sk.polygon(quad(p, [[8, 112], [312, 112], [320, TABLE_EDGE], [0, TABLE_EDGE]]), { fill: FELT, strokeWidth: 2.4, roughness: 0.8 });
-  const band = sk.polygon(quad(p, [[2, 226], [318, 226], [320, TABLE_EDGE], [0, TABLE_EDGE]]), { fill: FELT_DARK, stroke: 'none', roughness: 0.6 });
-  const front = sk.rect(...at(p, 0, TABLE_EDGE), UNITS_W * p.s, (BOTTOM - TABLE_EDGE) * p.s, { fill: TABLE_WOOD, strokeWidth: 2.4, roughness: 0.8 });
-  return `<g data-part="table">${top}${band}${front}</g>`;
+function local(p: Placement, x0: number, y0: number, k: number, lying = false): Local {
+  // Lying: the piece's up direction points right, its base at the left.
+  return (x, y) => (lying ? at(p, x0 - k * y, y0 + k * x) : at(p, x0 + k * x, y0 + k * y));
 }
 
-/** The frame with its front face, then the light board and the dark squares on it. */
-function board(sk: Sketch, p: Placement): string {
-  const lo = -FRAME;
-  const hi = N + FRAME;
-  const corners = [boardPt(lo, lo), boardPt(hi, lo), boardPt(hi, hi), boardPt(lo, hi)];
-  const [nl, nr] = corners;
-  const face = sk.polygon(quad(p, [nl, nr, [nr[0], nr[1] + FRAME_FACE], [nl[0], nl[1] + FRAME_FACE]]), { fill: FRAME_FACE_WOOD, strokeWidth: 2.2, roughness: 0.6 });
-  const frame = sk.polygon(quad(p, corners), { fill: FRAME_WOOD, strokeWidth: 2.4, roughness: 0.7 });
-  const field = sk.polygon(quad(p, [boardPt(0, 0), boardPt(N, 0), boardPt(N, N), boardPt(0, N)]), { fill: LIGHT_SQ, strokeWidth: 1.8, roughness: 0.5 });
-  let dark = '';
-  for (let r = 0; r < N; r++) {
-    for (let c = 0; c < N; c++) {
-      if ((r + c) % 2) continue; // the near-left square is dark, as on a real board
-      dark += sk.polygon(quad(p, [boardPt(c, r), boardPt(c + 1, r), boardPt(c + 1, r + 1), boardPt(c, r + 1)]), { fill: DARK_SQ, stroke: 'none', roughness: 0.4 });
-    }
+/** Rewrites every "x y" pair of a local path. */
+function moved(f: Local, d: string): string {
+  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => f(+x, +y).map(num).join(' '));
+}
+
+// Piece silhouettes, front view, base centred at 0 0. Chunky so they read at ~20 px.
+interface Art { body: string; balls?: [number, number, number][]; detail?: string }
+
+const ART: Record<string, Art> = {
+  p: { body: 'M -8 0 L 8 0 L 7.5 -3 L 4 -4.5 Q 2.5 -8 3.5 -11.5 L -3.5 -11.5 Q -2.5 -8 -4 -4.5 L -7.5 -3 Z', balls: [[0, -15.5, 5]] },
+  r: { body: 'M -8 0 L 8 0 L 8 -3.5 L 5.5 -5 L 5 -14 L 7.5 -15.5 L 7.5 -21 L 4.5 -21 L 4.5 -18.5 L 1.5 -18.5 L 1.5 -21 L -1.5 -21 L -1.5 -18.5 L -4.5 -18.5 L -4.5 -21 L -7.5 -21 L -7.5 -15.5 L -5 -14 L -5.5 -5 L -8 -3.5 Z' },
+  n: {
+    body: 'M -7 0 L 8.5 0 L 8.5 -3.5 L 6.5 -4.5 Q 9 -13 5.5 -19 Q 2 -23.5 -2.5 -22 L -3.5 -24.5 L -5.5 -21 Q -9 -18.5 -9.5 -13.5 L -9.5 -11.5 Q -7.5 -9.5 -4 -12 Q -2 -9.5 -4 -6 L -6 -4.5 L -7.5 -3.5 Z',
+    balls: [[-4, -17.5, 1.2]],
+    detail: 'M 1.5 -21 Q 6 -17 6 -10',
+  },
+  b: {
+    body: 'M -8 0 L 8 0 L 7.5 -3 L 3.5 -4.5 Q 6.5 -10 5.5 -14 Q 4 -19 0 -21.5 Q -4 -19 -5.5 -14 Q -6.5 -10 -3.5 -4.5 L -7.5 -3 Z',
+    balls: [[0, -23.2, 2]],
+    detail: 'M 0.5 -17.5 L 3.2 -13.5',
+  },
+  q: {
+    body: 'M -8 0 L 8 0 L 7.5 -3 L 4.5 -4.5 L 8.5 -18 L 4 -12.5 L 2.2 -20 L 0 -13 L -2.2 -20 L -4 -12.5 L -8.5 -18 L -4.5 -4.5 L -7.5 -3 Z',
+    balls: [[-8.5, -19.3, 1.7], [-2.2, -21.3, 1.7], [2.2, -21.3, 1.7], [8.5, -19.3, 1.7]],
+  },
+  k: {
+    body: 'M -8 0 L 8 0 L 7.5 -3 L 4.5 -4.5 L 6.5 -15 Q 6.5 -18.5 0 -18.5 Q -6.5 -18.5 -6.5 -15 L -4.5 -4.5 L -7.5 -3 Z ' +
+      'M -1.3 -18.5 L -1.3 -21 L -3.6 -21 L -3.6 -23.2 L -1.3 -23.2 L -1.3 -25.5 L 1.3 -25.5 L 1.3 -23.2 L 3.6 -23.2 L 3.6 -21 L 1.3 -21 L 1.3 -18.5 Z',
+  },
+};
+
+/** One piece (`scale`: box units per drawing unit): `letter` in FEN case (uppercase = the kid, in the kid colour; lowercase = the opponent, dark). */
+function piece(sk: Sketch, f: Local, scale: number, letter: string, kidColour: string): string {
+  const kid = letter === letter.toUpperCase();
+  const art = ART[letter.toLowerCase()];
+  const fill = kid ? kidColour : DARK_PIECE;
+  const detailColour = kid ? INK : DARK_DETAIL;
+  let out = sk.path(moved(f, art.body), { fill, strokeWidth: 1.5, roughness: 0.35 });
+  for (const [x, y, r] of art.balls ?? []) {
+    // A tiny ball (an eye) is a detail mark; a bigger one (a pawn head, a crown ball) is part of the body.
+    out += r < 1.5 ? sk.circle(...f(x, y), 2 * r * scale, { fill: detailColour, stroke: 'none', roughness: 0.2 }) : sk.circle(...f(x, y), 2 * r * scale, { fill, strokeWidth: 1.3, roughness: 0.3 });
   }
-  return `<g data-part="board">${face}${frame}${field}${dark}</g>`;
-}
-
-const PIECE_K = 1.15; // piece size
-
-/** A pawn in the kid's colour, standing at (x, y). */
-function pawn(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
-  const k = PIECE_K;
-  const q = (pts: Pt[]) => pts.map(([dx, dy]) => at(p, x + dx * k, y + dy * k));
-  const base = sk.polygon(q([[-11, 0], [11, 0], [9, -5], [-9, -5]]), { fill: colour, strokeWidth: 1.8, roughness: 0.4 });
-  const body = sk.path(shape(p, x, y, 'M -7 -5 Q -4 -11 -3 -17 L 3 -17 Q 4 -11 7 -5 Z', k), { fill: colour, strokeWidth: 1.8, roughness: 0.4 });
-  const collar = sk.ellipse(...q([[0, -17]])[0], 13 * k * p.s, 4 * k * p.s, { fill: colour, strokeWidth: 1.6, roughness: 0.3 });
-  const head = sk.circle(...q([[0, -23.5]])[0], 12 * k * p.s, { fill: colour, strokeWidth: 1.8, roughness: 0.4 });
-  const [gx, gy] = q([[-2, -25.5]])[0];
-  const glint = `<circle cx="${num(gx)}" cy="${num(gy)}" r="${num(2 * k * p.s)}" fill="#fff" opacity="0.8"/>`;
-  return base + body + collar + head + glint;
-}
-
-/** A queen: taller than a pawn, in the kid's colour, with a gold crown. */
-function queen(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
-  const k = PIECE_K;
-  const q = (pts: Pt[]) => pts.map(([dx, dy]) => at(p, x + dx * k, y + dy * k));
-  const base = sk.polygon(q([[-12, 0], [12, 0], [10, -6], [-10, -6]]), { fill: colour, strokeWidth: 2, roughness: 0.4 });
-  const body = sk.path(shape(p, x, y, 'M -8 -6 Q -4 -15 -3.5 -24 L 3.5 -24 Q 4 -15 8 -6 Z', k), { fill: colour, strokeWidth: 2, roughness: 0.4 });
-  const collar = sk.ellipse(...q([[0, -24]])[0], 15 * k * p.s, 4.5 * k * p.s, { fill: colour, strokeWidth: 1.6, roughness: 0.3 });
-  const crown = sk.polygon(q([[-6, -26], [6, -26], [9, -36], [4, -31], [0, -37], [-4, -31], [-9, -36]]), { fill: GOLD, strokeWidth: 1.6, roughness: 0.3 });
-  const [bx, by] = q([[0, -38.5]])[0];
-  const ball = `<circle cx="${num(bx)}" cy="${num(by)}" r="${num(2.4 * k * p.s)}" fill="${GOLD}" stroke="${INK}" stroke-width="1.2"/>`;
-  const shine = sk.path(shape(p, x, y, 'M -4 -8 Q -2 -15 -1.5 -20', k), { stroke: '#ffffff', strokeWidth: 2, roughness: 0.3 });
-  return base + body + collar + crown + ball + `<g opacity="0.7">${shine}</g>`;
-}
-
-/** Pieces drawn back row first so nearer pieces overlap the ones behind; each square has its own sketch so a new piece never changes another's wobble. */
-function pieces(p: Placement, ctx: HalfContext): string {
-  const { big, small } = ctx.groups;
-  const colour = ctx.kid.colour;
-  const n = Math.min(big + small, SLOTS.length);
-  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => SLOTS[b].row - SLOTS[a].row || a - b);
-  let out = '';
-  for (const i of order) {
-    const isBig = i < big;
-    const { x, y } = SLOTS[i];
-    const sk = createSketch(`${ctx.seedKey}:square:${i}`);
-    const body = isBig ? queen(sk, p, x, y, colour) : pawn(sk, p, x, y, colour);
-    out += item(isBig ? 'big' : 'small', i, ctx, `<g data-slot="${i}">${body}</g>`);
-  }
+  if (art.detail) out += sk.path(moved(f, art.detail), { stroke: detailColour, strokeWidth: 1.2, roughness: 0.25 });
   return out;
 }
 
-const KING_X = 33;
-
-/** A big ivory king with a friendly face standing on the table at the left; about every 16 s he tips his crown. */
-function king(sk: Sketch, p: Placement, seedKey: string): string {
-  const base = sk.polygon(quad(p, [[KING_X - 26, 246], [KING_X + 26, 246], [KING_X + 22, 234], [KING_X - 22, 234]]), { fill: IVORY, strokeWidth: 2.4, roughness: 0.6 });
-  const rim = sk.rect(...at(p, KING_X - 20, 226), 40 * p.s, 8 * p.s, { fill: IVORY_SHADE, strokeWidth: 2, roughness: 0.5 });
-  const body = sk.path(shape(p, KING_X, 0, 'M -16 226 Q -10 190 -8 154 L 8 154 Q 10 190 16 226 Z'), { fill: IVORY, strokeWidth: 2.4, roughness: 0.6 });
-  const collar = sk.ellipse(...at(p, KING_X, 152), 34 * p.s, 9 * p.s, { fill: IVORY_SHADE, strokeWidth: 2, roughness: 0.5 });
-  const head = sk.circle(...at(p, KING_X, 130), 38 * p.s, { fill: IVORY, strokeWidth: 2.4, roughness: 0.6 });
-  let face = '';
-  for (const dx of [-7, 7]) {
-    const [ex, ey] = at(p, KING_X + dx, 127);
-    const [cx, cy] = at(p, KING_X + dx * 1.5, 136);
-    face += `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(3.4 * p.s)}" fill="${CHEEK}" opacity="0.7"/><circle cx="${num(ex)}" cy="${num(ey)}" r="${num(2.4 * p.s)}" fill="${INK}"/>`;
+/** The wall shelf and the games table with the board frame and its squares (scenery). */
+function furniture(sk: Sketch, p: Placement): string {
+  const [sx, sy] = at(p, 2, SHELF_Y);
+  const plank = sk.rect(sx, sy, (W - 4) * p.s, 7 * p.s, { fill: SHELF_WOOD, strokeWidth: 2, roughness: 0.6 });
+  let brackets = '';
+  for (const x of [30, W - 30]) brackets += sk.polygon([at(p, x - 4, SHELF_Y + 7), at(p, x + 4, SHELF_Y + 7), at(p, x, SHELF_Y + 12)], { fill: SHELF_WOOD, strokeWidth: 1.6, roughness: 0.4 });
+  const [tx, ty] = at(p, 0, TABLE_Y);
+  const rim = sk.rect(tx, ty, W * p.s, (H - TABLE_Y) * p.s, { fill: TABLE_WOOD, strokeWidth: 2.4, roughness: 0.7 });
+  const [fx, fy] = at(p, 4, TABLE_Y + 4);
+  const felt = sk.rect(fx, fy, (W - 8) * p.s, (H - TABLE_Y - 8) * p.s, { fill: FELT, strokeWidth: 1.6, roughness: 0.6 });
+  const [ox, oy] = at(p, BX - FRAME, BY - FRAME);
+  const frame = sk.rect(ox, oy, (8 * S + 2 * FRAME) * p.s, (8 * S + 2 * FRAME) * p.s, { fill: FRAME_WOOD, strokeWidth: 2.4, roughness: 0.6 });
+  const [qx, qy] = at(p, BX, BY);
+  const field = sk.rect(qx, qy, 8 * S * p.s, 8 * S * p.s, { fill: LIGHT_SQ, strokeWidth: 1.6, roughness: 0.4 });
+  let dark = '';
+  for (let r = 0; r < 8; r++) {
+    for (let f = 0; f < 8; f++) {
+      if ((r + f) % 2 === 0) continue; // a8 is light, a1 is dark
+      dark += sk.rect(...at(p, BX + f * S, BY + r * S), S * p.s, S * p.s, { fill: DARK_SQ, stroke: 'none', roughness: 0.3 });
+    }
   }
-  const smile = sk.path(moved(p, `M ${KING_X - 6} 137 Q ${KING_X} 142 ${KING_X + 6} 137`), { strokeWidth: 1.8, roughness: 0.3 });
-  const shine = sk.path(moved(p, `M ${KING_X - 9} 210 Q ${KING_X - 6} 186 ${KING_X - 5} 166`), { stroke: '#ffffff', strokeWidth: 3, roughness: 0.4 });
-  const crownBody = sk.polygon(quad(p, [[KING_X - 17, 114], [KING_X + 17, 114], [KING_X + 21, 90], [KING_X + 10, 101], [KING_X, 86], [KING_X - 10, 101], [KING_X - 21, 90]]), { fill: GOLD, strokeWidth: 2.2, roughness: 0.5 });
-  const cross = sk.rect(...at(p, KING_X - 2.5, 44), 5 * p.s, 44 * p.s, { fill: GOLD, strokeWidth: 1.8, roughness: 0.4 }) +
-    sk.rect(...at(p, KING_X - 9, 54), 18 * p.s, 5 * p.s, { fill: GOLD, strokeWidth: 1.8, roughness: 0.4 });
-  let jewels = '';
-  for (const [dx, fill] of [[-9, '#d64545'], [0, '#3d7fd6'], [9, '#d64545']] as const) {
-    const [jx, jy] = at(p, KING_X + dx, 108);
-    jewels += `<circle cx="${num(jx)}" cy="${num(jy)}" r="${num(2.6 * p.s)}" fill="${fill}" stroke="${INK}" stroke-width="1"/>`;
-  }
-  const crown = `<g class="fb-anim fb-chess-tip" style="${timing(`${seedKey}:tip`, [15, 17])}">${cross}${crownBody}${jewels}</g>`;
-  return `<g data-part="king">${base}${rim}${body}<g opacity="0.7">${shine}</g>${collar}${head}${face}${smile}${crown}</g>`;
+  return `<g data-part="shelf-wood">${plank}${brackets}</g><g data-part="table">${rim}${felt}</g><g data-part="squares">${frame}${field}${dark}</g>`;
 }
 
-const KNIGHT_X = 296;
+/** The pieces of POSITIONS[captured], back rank first so nearer pieces overlap the ones behind; one kid piece hops now and then. */
+function board(p: Placement, ctx: HalfContext, captured: number): string {
+  const ranks = parsePlacement(POSITIONS[captured]);
+  const kidSquares = ranks.flatMap((rank, r) => rank.flatMap((pc, f) => (pc && pc === pc.toUpperCase() ? [`${r}:${f}`] : [])));
+  const hopper = kidSquares[Math.floor(rand(`${ctx.seedKey}:hopper`) * kidSquares.length)];
+  let out = '';
+  ranks.forEach((rank, r) => rank.forEach((letter, f) => {
+    if (!letter) return;
+    const square = `${'abcdefgh'[f]}${8 - r}`;
+    const sk = createSketch(`${ctx.seedKey}:piece:${square}:${letter}`);
+    const g = `<g data-square="${square}" data-piece="${letter}">${piece(sk, local(p, BX + (f + 0.5) * S, BY + (r + 1) * S - BASE_INSET, PIECE_K), PIECE_K * p.s, letter, ctx.kid.colour)}</g>`;
+    out += `${r}:${f}` === hopper ? `<g class="fb-anim fb-chess-hop" style="${timing(`${ctx.seedKey}:hop`, [9, 11])};--hop:${num(9 * p.s)}px">${g}</g>` : g;
+  }));
+  return `<g data-part="board">${out}</g>`;
+}
 
-/** An ivory knight on the table in front of the board's right corner, facing the board; about every 12 s it hops. */
-function knight(sk: Sketch, p: Placement, seedKey: string): string {
-  const y = 246;
-  const base = sk.polygon(quad(p, [[KNIGHT_X - 17, y], [KNIGHT_X + 17, y], [KNIGHT_X + 14, y - 8], [KNIGHT_X - 14, y - 8]]), { fill: IVORY, strokeWidth: 2.2, roughness: 0.5 });
-  const collar = sk.rect(...at(p, KNIGHT_X - 13, y - 14), 26 * p.s, 6 * p.s, { fill: IVORY_SHADE, strokeWidth: 2, roughness: 0.5 });
-  const head = sk.path(shape(p, KNIGHT_X, y, 'M 12 -14 L 11 -34 Q 9 -50 -1 -57 L 1 -66 L -6 -59 Q -15 -57 -21 -47 L -25 -38 Q -27 -31 -20 -30 L -10 -33 Q -6 -30 -9 -23 L -12 -14 Z'), { fill: IVORY, strokeWidth: 2.4, roughness: 0.6 });
-  const mane = sk.path(shape(p, KNIGHT_X, y, 'M 11 -30 Q 12 -46 3 -54 M 11 -36 L 15 -38 M 10 -43 L 14 -46 M 7 -49 L 10 -53'), { stroke: '#b89a6e', strokeWidth: 1.8, roughness: 0.4 });
-  const [ex, ey] = at(p, KNIGHT_X - 9, y - 48);
-  const [nx, ny] = at(p, KNIGHT_X - 22, y - 36);
-  const face = `<circle cx="${num(ex)}" cy="${num(ey)}" r="${num(2.4 * p.s)}" fill="${INK}"/><circle cx="${num(nx)}" cy="${num(ny)}" r="${num(1.3 * p.s)}" fill="${INK}"/>`;
-  const piece = `<g class="fb-anim fb-chess-hop" style="${timing(`${seedKey}:hop`, [11, 13])}">${base}${collar}${head}${mane}${face}</g>`;
-  return `<g data-part="knight">${piece}</g>`;
+/** A gold trophy cup standing at local 0 0; one star per unit step above 5 wins. */
+function trophy(sk: Sketch, f: Local, stars: number): string {
+  const cup = sk.path(moved(f, 'M -9 -27 L 9 -27 Q 9.5 -15 2.5 -12 L 2.5 -6 L 6.5 -4 L 6.5 0 L -6.5 0 L -6.5 -4 L -2.5 -6 L -2.5 -12 Q -9.5 -15 -9 -27 Z'), { fill: GOLD, strokeWidth: 1.6, roughness: 0.35 });
+  const handles = sk.path(moved(f, 'M -8.8 -24 Q -14 -24 -13 -19 Q -12 -16 -6.5 -15.5 M 8.8 -24 Q 14 -24 13 -19 Q 12 -16 6.5 -15.5'), { stroke: GOLD_DARK, strokeWidth: 2, roughness: 0.3 });
+  const shine = sk.path(moved(f, 'M -5.5 -24 Q -5.5 -18 -2.5 -15.5'), { stroke: '#ffffff', strokeWidth: 1.6, roughness: 0.2 });
+  let star = '';
+  for (let i = 0; i < stars; i++) {
+    const cx = (i - (stars - 1) / 2) * 6;
+    const pts: Pt[] = Array.from({ length: 10 }, (_, j) => {
+      const a = -Math.PI / 2 + (j * Math.PI) / 5;
+      const r = j % 2 ? 1.3 : 3;
+      return f(cx + r * Math.cos(a), -20 + r * Math.sin(a));
+    });
+    star += sk.polygon(pts, { fill: '#ffffff', strokeWidth: 0.8, roughness: 0.1 });
+  }
+  return `${handles}${cup}<g opacity="0.7">${shine}</g>${star}`;
+}
+
+/** Won games: trophies first, then toppled dark kings, each in its own shelf slot. */
+function shelf(p: Placement, ctx: HalfContext, g: ItemGroups): string {
+  let out = '';
+  const n = g.big + g.small;
+  for (let i = 0; i < n; i++) {
+    const big = i < g.big;
+    const x = MID + (i - (SHELF_CAP - 1) / 2) * SLOT_W;
+    const sk = createSketch(`${ctx.seedKey}:shelf:${i}:${big ? `trophy${g.unit}` : 'king'}`);
+    const body = big
+      ? `<g data-trophy="${g.unit}">${trophy(sk, local(p, x, SHELF_Y, 1), SHELF_UNITS.indexOf(g.unit))}</g>`
+      : `<g data-king="toppled">${piece(sk, local(p, x - 12.75 * KING_K, SHELF_Y - 8 * KING_K, KING_K, true), KING_K * p.s, 'k', ctx.kid.colour)}</g>`;
+    out += item(big ? 'big' : 'small', i, ctx, body);
+  }
+  return `<g data-part="shelf">${out}</g>`;
+}
+
+/** The captured pieces beside the board: the row next to the board top to bottom, then the outer row. */
+function capturedRow(p: Placement, ctx: HalfContext, captured: number, first: number): string {
+  let out = '';
+  for (let j = 0; j < captured; j++) {
+    const letter = CAPTURE_ORDER[j];
+    const sk = createSketch(`${ctx.seedKey}:captured:${j}`);
+    const f = local(p, CAP_X[Math.floor(j / 8)], BY + ((j % 8) + 1) * S - BASE_INSET, PIECE_K);
+    out += item('small', first + j, ctx, `<g data-captured="${letter}">${piece(sk, f, PIECE_K * p.s, letter, ctx.kid.colour)}</g>`);
+  }
+  return `<g data-part="captured">${out}</g>`;
+}
+
+/** Wins and captured pieces for `points` (negative or invalid points count as 0). */
+function split(points: number): { wins: number; captured: number } {
+  const n = Number.isFinite(points) ? Math.max(0, Math.floor(points)) : 0;
+  return { wins: Math.floor(n / 16), captured: n % 16 };
+}
+
+function items(points: number, prev: number | undefined): { total: number } & NewRange {
+  const cur = split(points);
+  const g = groupItems(cur.wins, SHELF_CAP, SHELF_UNITS);
+  const shelfCount = g.big + g.small;
+  const total = shelfCount + cur.captured;
+  const none = { total, newFrom: total, newTo: total };
+  if (typeof prev !== 'number' || !Number.isFinite(prev)) return none;
+  const before = split(prev);
+  // A new win pops only the new king or trophy; the captured row empties for the next game.
+  if (cur.wins > before.wins) return { total, ...newItemRange(before.wins, cur.wins, SHELF_CAP, SHELF_UNITS) };
+  if (cur.wins === before.wins && cur.captured > before.captured) return { total, newFrom: shelfCount + before.captured, newTo: total };
+  return none;
 }
 
 function renderHalf(ctx: HalfContext): string {
-  const sk = createSketch(ctx.seedKey);
   const p = placement(ctx.box);
-  return `<g>${table(sk, p)}${board(sk, p)}${king(sk, p, ctx.seedKey)}${pieces(p, ctx)}${knight(sk, p, ctx.seedKey)}</g>`;
+  const { wins, captured } = split(ctx.kid.points);
+  const g = groupItems(wins, SHELF_CAP, SHELF_UNITS);
+  return `<g>${furniture(createSketch(ctx.seedKey), p)}${board(p, ctx, captured)}${shelf(p, ctx, g)}${capturedRow(p, ctx, captured, g.big + g.small)}</g>`;
 }
 
 const css = `
   @keyframes fb-chess-hop {
-    0%, 86%, 92%, 96%, 100% { transform: translate(0, 0) rotate(0deg); }
-    89% { transform: translate(0, -18px) rotate(-8deg); }
-    94% { transform: translate(0, -5px) rotate(0deg); }
-  }
-  @keyframes fb-chess-tip {
-    0%, 84%, 97%, 100% { transform: rotate(0deg); }
-    88%, 93% { transform: rotate(-14deg); }
+    0%, 88%, 95%, 99%, 100% { transform: translate(0, 0); }
+    91.5% { transform: translate(0, calc(var(--hop) * -1)); }
+    97% { transform: translate(0, calc(var(--hop) * -0.28)); }
   }
   .fb-chess-hop { animation-name: fb-chess-hop; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 100%; }
-  .fb-chess-tip { animation-name: fb-chess-tip; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 100%; }
 `;
 
 export const chess: Theme = {
   id: 'chess',
-  capacity: CAPACITY,
+  capacity: SHELF_CAP + 15, // the most items chess draws; `items` below does the grouping, not `capacity`
   background: WALL,
   renderHalf,
+  items,
   css,
 };

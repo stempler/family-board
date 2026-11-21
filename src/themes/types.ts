@@ -6,10 +6,15 @@ export interface HalfContext { kid: Kid; box: Box; groups: ItemGroups; newFrom: 
 
 export interface Theme {
   id: string;
-  capacity: number; // max drawn items per kid
+  capacity: number; // max drawn items per kid (with `items`, only the upper bound; grouping is the theme's own)
   background: string; // half background colour
   renderHalf(ctx: HalfContext): string; // the kid's scene inside ctx.box, no jars or header
   renderSeasonScene?(halves: HalfContext[], box: Box): string; // shared landscape with one object per kid; only for seasonal themes
+  /**
+   * Optional own item counting, used instead of `capacity`-based grouping: how many data-item elements the
+   * theme draws for `points` and which of them are new since `prev`. `ctx.groups` is still filled but unused.
+   */
+  items?(points: number, prev: number | undefined): { total: number } & NewRange;
   css?: string; // keyframes and classes for this theme's ambient animation, all prefixed fb-<id>-
 }
 

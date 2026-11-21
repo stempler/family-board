@@ -94,7 +94,7 @@ The card resource is `/local/family-board/family-board-card.js` (type: JavaScrip
 | `racing` | Rennstrecke | Medals and trophies on a shelf and podium, a race car on the track. |
 | `space` | Weltraum | Stars and planets in constellations; a rocket on the moon, an occasional comet. |
 | `dog` | Hund | Badges and bones at a dog house with a pup. |
-| `chess` | Schach | Pawns and queens on a chessboard, with a king and a knight beside it. |
+| `chess` | Schach | A chessboard where every point captures an opponent piece; 16 points win a game, shown as a toppled king (5 wins make a trophy) on the shelf. |
 | `halloween` | Halloween | Candy in a pumpkin bucket. Season scene: a spooky night with a ghost. |
 | `easter` | Ostern | Painted eggs in a basket on a meadow with a bunny. Season scene: one basket per kid. |
 

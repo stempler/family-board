@@ -35,7 +35,7 @@ try {
         halves: root?.querySelectorAll('[data-kid-half]').length ?? 0,
       };
     });
-    const expected = name.replace(/^season-/, '');
+    const expected = name.replace(/^season-/, '').replace(/-points-[\d-]+$/, ''); // extra tiles: <theme>-points-<a>-<b>
     if (info.theme !== expected) failures.push(`${name}: first [data-theme] is ${info.theme}, expected ${expected}`);
     if (info.halves === 0) failures.push(`${name}: no data-kid-half`);
     await tile.screenshot({ path: join(out, `gallery-${name}.png`) });
