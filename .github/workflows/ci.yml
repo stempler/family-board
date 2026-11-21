@@ -20,3 +20,14 @@ jobs:
         with:
           name: family-board-card
           path: dist/family-board-card.js
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      # hacs/action publishes no current release tags, so this follows its main branch,
+      # pinned to a commit. The "# main" comment is the form Renovate needs to update
+      # the digest once Renovate is set up (issue #7). The pin covers the action wrapper
+      # only: the wrapper itself runs the validator image ghcr.io/hacs/action:main.
+      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main
+        with:
+          category: plugin
