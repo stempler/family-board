@@ -18,6 +18,9 @@ describe('pirates half', () => {
     const out = half(7);
     for (const name of ['chest', 'sea', 'ship', 'palm']) expect(out).toContain(`data-part="${name}"`);
   });
+  it('has no starfish or shell on the beach (they are the summer theme\'s counted items)', () => {
+    for (const points of [0, 7, 1000]) expect(half(points)).not.toContain('data-part="beach"');
+  });
   it('bobs one ship and moves 2 to 4 waves', () => {
     for (const points of [0, 7, 1000]) {
       const out = half(points);
