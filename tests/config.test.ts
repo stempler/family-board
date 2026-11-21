@@ -104,13 +104,26 @@ describe('kid birthday', () => {
     expect(withBirthday(' 12-10 ').kids[0].birthday).toBe('12-10');
     expect(withBirthday('02-29').kids[0].birthday).toBe('02-29');
   });
+  it('accepts a day with the birth year, trimmed and stored as given', () => {
+    expect(withBirthday(' 2019-12-10 ').kids[0].birthday).toBe('2019-12-10');
+    expect(withBirthday('2020-02-29').kids[0].birthday).toBe('2020-02-29');
+  });
+  it('accepts an unquoted YAML date (a Date) and its JSON round trip, as YYYY-MM-DD', () => {
+    expect(withBirthday(new Date('2019-12-10')).kids[0].birthday).toBe('2019-12-10');
+    expect(withBirthday('2019-12-10T00:00:00.000Z').kids[0].birthday).toBe('2019-12-10');
+    expect(withBirthday(' 2020-02-29T00:00:00Z ').kids[0].birthday).toBe('2020-02-29');
+  });
+  it('rejects an invalid Date and an impossible day with a time part', () => {
+    expect(() => withBirthday(new Date(NaN))).toThrow('kids[0]: birthday must be formatted YYYY-MM-DD or MM-DD');
+    expect(() => withBirthday('2019-02-29T00:00:00.000Z')).toThrow('kids[0]: birthday is not a calendar day');
+  });
   it('has no birthday key without one', () => {
     expect('birthday' in normalizeConfig(base).kids[0]).toBe(false);
   });
-  it.each(['10.12.', '2019-12-10', '12-1', '13-01', '', 1210, 12])('rejects the form %j', (v) => {
-    expect(() => withBirthday(v)).toThrow('kids[0]: birthday must be formatted MM-DD');
+  it.each(['10.12.', '10.12.2019', '2019-12', '19-12-10', '2019-12-1', '2019-13-01', '12-1', '13-01', '', 1210, 12, 20191210])('rejects the form %j', (v) => {
+    expect(() => withBirthday(v)).toThrow('kids[0]: birthday must be formatted YYYY-MM-DD or MM-DD');
   });
-  it.each(['02-30', '04-31', '06-31', '11-31'])('rejects %s as no calendar day', (v) => {
+  it.each(['02-30', '04-31', '06-31', '11-31', '2019-02-29', '2019-04-31'])('rejects %s as no calendar day', (v) => {
     expect(() => withBirthday(v)).toThrow('kids[0]: birthday is not a calendar day');
   });
 });

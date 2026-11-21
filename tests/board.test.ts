@@ -486,10 +486,36 @@ describe('birthday', () => {
   /** Month and day of `date` as a `birthday` value. */
   const mmdd = (date: Date) => `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const animated = (svg: string) => (svg.match(/class="fb-anim/g) ?? []).length;
-  const LIT_CAKE = 30; // enough candles that every flickering flame is lit
+  const LIT_CAKE = 30; // a full half of balloons beside the cake
+  const LIT_YEAR = 2014; // born then, the kid is 12 in 2026: enough candles that every flickering flame is lit
 
-  it('lights every flickering flame and the balloon at the worst case', () => {
-    expect(animated(half(two({ date: DECEMBER }, cfg(), [kid('k1', LIT_CAKE), kid('k2', 3)]), 'k1'))).toBe(9);
+  it('lights every flickering flame and the banner ends at the worst case', () => {
+    const c = cfg();
+    c.kids[0].birthday = `${LIT_YEAR}-12-10`;
+    expect(animated(half(two({ date: DECEMBER }, c, [kid('k1', LIT_CAKE), kid('k2', 3)]), 'k1'))).toBe(10);
+  });
+
+  const candles = (svg: string) => (svg.match(/data-part="candle"/g) ?? []).length;
+
+  it('shows the age as candles on the birthday', () => {
+    const c = cfg();
+    c.kids[0].birthday = '2019-12-10';
+    expect(candles(half(two({ date: DECEMBER }, c), 'k1'))).toBe(7);
+  });
+
+  it('shows the current age to a kid who picks birthday as a favourite', () => {
+    const c = cfg();
+    c.kids[0].birthday = '2019-12-10';
+    c.kids[0].theme = 'birthday';
+    const out = half(two({ date: june10(1) }, c), 'k1');
+    expect(out).toContain('data-theme="birthday"');
+    expect(candles(out)).toBe(6);
+  });
+
+  it('shows no candles for a birthday without a year', () => {
+    const out = half(two({ date: DECEMBER }), 'k1');
+    expect(out).toContain('data-theme="birthday"');
+    expect(candles(out)).toBe(0);
   });
 
   for (const t of Object.values(THEMES).filter((x) => x.renderSeasonScene)) {
@@ -497,7 +523,7 @@ describe('birthday', () => {
 
     it(`stays within the animation budget with a lit birthday cake in the ${t.id} season`, () => {
       const c = cfg();
-      c.kids[0].birthday = mmdd(date);
+      c.kids[0].birthday = `${LIT_YEAR}-${mmdd(date)}`;
       for (const points of [0, 30, 37, 1000]) {
         const out = two({ date }, c, [kid('k1', LIT_CAKE), kid('k2', points)]);
         expect(half(out, 'k1')).toContain('data-theme="birthday"');
@@ -507,7 +533,7 @@ describe('birthday', () => {
 
     it(`stays within the animation budget with five kids and a lit birthday cake in the ${t.id} season`, () => {
       const ids = ['k1', 'k2', 'k3', 'k4', 'k5'];
-      const c = config(ids.map((id, i) => ({ id, theme: 'bricks', show_number: false, ...(i === 0 ? { birthday: mmdd(date) } : {}) })));
+      const c = config(ids.map((id, i) => ({ id, theme: 'bricks', show_number: false, ...(i === 0 ? { birthday: `${LIT_YEAR}-${mmdd(date)}` } : {}) })));
       for (const points of [0, 30, 37, 1000]) {
         const out = renderBoard(model(ids.map((id, i) => kid(id, i === 0 ? LIT_CAKE : points))), c, { date });
         expect(half(out, 'k1')).toContain('data-theme="birthday"');

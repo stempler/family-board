@@ -2,7 +2,8 @@ import type { Box } from '../draw/jar';
 import type { ItemGroups, NewRange } from '../items';
 import type { Kid } from '../model';
 
-export interface HalfContext { kid: Kid; box: Box; groups: ItemGroups; newFrom: number; newTo: number; seedKey: string } // items with newFrom <= index < newTo get class "fb-new"
+// Items with newFrom <= index < newTo get class "fb-new". `age`: the kid's age on the board's date, when the config has the birth year.
+export interface HalfContext { kid: Kid; box: Box; groups: ItemGroups; newFrom: number; newTo: number; seedKey: string; age?: number }
 
 export interface Theme {
   id: string;

@@ -5,7 +5,7 @@ import { esc, INK, num, PAPER, truncate } from './draw/sketch';
 import { de } from './i18n';
 import { groupItems, newItemRange } from './items';
 import type { BoardModel, Kid } from './model';
-import { activeSeason, isBirthday } from './season';
+import { activeSeason, ageOn, isBirthday } from './season';
 import { getTheme, THEMES } from './themes/registry';
 import type { HalfContext, Theme } from './themes/types';
 
@@ -154,7 +154,8 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
     const prev = opts.prevPoints?.[kid.id];
     const { newFrom, newTo } = theme.items ? theme.items(kid.points, prev) : newItemRange(prev, kid.points, theme.capacity);
-    const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom, newTo, seedKey: `${kid.id}:scene` };
+    const age = kc?.birthday !== undefined ? ageOn(kc.birthday, opts.date) : undefined;
+    const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom, newTo, seedKey: `${kid.id}:scene`, ...(age !== undefined ? { age } : {}) };
     return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });
 

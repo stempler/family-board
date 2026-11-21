@@ -67,10 +67,25 @@ export function seasonStart(rule: SeasonRule, year: number): Date {
   return new Date(year, m - 1, d);
 }
 
-/** True on the kid's birthday ("MM-DD", local date); a 29 February birthday is shown on 28 February in non-leap years. */
+const WITH_YEAR = /^(\d{4})-(\d{2}-\d{2})$/;
+
+/** True on the kid's birthday ("YYYY-MM-DD" or "MM-DD", local date); a 29 February birthday is shown on 28 February in non-leap years. */
 export function isBirthday(birthday: string, date: Date): boolean {
-  if (mmdd(date) === birthday) return true;
+  const md = WITH_YEAR.exec(birthday)?.[2] ?? birthday;
+  if (mmdd(date) === md) return true;
   const year = date.getFullYear();
   const leap = new Date(year, 1, 29).getMonth() === 1;
-  return birthday === '02-29' && !leap && mmdd(date) === '02-28';
+  return md === '02-29' && !leap && mmdd(date) === '02-28';
+}
+
+/**
+ * The kid's age on `date`: the completed years since a "YYYY-MM-DD" birthday, so the new age on the birthday
+ * (on 28 February of a non-leap year for a 29 February birthday too). Undefined without a year or below 1.
+ */
+export function ageOn(birthday: string, date: Date): number | undefined {
+  const m = WITH_YEAR.exec(birthday);
+  if (!m) return undefined;
+  const reached = mmdd(date) >= m[2] || isBirthday(birthday, date);
+  const age = date.getFullYear() - Number(m[1]) - (reached ? 0 : 1);
+  return age >= 1 ? age : undefined;
 }

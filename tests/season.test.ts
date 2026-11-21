@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason, easterOffset, easterSunday, seasonStart, isBirthday } from '../src/season';
+import { activeSeason, ageOn, easterOffset, easterSunday, seasonStart, isBirthday } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
@@ -124,5 +124,38 @@ describe('isBirthday', () => {
   it('leaves a 28 February birthday alone', () => {
     expect(isBirthday('02-28', new Date(2028, 1, 29))).toBe(false);
     expect(isBirthday('02-28', new Date(2028, 1, 28))).toBe(true);
+  });
+});
+
+describe('isBirthday with the birth year', () => {
+  it('is true on the day only, whatever the year', () => {
+    expect(isBirthday('2019-12-10', new Date(2026, 11, 10))).toBe(true);
+    expect(isBirthday('2019-12-10', new Date(2026, 11, 9))).toBe(false);
+    expect(isBirthday('2019-12-10', new Date(2026, 11, 11))).toBe(false);
+  });
+  it('shows a 29 February birthday on 28 February in non-leap years', () => {
+    expect(isBirthday('2020-02-29', new Date(2027, 1, 28))).toBe(true);
+    expect(isBirthday('2020-02-29', new Date(2028, 1, 28))).toBe(false);
+    expect(isBirthday('2020-02-29', new Date(2028, 1, 29))).toBe(true);
+  });
+});
+
+describe('ageOn', () => {
+  it('counts the completed years, the new age on the birthday', () => {
+    expect(ageOn('2019-12-10', new Date(2026, 11, 9))).toBe(6);
+    expect(ageOn('2019-12-10', new Date(2026, 11, 10))).toBe(7);
+  });
+  it('has the new age on 28 February of a non-leap year for a 29 February birthday', () => {
+    expect(ageOn('2020-02-29', new Date(2027, 1, 27))).toBe(6);
+    expect(ageOn('2020-02-29', new Date(2027, 1, 28))).toBe(7);
+    expect(ageOn('2020-02-29', new Date(2028, 1, 28))).toBe(7);
+    expect(ageOn('2020-02-29', new Date(2028, 1, 29))).toBe(8);
+  });
+  it('knows no age without a year', () => {
+    expect(ageOn('12-10', new Date(2026, 11, 10))).toBeUndefined();
+  });
+  it('knows no age below 1 or for a birth date in the future', () => {
+    expect(ageOn('2026-12-10', new Date(2026, 11, 10))).toBeUndefined();
+    expect(ageOn('2027-01-01', new Date(2026, 11, 10))).toBeUndefined();
   });
 });

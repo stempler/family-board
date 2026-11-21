@@ -104,8 +104,8 @@ describe('board snapshots', () => {
 
   // A birthday kid's half beside another kid, and inside a season whose shared scene is switched off for the day.
   const BIRTHDAY_BOARDS: Record<string, string> = {
-    'birthday-beside-dino': board(['bricks', 'dino'], [12, 37], JUNE, false, { k1: '06-01' }),
-    'birthday-in-christmas': board(['bricks', 'dino'], [12, 37], new Date(2026, 11, 10), true, { k1: '12-10' }),
+    'birthday-beside-dino': board(['bricks', 'dino'], [12, 37], JUNE, false, { k1: '2019-06-01' }),
+    'birthday-in-christmas': board(['bricks', 'dino'], [12, 37], new Date(2026, 11, 10), true, { k1: '2019-12-10' }),
   };
   for (const [name, svg] of Object.entries(BIRTHDAY_BOARDS)) {
     it(`birthday board ${name}`, async () => {

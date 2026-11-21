@@ -24,7 +24,10 @@ const controls = document.getElementById('controls')!;
 
 function applyConfig(): void {
   const pad = (n: number) => String(n).padStart(2, '0');
-  const birthday = `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  // With a birth year, so the kid turns 7 on the playground date and the cake shows candles; on 29 February
+  // 8 (7 years back is no leap year, 8 years back is).
+  const leapDay = date.getMonth() === 1 && date.getDate() === 29;
+  const birthday = `${date.getFullYear() - (leapDay ? 8 : 7)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   card.setConfig({
     kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour, ...(birthdayKids.has(k.id) ? { birthday } : {}) })),
     ...(seasonsOff ? { seasons: [] } : {}),

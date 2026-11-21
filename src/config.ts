@@ -1,6 +1,6 @@
 import { easterOffset, resolveSeasonDate } from './season';
 
-export interface KidConfig { id: string; theme: string; colour?: string; tap_path?: string; show_number: boolean; birthday?: string } // birthday: "MM-DD"
+export interface KidConfig { id: string; theme: string; colour?: string; tap_path?: string; show_number: boolean; birthday?: string } // birthday: "YYYY-MM-DD" (age known) or "MM-DD"
 export interface SeasonRule { theme: string; from: string; to: string } // "MM-DD" or "easter[±N]", inclusive; absolute-only rules may wrap year end
 export interface CardConfig {
   type: string;
@@ -20,6 +20,7 @@ export const DEFAULT_SEASONS: SeasonRule[] = [
 ];
 
 const MM_DD = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const YYYY_MM_DD = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 function validSeasonDate(v: string): boolean {
   return MM_DD.test(v) || easterOffset(v) !== null;
@@ -42,6 +43,22 @@ function nonEmptyString(v: unknown): v is string {
   return typeof v === 'string' && v.trim() !== '';
 }
 
+/**
+ * The birthday as text to validate. An unquoted `2019-12-10` in YAML arrives as a Date (midnight UTC), and once
+ * saved it comes back from JSON as `2019-12-10T00:00:00.000Z`: both become `2019-12-10`. Anything else that is not
+ * a string (or an invalid Date) becomes '', which fails the format check.
+ */
+function birthdayText(v: unknown): string {
+  if (v instanceof Date) {
+    if (Number.isNaN(v.getTime())) return '';
+    const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+    return `${pad(v.getUTCFullYear(), 4)}-${pad(v.getUTCMonth() + 1)}-${pad(v.getUTCDate())}`;
+  }
+  if (typeof v !== 'string') return '';
+  const text = v.trim();
+  return /^\d{4}-\d{2}-\d{2}T/.test(text) ? text.slice(0, 10) : text;
+}
+
 function normalizeKid(raw: unknown, i: number): KidConfig {
   if (!isRecord(raw)) throw new Error(`kids[${i}] must be an object`);
   if (!nonEmptyString(raw.id)) throw new Error(`kids[${i}]: id is required`);
@@ -57,10 +74,14 @@ function normalizeKid(raw: unknown, i: number): KidConfig {
     kid.tap_path = path;
   }
   if (raw.birthday !== undefined) {
-    const birthday = typeof raw.birthday === 'string' ? raw.birthday.trim() : '';
-    if (!MM_DD.test(birthday)) throw new Error(`kids[${i}]: birthday must be formatted MM-DD`);
-    const [m, d] = birthday.split('-').map(Number);
-    if (new Date(2028, m - 1, d).getMonth() !== m - 1) throw new Error(`kids[${i}]: birthday is not a calendar day`);
+    const birthday = birthdayText(raw.birthday);
+    const full = YYYY_MM_DD.exec(birthday);
+    if (!full && !MM_DD.test(birthday)) throw new Error(`kids[${i}]: birthday must be formatted YYYY-MM-DD or MM-DD`);
+    // Without a year, check against a leap year so 29 February is a valid day.
+    const [y, m, d] = full ? [Number(full[1]), Number(full[2]), Number(full[3])] : [2028, ...birthday.split('-').map(Number)];
+    const day = new Date(2028, 0, 1);
+    day.setFullYear(y, m - 1, d);
+    if (day.getMonth() !== m - 1) throw new Error(`kids[${i}]: birthday is not a calendar day`);
     kid.birthday = birthday;
   }
   return kid;
