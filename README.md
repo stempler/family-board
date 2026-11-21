@@ -66,7 +66,9 @@ first run.
 - **Stop or reset:**
   - `mise run ha:down` stops Home Assistant and keeps its data.
   - `mise run ha:reset` deletes the config and the token, so the next
-    `ha:up` starts fresh.
+    `ha:up` starts fresh. Run it once if your local Home Assistant was seeded
+    before the demo jar was renamed to `Bausteine-Set`; otherwise `ha:seed`
+    adds the jar a second time under the new name.
 
 `ha:seed` overwrites the dev dashboard `/family-board` with the demo config, so
 edits made to it in the UI are lost on the next seed.

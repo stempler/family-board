@@ -73,7 +73,7 @@ function baseplate(sk: Sketch, p: Placement): string {
 }
 
 /** A little builder in the kid's colour, standing on the baseplate next to the tower and waving. */
-function minifig(sk: Sketch, p: Placement, colour: string, seedKey: string): string {
+function figure(sk: Sketch, p: Placement, colour: string, seedKey: string): string {
   const [fx, fy] = at(p, MID + 108, BASE); // between the feet
   const k = p.s * 1.3;
   const f = (dx: number, dy: number): [number, number] => [fx + dx * k, fy + dy * k];
@@ -96,7 +96,7 @@ function minifig(sk: Sketch, p: Placement, colour: string, seedKey: string): str
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
   const p = placement(ctx.box, UNITS);
-  return `<g>${baseplate(sk, p)}${minifig(sk, p, ctx.kid.colour, ctx.seedKey)}${tower(sk, p, ctx)}</g>`;
+  return `<g>${baseplate(sk, p)}${figure(sk, p, ctx.kid.colour, ctx.seedKey)}${tower(sk, p, ctx)}</g>`;
 }
 
 // At rest for 80 % of the cycle, then three swings of ±20° around the shoulder, then back to rest.

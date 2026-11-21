@@ -72,7 +72,7 @@ describe('emoji length', () => {
 });
 
 describe('jars', () => {
-  const base = { id: 'j1', name: 'Lego', icon: { kind: 'emoji' as const, value: '🧱' }, goal: 50 };
+  const base = { id: 'j1', name: 'Bausteine', icon: { kind: 'emoji' as const, value: '🧱' }, goal: 50 };
   it('clamps to full', () => {
     const out = drawJar({ ...base, current: 60 }, box, '#f4b942', 'k');
     expect(out).toContain('data-jar="j1"');

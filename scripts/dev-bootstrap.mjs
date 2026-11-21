@@ -118,7 +118,7 @@ try {
 
   // Rewards, only those whose name doesn't exist yet.
   const rewardSpecs = [
-    { name: 'LEGO-Set', cost: 50, icon: 'mdi:toy-brick', pool_enabled: true, assigned_to: [mia] },
+    { name: 'Bausteine-Set', cost: 50, icon: 'mdi:toy-brick', pool_enabled: true, assigned_to: [mia] },
     { name: 'Kino', cost: 20, icon: 'mdi:movie-open', pool_enabled: true, assigned_to: [] },
     { name: 'Pizza-Abend', cost: 40, icon: 'mdi:pizza', is_jackpot: true },
     { name: '30 Min. Bildschirmzeit', cost: 10, icon: 'mdi:tablet' },
@@ -134,7 +134,7 @@ try {
   // Points, only for kids who have never earned any (so reruns don't duplicate).
   const service = (name, data) => ws.call({ type: 'call_service', domain: 'taskmate', service: name, service_data: data });
   const plans = [
-    { id: mia, spendable: 12, pools: { 'LEGO-Set': 22, 'Pizza-Abend': 5 } },
+    { id: mia, spendable: 12, pools: { 'Bausteine-Set': 22, 'Pizza-Abend': 5 } },
     { id: ben, spendable: 7, pools: { 'Pizza-Abend': 8 } },
   ];
   const children = (await state('sensor.taskmate_overview')).attributes.children;

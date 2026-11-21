@@ -6,7 +6,7 @@ import { THEMES } from '../src/themes/registry';
 import { makeFakeHass, type FakeJar, type FakeKid } from './fake-hass';
 
 const jars: FakeJar[] = [
-  { id: 'j1', name: 'Lego Set', icon: '🧱', goal: 50, allocations: { k1: 22 }, shared: false, assignedTo: ['k1'] },
+  { id: 'j1', name: 'Bausteine-Set', icon: '🧱', goal: 50, allocations: { k1: 22 }, shared: false, assignedTo: ['k1'] },
   { id: 'j2', name: 'Eis', icon: '🍦', goal: 30, allocations: { k2: 9 }, shared: false, assignedTo: ['k2'] },
   { id: 'j3', name: 'Familienausflug', icon: '✈️', goal: 40, allocations: { k1: 5, k2: 8 }, shared: true, assignedTo: [] },
 ];
