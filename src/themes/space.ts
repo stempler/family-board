@@ -1,12 +1,13 @@
-import { rand, timing, twinkle } from '../draw/anim';
+import { rand, scaledCount, timing, twinkle } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
 import { item, type HalfContext, type Theme } from './types';
 
 // A night sky over a little moon, drawn in "sky units": a rocket stands on a
-// small moon peeking up at the bottom right, ringed planets hang in three fixed larger slots and
-// stars appear at fixed spots that form four simple constellations (a dipper, a
-// W, a kite and a hunter with his bow), one constellation after the other.
+// small moon peeking up at the bottom right. Fat yellow stars appear at fixed
+// spots that form four simple constellations (a dipper, a W, a kite and a hunter
+// with his bow), one after the other; a bigger glowing star worth ten takes the
+// place of a star at a seeded, random-looking spot among the ones already lit.
 // Thin lines join two stars of a constellation once both are there. The half
 // background stays a pale dusk blue so the board's dark header and jar labels
 // stay readable; only the scene band is a deep night sky.
@@ -43,10 +44,12 @@ const LINES: [number, number][] = CONSTELLATIONS.flatMap((c, k) => {
   const offset = CONSTELLATIONS.slice(0, k).reduce((n, d) => n + d.stars.length, 0);
   return c.lines.map(([a, b]) => [a + offset, b + offset] as [number, number]);
 });
-const PLANETS: Pt[] = [[44, 214], [128, 214], [292, 64]];
-const CAPACITY = STARS.length; // 30; big items beyond the planet slots take star spots
+const CAPACITY = STARS.length; // 30; big glowing stars and small stars share the star spots
+// Spots a big star may take first: every merge leaves at least CAPACITY − 8 items (minimal replacement),
+// so a big star picked from these always replaces a lit star and never lands in an empty constellation.
+const BIG_POOL = CAPACITY - 8;
 
-const TWINKLERS = 12; // star spots that twinkle, picked by seed per half
+const TWINKLERS = 12; // star spots that twinkle in a 400-wide half (fewer in narrower halves), picked by seed
 
 const DUSK = '#d6dcef';
 const NIGHT = '#27355f';
@@ -56,7 +59,6 @@ const STAR = '#ffd95e';
 const STAR_EDGE = '#8a6a12';
 const MOON = '#cfccc3';
 const MOON_DARK = '#aeaa9f';
-const RING = '#f6e7b4';
 const HULL = '#f4f1ea';
 const WINDOW = '#8fd3f4';
 const FLAME = '#f6993f';
@@ -92,69 +94,58 @@ function starPoints(p: Placement, x: number, y: number, r: number): Pt[] {
   return pts;
 }
 
+const SMALL_R = 10; // units, outer radius of a star
+const BIG_R = SMALL_R * 1.4;
+
 /** A fat yellow star with a white glint. */
 function star(sk: Sketch, p: Placement, x: number, y: number): string {
-  const body = sk.polygon(starPoints(p, x, y, 10), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
+  const body = sk.polygon(starPoints(p, x, y, SMALL_R), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
   const [gx, gy] = at(p, x - 2, y - 2);
   return `${body}<circle cx="${num(gx)}" cy="${num(gy)}" r="${num(1.6 * p.s)}" fill="#fff" opacity="0.9"/>`;
 }
 
-/** Points of a ring around (x, y), tilted, split into the half behind the planet and the half in front. */
-function ring(p: Placement, x: number, y: number, rx: number, ry: number): { back: Pt[]; front: Pt[] } {
-  const tilt = -0.28;
-  const back: Pt[] = [];
-  const front: Pt[] = [];
-  for (let i = 0; i <= 24; i++) {
-    const a = Math.PI + (i * Math.PI) / 24; // upper half, left to right
-    const b = (i * Math.PI) / 24; // lower half, right to left
-    const pt = (t: number): Pt => {
-      const ex = rx * Math.cos(t);
-      const ey = ry * Math.sin(t);
-      return at(p, x + ex * Math.cos(tilt) - ey * Math.sin(tilt), y + ex * Math.sin(tilt) + ey * Math.cos(tilt));
-    };
-    back.push(pt(a));
-    front.push(pt(b));
-  }
-  return { back, front };
-}
-
-/** A ringed planet in the kid colour; `k` scales it down when it sits on a star spot. */
-function planet(sk: Sketch, p: Placement, x: number, y: number, colour: string, k: number): string {
-  const r = 16 * k;
-  const { back, front } = ring(p, x, y, 30 * k, 8 * k);
-  const line = (pts: Pt[]) => `M ${pts.map((q) => q.map(num).join(' ')).join(' L ')}`;
-  const ringStyle = { stroke: RING, strokeWidth: 3.6 * k, roughness: 0.4 };
-  const body = sk.circle(...at(p, x, y), 2 * r * p.s, { fill: colour, strokeWidth: 2 * Math.max(k, 0.7), roughness: 0.6 });
-  const [bx, by] = at(p, x, y + r * 0.35);
-  const band = `<ellipse cx="${num(bx)}" cy="${num(by)}" rx="${num(r * 0.8 * p.s)}" ry="${num(r * 0.18 * p.s)}" fill="#fff" opacity="0.25"/>`;
-  const [gx, gy] = at(p, x - r * 0.4, y - r * 0.4);
-  const glint = `<circle cx="${num(gx)}" cy="${num(gy)}" r="${num(r * 0.22 * p.s)}" fill="#fff" opacity="0.7"/>`;
-  return sk.path(line(back), ringStyle) + body + band + glint + sk.path(line(front), ringStyle);
+/** A big gold star (worth ten) with a soft glow behind it and a white glint. */
+function goldStar(sk: Sketch, p: Placement, x: number, y: number): string {
+  const [cx, cy] = at(p, x, y);
+  const glow = `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(BIG_R * 1.45 * p.s)}" fill="${STAR}" opacity="0.3"/>`;
+  const body = sk.polygon(starPoints(p, x, y, BIG_R), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
+  const [gx, gy] = at(p, x - 2.8, y - 2.8);
+  return `${glow}${body}<circle cx="${num(gx)}" cy="${num(gy)}" r="${num(2.2 * p.s)}" fill="#fff" opacity="0.9"/>`;
 }
 
 /**
- * Which star spots twinkle in this half: a fixed seeded pick of about 2 in 5 spots of every constellation (12 in all),
+ * Which star spots twinkle in this half: a fixed seeded pick of about 2 in 5 spots of every constellation (12 in a 400-wide half, scaled with the width),
  * so the first constellation already twinkles and a twinkling star keeps twinkling as stars are added.
  */
-function twinklers(seedKey: string): Set<number> {
+function twinklers(seedKey: string, box: Box): Set<number> {
+  const total = scaledCount(TWINKLERS, box);
   const out = new Set<number>();
   let offset = 0;
   for (const c of CONSTELLATIONS) {
     const spots = c.stars.map((_, i) => offset + i).sort((a, b) => rand(`${seedKey}:tw:${a}`) - rand(`${seedKey}:tw:${b}`));
-    for (const spot of spots.slice(0, Math.round((c.stars.length * TWINKLERS) / STARS.length))) out.add(spot);
+    for (const spot of spots.slice(0, Math.round((c.stars.length * total) / STARS.length))) out.add(spot);
     offset += c.stars.length;
   }
   return out;
 }
 
-/** Planets first in their own slots, then on star spots; stars fill the remaining star spots in constellation order. */
-function slots(ctx: HalfContext): { kind: 'big' | 'small'; spot: number; planetSlot: boolean }[] {
-  const { big, small } = ctx.groups;
-  const out: { kind: 'big' | 'small'; spot: number; planetSlot: boolean }[] = [];
-  let spot = 0;
-  for (let i = 0; i < big; i++) out.push(i < PLANETS.length ? { kind: 'big', spot: i, planetSlot: true } : { kind: 'big', spot: spot++, planetSlot: false });
-  for (let i = 0; i < small && spot < STARS.length; i++) out.push({ kind: 'small', spot: spot++, planetSlot: false });
-  return out;
+/**
+ * Where the items stand. Big star k takes spot `order[k]`: a seeded shuffle of the first BIG_POOL spots, then the
+ * rest in constellation order. Small stars take the lowest spots no big star holds. So a big star never moves, and a
+ * small star never moves either: a new big star only takes a spot away from the free list, and the small stars that
+ * remain are a prefix of what was there before.
+ */
+export function starSpots(big: number, small: number, seedKey: string): { kind: 'big' | 'small'; spot: number }[] {
+  const pool = Array.from({ length: BIG_POOL }, (_, i) => i).sort((a, b) => rand(`${seedKey}:big:${a}`) - rand(`${seedKey}:big:${b}`));
+  const order = [...pool, ...Array.from({ length: STARS.length - BIG_POOL }, (_, i) => BIG_POOL + i)];
+  const bigs = order.slice(0, Math.min(big, STARS.length));
+  const taken = new Set(bigs);
+  const free = Array.from({ length: STARS.length }, (_, i) => i).filter((i) => !taken.has(i));
+  return [...bigs.map((spot) => ({ kind: 'big' as const, spot })), ...free.slice(0, small).map((spot) => ({ kind: 'small' as const, spot }))];
+}
+
+function slots(ctx: HalfContext): { kind: 'big' | 'small'; spot: number }[] {
+  return starSpots(ctx.groups.big, ctx.groups.small, ctx.seedKey);
 }
 
 function sky(sk: Sketch, box: Box, seedKey: string): string {
@@ -189,17 +180,14 @@ function constellationLines(p: Placement, filled: Set<number>): string {
 }
 
 function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
-  const colour = ctx.kid.colour;
   const list = slots(ctx);
-  const twinkling = twinklers(ctx.seedKey);
-  const stars = new Set(list.filter((s) => s.kind === 'small').map((s) => s.spot));
-  let out = constellationLines(p, stars);
+  const twinkling = twinklers(ctx.seedKey, ctx.box);
+  let out = constellationLines(p, new Set(list.map((s) => s.spot)));
   list.forEach((s, i) => {
+    const [x, y] = STARS[s.spot];
     if (s.kind === 'big') {
-      const [x, y] = s.planetSlot ? PLANETS[s.spot] : STARS[s.spot];
-      out += item('big', i, ctx, planet(sk, p, x, y, colour, s.planetSlot ? 1 : 0.5));
+      out += item('big', i, ctx, goldStar(sk, p, x, y));
     } else {
-      const [x, y] = STARS[s.spot];
       const body = star(sk, p, x, y);
       out += item('small', i, ctx, twinkling.has(s.spot) ? `<g ${twinkle(`${ctx.seedKey}:star:${s.spot}`)}>${body}</g>` : body);
     }
