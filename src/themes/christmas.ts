@@ -2,7 +2,7 @@ import { particles, scaledCount, twinkle } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { seasonKid, seasonPlacement } from '../draw/season';
 import { createSketch, esc, num, type Sketch } from '../draw/sketch';
-import { at, moved, placement, SCENE_BOTTOM, starPoints, type Placement, type Units } from '../draw/units';
+import { at, moved, placement, SCENE_BOTTOM, starPoints, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // The tree is drawn in "tree units" taken from mockups/metaphor.html (A):
@@ -127,11 +127,16 @@ function renderHalf(ctx: HalfContext): string {
   return `<g>${ground}${tree(sk, late, p, ctx)}${presents(late, p, ctx.kid.colour)}${particles(`${ctx.seedKey}:snow`, box, scaledCount(13, box), 'snow')}</g>`;
 }
 
+/** The ribbon's wave below the tree: from `start` over `control` to the bow at `mid`, then on (control mirrored) to `end`. */
+function ribbonPoints(p: Placement): { start: Pt; control: Pt; mid: Pt; end: Pt } {
+  const start = at(p, 18, BASE + 7);
+  const mid = at(p, MID, BASE + 4);
+  return { start, control: [(start[0] + mid[0]) / 2, mid[1] - 8 * p.s], mid, end: at(p, 182, BASE + 7) };
+}
+
 function ribbon(sk: Sketch, p: Placement, colour: string): string {
-  const [x1, y1] = at(p, 18, BASE + 7);
-  const [xm, ym] = at(p, MID, BASE + 4);
-  const [x2, y2] = at(p, 182, BASE + 7);
-  const wave = sk.path(`M ${num(x1)} ${num(y1)} Q ${num((x1 + xm) / 2)} ${num(ym - 8 * p.s)} ${num(xm)} ${num(ym)} T ${num(x2)} ${num(y2)}`, { stroke: colour, strokeWidth: 6 * p.s, roughness: 0.6 });
+  const { start: [x1, y1], control: [cx, cy], mid: [xm, ym], end: [x2, y2] } = ribbonPoints(p);
+  const wave = sk.path(`M ${num(x1)} ${num(y1)} Q ${num(cx)} ${num(cy)} ${num(xm)} ${num(ym)} T ${num(x2)} ${num(y2)}`, { stroke: colour, strokeWidth: 6 * p.s, roughness: 0.6 });
   const w = 11 * p.s;
   const bow = sk.polygon([[xm, ym], [xm - w, ym - w * 0.6], [xm - w, ym + w * 0.6]], { fill: colour, strokeWidth: 1.6, roughness: 0.5 }) +
     sk.polygon([[xm, ym], [xm + w, ym - w * 0.6], [xm + w, ym + w * 0.6]], { fill: colour, strokeWidth: 1.6, roughness: 0.5 }) +
@@ -153,16 +158,56 @@ function snowman(sk: Sketch, cx: number, bottom: number, size: number): string {
     eye(-r2 * 0.35) + eye(r2 * 0.25);
 }
 
+const HILL_Y = 0.69; // share of the board height where the hill's top line meets the board edges and the centre
+const HILL_RISE = 0.045; // how far the left bump rises above HILL_Y (the right dips by as much), as a share of the height
+const HILL_EDGE = 12; // the hill's sides run this far past the board edge, so only its top outline shows
+
+/** The hill's top line: a quadratic curve from p0 over c1 to p1, then on (control c2, c1 mirrored about p1) to p2. */
+function hillCurve(box: Box): { p0: Pt; c1: Pt; p1: Pt; c2: Pt; p2: Pt } {
+  const y = box.y + box.h * HILL_Y;
+  const rise = box.h * HILL_RISE;
+  return {
+    p0: [box.x - HILL_EDGE, y],
+    c1: [box.x + box.w * 0.25, y - rise],
+    p1: [box.x + box.w / 2, y],
+    c2: [box.x + box.w * 0.75, y + rise],
+    p2: [box.x + box.w + HILL_EDGE, y - box.h * 0.01],
+  };
+}
+
+/** y of the hill's top line at board x `x` in the season scene spanning `box`. */
+export function hillTopAt(box: Box, x: number): number {
+  const { p0, c1, p1, c2, p2 } = hillCurve(box);
+  const [a, c, b] = x <= p1[0] ? [p0, c1, p1] : [p1, c2, p2];
+  const bez = (t: number, i: 0 | 1) => (1 - t) ** 2 * a[i] + 2 * (1 - t) * t * c[i] + t ** 2 * b[i];
+  // x(t) rises monotonically on both segments, so bisection finds the t for x.
+  let lo = 0;
+  let hi = 1;
+  for (let k = 0; k < 40; k++) {
+    const mid = (lo + hi) / 2;
+    if (bez(mid, 0) < x) lo = mid; else hi = mid;
+  }
+  return bez((lo + hi) / 2, 1);
+}
+
+/** Where a kid's tree in the season scene meets the ground: its centre, trunk base and the highest points of its ribbon. */
+export function treeFoot(box: Box, half: Box): { cx: number; base: number; ribbon: Pt[] } {
+  const { cx, p } = seasonPlacement(box, half, UNITS);
+  const { start, control, mid, end } = ribbonPoints(p);
+  // The highest point of the first wave (t = 0.5); the mirrored second wave dips below the bow.
+  const peak: Pt = [0.25 * start[0] + 0.5 * control[0] + 0.25 * mid[0], 0.25 * start[1] + 0.5 * control[1] + 0.25 * mid[1]];
+  return { cx, base: at(p, MID, BASE)[1], ribbon: [start, peak, mid, end] };
+}
+
 function renderSeasonScene(halves: HalfContext[], box: Box): string {
   const key = `season:${halves.map((h) => h.seedKey).join('|')}`;
   const sk = createSketch(key);
-  const hillY = box.y + box.h * 0.74;
-  const right = box.x + box.w;
+  const { p0, c1, p1, p2 } = hillCurve(box);
+  const bottom = box.y + box.h + HILL_EDGE;
   const sky = `<rect x="${num(box.x)}" y="${num(box.y)}" width="${num(box.w)}" height="${num(box.h)}" fill="${SKY}"/>`;
   // The hill's sides and bottom run past the board edge, so only its top outline shows.
-  const o = 12;
   const hill = sk.path(
-    `M ${num(box.x - o)} ${num(hillY)} Q ${num(box.x + box.w * 0.25)} ${num(hillY - box.h * 0.07)} ${num(box.x + box.w / 2)} ${num(hillY)} T ${num(right + o)} ${num(hillY - box.h * 0.01)} L ${num(right + o)} ${num(box.y + box.h + o)} L ${num(box.x - o)} ${num(box.y + box.h + o)} Z`,
+    `M ${num(p0[0])} ${num(p0[1])} Q ${num(c1[0])} ${num(c1[1])} ${num(p1[0])} ${num(p1[1])} T ${num(p2[0])} ${num(p2[1])} L ${num(p2[0])} ${num(bottom)} L ${num(p0[0])} ${num(bottom)} Z`,
     { fill: SNOW, strokeWidth: 2, roughness: 1 },
   );
   const trees = halves.map((ctx) => {
