@@ -3,7 +3,7 @@ import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
 import { THEMES } from '../../src/themes/registry';
 import { footprint, spots } from '../../src/themes/underwater';
-import { layout } from './layout';
+import { layout, movedItems } from './layout';
 import { afterItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const underwater = THEMES.underwater;
@@ -79,19 +79,8 @@ describe('underwater item layout', () => {
       expect(l >= 0 && r <= 320 && t >= 142 && b <= 240, `${s.kind} at ${s.x},${s.y}`).toBe(true);
     }
   });
-  it('never moves an item when one is added', () => {
-    for (let points = 1; points <= 1000; points++) {
-      const a = groupItems(points - 1, underwater.capacity);
-      const b = groupItems(points, underwater.capacity);
-      if (a.unit !== b.unit) continue;
-      const [before, after] = [spots(a.big, a.small), spots(b.big, b.small)];
-      const at = (list: typeof before, kind: string) => list.filter((s) => s.kind === kind).map((s) => `${s.x},${s.y}`);
-      for (const kind of ['big', 'small']) {
-        const [x, y] = [at(before, kind), at(after, kind)];
-        const n = Math.min(x.length, y.length);
-        expect(y.slice(0, n), `${kind} at ${points} points`).toEqual(x.slice(0, n));
-      }
-    }
+  it('never moves or resizes an item when one is added', () => {
+    expect(movedItems(spots, footprint, underwater.capacity)).toEqual([]);
   });
   it('keeps every big item clear of every small item it can stand beside, and of each other', () => {
     for (let big = 0; big <= underwater.capacity; big++) {
