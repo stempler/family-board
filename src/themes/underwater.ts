@@ -5,8 +5,8 @@ import { at, moved, placement, points, type Placement, type Pt, type Units } fro
 import { item, type HalfContext, type Theme } from './types';
 
 // Below the surface, drawn in "sea units": open water above, a sandy sea floor from y 142 down to the
-// bottom (y 240). Shells lie on the floor in three rows of ten; open shells with a pearl in them sit in a row at
-// the back of the floor. A coral on a rock grows at the left, seaweed sways at the right, bubbles rise
+// bottom (y 240). Shells lie on the floor in three rows of ten; open shells with a pearl in them sit in a row of five at
+// the back of the floor, then take the shell rows from the back. A coral on a rock grows at the left, seaweed sways at the right, bubbles rise
 // and now and then a fish in the kid colour swims across.
 const MID = 160;
 const UNITS_W = 320;
@@ -36,32 +36,46 @@ const SHELL_W = 18; // a shell lying on the floor: 18 x 14 units
 const SHELL_H = 14;
 const CLAM_W = 32; // an open shell with a pearl: 32 x 24 units
 const CLAM_H = 24;
-const SPILL = 0.75; // scale of an open shell lying on a shell spot: still clearly bigger than a shell
+const ON_ROW = 0.875; // scale of an open shell on a shell spot: 28 x 21, more than twice a shell's area
 
 /** Open-shell spots at the back of the floor, between the coral and the seaweed: 36 apart, so no two touch. */
 const CLAMS: Pt[] = [[162, 156], [126, 156], [198, 156], [90, 156], [234, 156]];
 
-/** One row of ten shells, centre outwards, at a pitch of 28 (room for an open shell at SPILL). */
-const row = (y: number): Pt[] => Array.from({ length: 10 }, (_, i): Pt => [34 + 28 * i, y])
-  .sort((a, b) => Math.abs(a[0] - MID) - Math.abs(b[0] - MID) || a[0] - b[0]);
+/** The x of the ten spots in a row, left to right, at a pitch of 30: room for an open shell at ON_ROW. */
+const ROW_X = Array.from({ length: 10 }, (_, i) => 25 + 30 * i);
+const FRONT = 229;
+const MIDDLE = 206; // 23 apart between rows: room for an open shell at ON_ROW
+const BACK = 183;
 
-/** Shell spots, the front row first, 21 apart between rows. */
-const SHELLS: Pt[] = [...row(229), ...row(208), ...row(187)];
+/** Shell spots: the front row centre outwards, then the middle and the back row left to right. */
+const SHELLS: Pt[] = [
+  ...[...ROW_X].sort((a, b) => Math.abs(a - MID) - Math.abs(b - MID) || a - b).map((x): Pt => [x, FRONT]),
+  ...ROW_X.map((x): Pt => [x, MIDDLE]),
+  ...ROW_X.map((x): Pt => [x, BACK]),
+];
 
 const CAPACITY = SHELLS.length;
 
-export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number; slot: number } // sea units; k scales the drawing; slot is the shell spot, -1 on an open-shell spot
+/**
+ * Shell spots the open shells take after their own five, in order: the back, the middle and the front row, each
+ * right to left. With n open shells there are at most CAPACITY - n shells, and these spots are taken from the end of
+ * the shell order, so a shell spot under an open shell is never in use by a shell at the same time.
+ */
+const ROWS_BIG: Pt[] = [BACK, MIDDLE, FRONT].flatMap((y) => [...ROW_X].reverse().map((x): Pt => [x, y]));
 
-/** Where the items go: open shells first on their own spots, then on shell spots (smaller); shells fill the remaining shell spots in order. */
+export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number } // sea units; k scales the drawing
+
+/**
+ * Where the items go: open shells first on their own spots at the back, then (a little smaller, still more than
+ * twice a shell) on the shell rows from the back right; shells on the shell spots in order. No item ever moves when
+ * one is added.
+ */
 export function spots(big: number, small: number): Spot[] {
-  const out: Spot[] = [];
-  let slot = 0;
-  for (let i = 0; i < big && slot < SHELLS.length; i++) {
-    if (i < CLAMS.length) out.push({ kind: 'big', x: CLAMS[i][0], y: CLAMS[i][1], k: 1, slot: -1 });
-    else out.push({ kind: 'big', x: SHELLS[slot][0], y: SHELLS[slot][1], k: SPILL, slot: slot++ });
-  }
-  for (let i = 0; i < small && slot < SHELLS.length; i++, slot++) out.push({ kind: 'small', x: SHELLS[slot][0], y: SHELLS[slot][1], k: 1, slot });
-  return out;
+  const b = Math.max(0, Math.min(big, CAPACITY));
+  const own = CLAMS.slice(0, b).map(([x, y]): Spot => ({ kind: 'big', x, y, k: 1 }));
+  const rows = ROWS_BIG.slice(0, b - own.length).map(([x, y]): Spot => ({ kind: 'big', x, y, k: ON_ROW }));
+  const shells = SHELLS.slice(0, Math.max(0, Math.min(small, CAPACITY - b))).map(([x, y]): Spot => ({ kind: 'small', x, y, k: 1 }));
+  return [...own, ...rows, ...shells];
 }
 
 /** The box a drawn item covers, in sea units: [left, top, right, bottom]. */

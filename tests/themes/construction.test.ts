@@ -76,21 +76,27 @@ describe('construction item layout', () => {
       expect(bricks[i + 5].x - bricks[i].x).toBeCloseTo(pitch / 2); // every second row offset by half a brick
     }
   });
-  it('keeps every pallet clearly bigger than a brick', () => {
+  it('keeps every pallet at least twice a brick\'s area', () => {
     const small = area(spots(0, 1)[0]);
-    expect(area(spots(1, 0)[0])).toBeGreaterThan(2.5 * small);
-    for (const s of spots(construction.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
+    for (const s of spots(construction.capacity, 0)) expect(area(s)).toBeGreaterThanOrEqual(2 * small);
   });
-  it('keeps every pallet on the earth in front of the wall, inside the site units', () => {
+  it('lays the pallets in three rows of ten, the front row first', () => {
+    const ys = spots(construction.capacity, 0).map((s) => s.y);
+    const rows = [...new Set(ys)];
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toBe(Math.max(...rows));
+    for (const y of rows) expect(ys.filter((v) => v === y)).toHaveLength(10);
+  });
+  it('keeps every pallet on the earth in front of the wall, clear of its foundation, inside the site units', () => {
     for (const s of spots(construction.capacity, 0)) {
       const [l, t, r, b] = footprint(s);
-      expect(l >= 0 && r <= 320 && t >= 192 && b <= 260, `pallet at ${s.x},${s.y}`).toBe(true);
+      expect(l >= 0 && r <= 320 && t >= 193 && b <= 260, `pallet at ${s.x},${s.y}`).toBe(true);
     }
   });
   it('keeps every pallet spot clear of every brick spot and of each other', () => {
     expect(overlapping([...spots(construction.capacity, 0), ...spots(0, construction.capacity)])).toEqual([]);
   });
-  for (const points of [30, 37, 199, 300, 1000]) {
+  for (const points of [30, 37, 120, 199, 250, 300, 1000]) {
     it(`draws no two items on top of each other at ${points} points`, () => {
       const { big, small } = groupItems(points, construction.capacity);
       const list = spots(big, small);

@@ -7,7 +7,7 @@ import { item, type HalfContext, type Theme } from './types';
 // with a cab stripe in the kid colour digs at a heap of earth on the left; at the right a wall rises from
 // a concrete foundation, red clay bricks laid in running bond from the bottom left. A barrier with a
 // warning light and a traffic cone stand at the back. Pallets stacked with bricks stand on the earth in front
-// of the wall and the excavator: a front row of six big ones first, then two rows of twelve smaller ones behind.
+// of the wall and the excavator in three rows of ten, the front row first.
 const MID = 160;
 const UNITS_W = 320;
 const UNITS_H = 260;
@@ -42,21 +42,19 @@ const WALL_X = 176; // left edge of the bottom row
 const WALL_BASE = 186; // top of the foundation
 const WALL_MID = WALL_X + (BOND_X * PER_ROW + BOND_X / 2) / 2;
 
-const PALLET_W = 28; // a pallet stacked with bricks at scale 1: 28 x 20 units
+const PALLET_W = 28; // a pallet stacked with bricks: 28 x 20 units, twice a brick's height and 2.5 times its area
 const PALLET_H = 20;
-const BIG = 1.5; // the front row: 42 x 30, three bricks tall, so a pallet reads as "ten"
-const BACK = 0.8; // the rows behind: 22.4 x 16, still clearly bigger than a brick
 
-/** `n` pallet spots [x, y, scale] at scale `k` in a row centred on `y` and on the half, 2.5 units apart, the one nearest the wall's middle first. */
-const palletRow = (n: number, y: number, k: number): [number, number, number][] =>
-  Array.from({ length: n }, (_, i): [number, number, number] => [MID + (PALLET_W * k + 2.5) * (i - (n - 1) / 2), y, k])
+/** Ten pallet spots [x, y, scale] in a row centred on `y` and on the half, 2.5 units apart, the one nearest the wall's middle first. */
+const palletRow = (y: number): [number, number, number][] =>
+  Array.from({ length: 10 }, (_, i): [number, number, number] => [MID + (PALLET_W + 2.5) * (i - 4.5), y, 1])
     .sort((a, b) => Math.abs(a[0] - WALL_MID) - Math.abs(b[0] - WALL_MID));
 
-/** Pallet spots: the big front row first, then the back rows, the one nearer the wall first; 30, as many as the grouping can ask for. */
+/** Pallet spots: three rows of ten on the earth in front of the wall, 3.5 units apart, the front row first, the back row 2 units clear of the foundation; 30, as many as the grouping can ask for. */
 const PALLETS: [number, number, number][] = [
-  ...palletRow(6, 259.5 - (PALLET_H * BIG) / 2, BIG),
-  ...palletRow(12, 193 + (PALLET_H * BACK) / 2, BACK),
-  ...palletRow(12, 211 + (PALLET_H * BACK) / 2, BACK),
+  ...palletRow(260 - PALLET_H / 2),
+  ...palletRow(236.5 - PALLET_H / 2),
+  ...palletRow(213 - PALLET_H / 2),
 ];
 
 /** Brick spots in the wall: row by row from the bottom, left to right; every second row offset by half a brick. */
