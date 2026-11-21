@@ -128,7 +128,9 @@ The child id is TaskMate's internal id, not the name: Developer Tools → States
 Adding the card in the dashboard editor pre-fills the ids of all TaskMate
 children.
 
-The card resource is `/local/family-board/family-board-card.js` (type: JavaScript module).
+Installed through HACS, the card resource is `/hacsfiles/family-board/family-board-card.js`
+(type: JavaScript module); see [Install](#install). The local dev setup uses
+`/local/family-board/family-board-card.js`.
 
 ## Themes
 
@@ -210,36 +212,24 @@ git tag vX.Y.Z && git push --tags
 The `Release` workflow runs typecheck, tests and build, then creates a GitHub
 release with `dist/family-board-card.js` attached.
 
-## Deploy
+## Install
 
 Production is Home Assistant in Docker Compose on one home server with a
 persistent config volume; see `deploy/compose.yaml` for an example including
 notes on HACS, pinned TaskMate, the non-admin kids user and the tablet kiosk
 (landscape, fullscreen, screen always on).
 
-How the card reaches the server is **undecided — decide later**.
-Both routes are kept working.
+The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 
-### Route (a): private repo plus deploy script (undecided)
-
-```sh
-export FB_SSH_TARGET=user@server               # scp target
-export FB_HA_WWW=/path/to/config/www/family-board  # server path of /config/www/family-board
-export FB_HA_URL=http://server:8123
-# long-lived access token, kept in a file only you can read (chmod 600)
-FB_HA_TOKEN="$(cat ~/.config/family-board/ha-token)" node scripts/deploy.mjs v1.2.0
-```
-
-It downloads the release asset with `gh release download`, copies it via
-`scp`, and sets the Lovelace resource
-`/local/family-board/family-board-card.js?v=<version>` (updated, or created if
-absent) over the WebSocket API. Missing variables abort with a clear message.
-
-### Route (b): public repo plus HACS custom repository (undecided)
-
-Make the repo public and add it in HACS as a custom repository (category
-Dashboard). `hacs.json` and the release asset name are already HACS-compatible.
-HACS cannot install from private repos.
+1. HACS → three-dot menu → Custom repositories → add
+   `https://github.com/stempler/family-board` with type Dashboard.
+2. Search for "Family Board Card" in HACS and download it. This needs at least
+   one release (see [Release](#release)).
+3. For dashboards in storage mode, HACS adds the resource by itself. For a
+   dashboard in YAML mode, add `/hacsfiles/family-board/family-board-card.js`
+   as a JavaScript module by hand.
+4. Add the card to a dashboard (see [Card configuration](#card-configuration)).
+5. Updates: HACS shows new releases. Update there, then reload the tablet.
 
 ## Tablet: back to the picture (open item)
 
