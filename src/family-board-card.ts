@@ -128,7 +128,9 @@ export class FamilyBoardCard extends LitElement {
 
   private _onClick(e: Event): void {
     const half = e.composedPath().find((n): n is Element => n instanceof Element && n.hasAttribute('data-kid-half'));
-    const id = half?.getAttribute('data-kid-half');
+    // Only halves the board marked tappable navigate: a kid that was not found has no tap target.
+    if (half?.getAttribute('data-tappable') !== 'true') return;
+    const id = half.getAttribute('data-kid-half');
     const path = this._config?.kids.find((k) => k.id === id)?.tap_path;
     if (!path) return;
     history.pushState(null, '', path);
