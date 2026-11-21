@@ -3,7 +3,7 @@ import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
 import { footprint, spots } from '../../src/themes/construction';
 import { THEMES } from '../../src/themes/registry';
-import { layout } from './layout';
+import { type Footprint, layout, mixes, movedItems } from './layout';
 import { beforeItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const construction = THEMES.construction;
@@ -59,7 +59,7 @@ describe('construction half', () => {
 });
 
 describe('construction item layout', () => {
-  const { overlapping, area } = layout(footprint);
+  const { overlapping, area, size, onScenery } = layout(footprint);
 
   it('has a spot for as many big items as the grouping can ask for', () => {
     expect(spots(construction.capacity, 0)).toHaveLength(construction.capacity);
@@ -76,32 +76,50 @@ describe('construction item layout', () => {
       expect(bricks[i + 5].x - bricks[i].x).toBeCloseTo(pitch / 2); // every second row offset by half a brick
     }
   });
+  const small = () => area(spots(0, 1)[0]);
+  const pallets = () => spots(construction.capacity, 0);
+
+  it('makes the first five pallets big, at least four times a brick\'s area, in one row in front', () => {
+    const five = pallets().slice(0, 5);
+    for (const s of five) expect(area(s)).toBeGreaterThanOrEqual(4 * small());
+    expect(new Set(five.map((s) => s.y)).size).toBe(1);
+    expect(five[0].y).toBe(Math.max(...pallets().map((s) => s.y)));
+  });
   it('keeps every pallet at least twice a brick\'s area', () => {
-    const small = area(spots(0, 1)[0]);
-    for (const s of spots(construction.capacity, 0)) expect(area(s)).toBeGreaterThanOrEqual(2 * small);
+    for (const s of pallets()) expect(area(s)).toBeGreaterThanOrEqual(2 * small());
   });
-  it('lays the pallets in three rows of ten, the front row first', () => {
-    const ys = spots(construction.capacity, 0).map((s) => s.y);
-    const rows = [...new Set(ys)];
-    expect(rows).toHaveLength(3);
-    expect(rows[0]).toBe(Math.max(...rows));
-    for (const y of rows) expect(ys.filter((v) => v === y)).toHaveLength(10);
+  it('gives pallets 6 to 30 one medium size, clearly smaller than the first five', () => {
+    const rest = pallets().slice(5);
+    expect(rest).toHaveLength(25);
+    for (const s of rest) expect(size(s)).toEqual(size(rest[0]));
+    expect(area(pallets()[0])).toBeGreaterThan(2 * area(rest[0]));
   });
-  it('keeps every pallet on the earth in front of the wall, clear of its foundation, inside the site units', () => {
-    for (const s of spots(construction.capacity, 0)) {
+  it('lays the medium pallets in a row of ten in front, then in rows of five where the wall would rise', () => {
+    const rows = new Map<number, number>();
+    for (const s of pallets().slice(5)) rows.set(s.y, (rows.get(s.y) ?? 0) + 1);
+    expect([...rows.values()]).toEqual([10, 5, 5, 5]);
+  });
+  it('keeps every pallet inside the site units, below the horizon', () => {
+    for (const s of pallets()) {
       const [l, t, r, b] = footprint(s);
-      expect(l >= 0 && r <= 320 && t >= 193 && b <= 260, `pallet at ${s.x},${s.y}`).toBe(true);
+      expect(l >= 0 && r <= 320 && t >= 100 && b <= 260, `pallet at ${s.x},${s.y}`).toBe(true);
     }
   });
-  it('keeps every pallet spot clear of every brick spot and of each other', () => {
-    expect(overlapping([...spots(construction.capacity, 0), ...spots(0, construction.capacity)])).toEqual([]);
+  it('keeps every pallet clear of the excavator, the heap, the foundation and the barrier (the bricks rest on the foundation)', () => {
+    const scenery: Record<string, Footprint> = {
+      excavator: [44, 104, 150, 186], heap: [2, 152, 58, 188], foundation: [170, 186, 316.5, 191],
+      barrier: [182, 62, 280, 100], cone: [290, 78, 314, 102],
+    };
+    for (const { big, small } of mixes(construction.capacity)) expect(onScenery(spots(big, small).filter((s) => s.kind === 'big'), scenery), `${big} big, ${small} small`).toEqual([]);
   });
-  for (const points of [30, 37, 120, 199, 250, 300, 1000]) {
-    it(`draws no two items on top of each other at ${points} points`, () => {
-      const { big, small } = groupItems(points, construction.capacity);
+  it('never moves or resizes an item when one is added', () => {
+    expect(movedItems(spots, footprint, construction.capacity)).toEqual([]);
+  });
+  it('draws no two items on top of each other at any total up to 1000', () => {
+    for (const { big, small, points } of mixes(construction.capacity)) {
       const list = spots(big, small);
-      expect(list).toHaveLength(big + small);
-      expect(overlapping(list)).toEqual([]);
-    });
-  }
+      expect(list, `${points} points`).toHaveLength(big + small);
+      expect(overlapping(list), `${points} points`).toEqual([]);
+    }
+  });
 });
