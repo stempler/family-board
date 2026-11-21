@@ -117,8 +117,8 @@ function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
   const { big, small } = ctx.groups;
   const colour = ctx.kid.colour;
   let out = '';
-  for (let i = 0; i < big && i < STANDS.length; i++) out += item('big', i, ctx.newFrom, trophy(sk, p, ...STANDS[i], colour));
-  for (let j = 0; j < small && big + j < CAPACITY; j++) out += item('small', big + j, ctx.newFrom, medal(sk, p, ...HOOKS[j], colour));
+  for (let i = 0; i < big && i < STANDS.length; i++) out += item('big', i, ctx, trophy(sk, p, ...STANDS[i], colour));
+  for (let j = 0; j < small && big + j < CAPACITY; j++) out += item('small', big + j, ctx, medal(sk, p, ...HOOKS[j], colour));
   return out;
 }
 

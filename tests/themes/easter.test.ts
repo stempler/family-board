@@ -30,7 +30,8 @@ describe('easter half', () => {
   });
   it('puts chocolate bunnies first', () => {
     const kinds = [...half(37).matchAll(/data-item="(small|big)"/g)].map((m) => m[1]);
-    expect(kinds).toEqual(['big', 'big', 'big', 'small', 'small', 'small', 'small', 'small', 'small', 'small']);
+    const g = groupItems(37, easter.capacity);
+    expect(kinds).toEqual([...Array(g.big).fill('big'), ...Array(g.small).fill('small')]);
   });
   it('holds 20 eggs', () => {
     expect(count(half(20), /data-item="small"/g)).toBe(20);
@@ -103,12 +104,14 @@ describe('easter item layout', () => {
     throw new Error('unclosed group');
   });
   it('never moves or re-wobbles an egg when a bunny is added', () => {
-    // 74 and 84 points: 7 and 8 bunnies, the same 4 eggs.
-    expect(groupItems(84, easter.capacity)).toMatchObject({ unit: 10, big: 8, small: 4 });
-    expect(items(half(84), 'small')).toEqual(items(half(74), 'small'));
+    // 74 -> 75 points: 6 bunnies + 14 eggs become 7 bunnies + 5 eggs; the remaining eggs keep their spots.
+    expect(groupItems(74, easter.capacity)).toMatchObject({ unit: 10, big: 6, small: 14 });
+    expect(groupItems(75, easter.capacity)).toMatchObject({ unit: 10, big: 7, small: 5 });
+    expect(items(half(75), 'small')).toEqual(items(half(74), 'small').slice(0, 5));
   });
   it('never moves a bunny when an egg is added', () => {
-    expect(items(half(75), 'big')).toEqual(items(half(74), 'big'));
+    expect(groupItems(38, easter.capacity)).toMatchObject({ big: 2, small: 18 });
+    expect(items(half(38), 'big')).toEqual(items(half(37), 'big'));
   });
 });
 

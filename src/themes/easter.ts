@@ -138,8 +138,8 @@ function chocBunny(sk: Sketch, x: number, base: number, k: number): string {
 function items(sk: Sketch, eggs: Sketch, p: Placement, ctx: HalfContext): string {
   return spots(ctx.groups.big, ctx.groups.small).map((s, i) => {
     const [x, y] = at(p, s.x, s.y);
-    if (s.kind === 'big') return item('big', i, ctx.newFrom, chocBunny(sk, x, y, BUNNY * p.s));
-    return item('small', i, ctx.newFrom, egg(eggs, x, y, EGG_RX * p.s, EGG_RY * p.s, s.slot));
+    if (s.kind === 'big') return item('big', i, ctx, chocBunny(sk, x, y, BUNNY * p.s));
+    return item('small', i, ctx, egg(eggs, x, y, EGG_RX * p.s, EGG_RY * p.s, s.slot));
   }).join('');
 }
 

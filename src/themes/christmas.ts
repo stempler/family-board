@@ -102,7 +102,7 @@ function ornaments(sk: Sketch, p: Placement, ctx: HalfContext): string {
     const isBig = i < big;
     const [x, y] = at(p, ...SLOTS[i]);
     const r = (isBig ? BIG_R : SMALL_R) * p.s;
-    out += item(isBig ? 'big' : 'small', i, ctx.newFrom, bauble(sk, x, y, r, isBig ? GOLD : BAUBLES[i % BAUBLES.length], isBig));
+    out += item(isBig ? 'big' : 'small', i, ctx, bauble(sk, x, y, r, isBig ? GOLD : BAUBLES[i % BAUBLES.length], isBig));
   }
   return out;
 }

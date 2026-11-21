@@ -134,9 +134,9 @@ export function footprint(s: Spot): [number, number, number, number] {
 function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return spots(ctx.groups.big, ctx.groups.small).map((s, i) => {
     const [x, y] = at(p, s.x, s.y);
-    if (s.kind === 'small') return item('small', i, ctx.newFrom, candy(sk, x, y, s.k * p.s, CANDY[s.slot % CANDY.length]));
+    if (s.kind === 'small') return item('small', i, ctx, candy(sk, x, y, s.k * p.s, CANDY[s.slot % CANDY.length]));
     const glow = i < GLOWING ? `${ctx.seedKey}:glow:${i}` : null;
-    return item('big', i, ctx.newFrom, lantern(sk, x, y, LANTERN_R * s.k * p.s, glow));
+    return item('big', i, ctx, lantern(sk, x, y, LANTERN_R * s.k * p.s, glow));
   }).join('');
 }
 

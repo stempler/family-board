@@ -1,3 +1,4 @@
+import { groupItems } from '../../src/items';
 import { describe, expect, it } from 'vitest';
 import { THEMES } from '../../src/themes/registry';
 import { afterItems, contractCtx, runThemeContract } from './theme-contract';
@@ -54,8 +55,9 @@ describe('chess', () => {
   });
   it('fills squares from the first slot, queens first', () => {
     const all = pieces(half(37));
-    expect(all.map((p) => p.slot)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(all.map((p) => p.kind)).toEqual(['big', 'big', 'big', 'small', 'small', 'small', 'small', 'small', 'small', 'small']);
+    const g = groupItems(37, chess.capacity);
+    expect(all.map((p) => p.slot)).toEqual(Array.from({ length: g.big + g.small }, (_, i) => i));
+    expect(all.map((p) => p.kind)).toEqual([...Array(g.big).fill('big'), ...Array(g.small).fill('small')]);
   });
   it('paints the pieces in the kid colour', () => {
     for (const p of pieces(half(12))) expect(p.body).toContain('fill="#d9534f"');

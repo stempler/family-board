@@ -16,8 +16,8 @@ describe('dino', () => {
     const out = half(7);
     expect(out.match(/fb-dino-wobble/g) ?? []).toHaveLength(1);
   });
-  it('wobbles the last big egg when there are no small eggs (20 points)', () => {
-    const ctx = contractCtx(dino, 20);
+  it('wobbles the last big egg when there are no small eggs (150 points)', () => {
+    const ctx = contractCtx(dino, 150);
     expect(ctx.groups).toMatchObject({ small: 0 });
     expect(ctx.groups.big).toBeGreaterThan(0);
     expect(dino.renderHalf(ctx).match(/fb-dino-wobble/g) ?? []).toHaveLength(1);

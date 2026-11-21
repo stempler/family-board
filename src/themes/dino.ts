@@ -92,7 +92,7 @@ function eggs(sk: Sketch, p: Placement, ctx: HalfContext): string {
     const body = egg(sk, p, ...SLOTS[i], i, isBig);
     // The wobble sits on an inner group, so it never fights the item's fb-new drop.
     const shown = i === wobbly ? `<g class="fb-anim fb-dino-wobble" style="${timing(`${ctx.seedKey}:wobble`, [11, 13])}">${body}</g>` : body;
-    out += item(isBig ? 'big' : 'small', i, ctx.newFrom, shown);
+    out += item(isBig ? 'big' : 'small', i, ctx, shown);
   }
   return out;
 }

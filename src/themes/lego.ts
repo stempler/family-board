@@ -79,7 +79,7 @@ function tower(sk: Sketch, p: Placement, ctx: HalfContext): string {
     const w = isBig ? BRICK_W * 2 : BRICK_W;
     const x = MID - w / 2 + (i % 2 ? SHIFT : -SHIFT);
     const y = BASE - BRICK_H - i * PITCH;
-    out += item(isBig ? 'big' : 'small', i, ctx.newFrom, brick(sk, p, x, y, w, isBig ? GOLD : COLOURS[i % COLOURS.length], isBig));
+    out += item(isBig ? 'big' : 'small', i, ctx, brick(sk, p, x, y, w, isBig ? GOLD : COLOURS[i % COLOURS.length], isBig));
   }
   return out;
 }
