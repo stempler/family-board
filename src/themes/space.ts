@@ -197,11 +197,11 @@ function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
   list.forEach((s, i) => {
     if (s.kind === 'big') {
       const [x, y] = s.planetSlot ? PLANETS[s.spot] : STARS[s.spot];
-      out += item('big', i, ctx.newFrom, planet(sk, p, x, y, colour, s.planetSlot ? 1 : 0.5));
+      out += item('big', i, ctx, planet(sk, p, x, y, colour, s.planetSlot ? 1 : 0.5));
     } else {
       const [x, y] = STARS[s.spot];
       const body = star(sk, p, x, y);
-      out += item('small', i, ctx.newFrom, twinkling.has(s.spot) ? `<g ${twinkle(`${ctx.seedKey}:star:${s.spot}`)}>${body}</g>` : body);
+      out += item('small', i, ctx, twinkling.has(s.spot) ? `<g ${twinkle(`${ctx.seedKey}:star:${s.spot}`)}>${body}</g>` : body);
     }
   });
   return out;

@@ -122,11 +122,11 @@ function items(sk: Sketch, bones: Sketch, p: Placement, ctx: HalfContext): strin
   let out = '';
   for (let i = 0; i < big && i < CAPACITY; i++) {
     const [x, y] = badgeSpot(i);
-    out += item('big', i, ctx.newFrom, paw(sk, p, x, y + 11, i < NAILS.length ? 1.05 : 0.95));
+    out += item('big', i, ctx, paw(sk, p, x, y + 11, i < NAILS.length ? 1.05 : 0.95));
   }
   for (let j = 0; j < small && big + j < CAPACITY; j++) {
     const { x, y, a } = PILE[j];
-    out += item('small', big + j, ctx.newFrom, bone(bones, p, x, y, a));
+    out += item('small', big + j, ctx, bone(bones, p, x, y, a));
   }
   return out;
 }

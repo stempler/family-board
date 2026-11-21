@@ -10,8 +10,8 @@ export function contractKid(points: number, id = 'k1', colour = '#d9534f'): Kid 
   return { id, name: 'Anna', colour, avatar: { kind: 'emoji', value: '🙂' }, points, jars: [], found: true };
 }
 
-export function contractCtx(theme: Theme, points: number, newFrom = points, box: Box = contractBox, id = 'k1'): HalfContext {
-  return { kid: contractKid(points, id), box, groups: groupItems(points, theme.capacity), newFrom, seedKey: `${id}:${theme.id}` };
+export function contractCtx(theme: Theme, points: number, newFrom = points, box: Box = contractBox, id = 'k1', newTo = points): HalfContext {
+  return { kid: contractKid(points, id), box, groups: groupItems(points, theme.capacity), newFrom, newTo, seedKey: `${id}:${theme.id}` };
 }
 
 export function coordsOutside(svg: string, box: Box): string[] {
@@ -93,10 +93,15 @@ export function runThemeContract(theme: Theme): void {
       expect(out).not.toContain('red&"');
     });
 
-    it('marks items from newFrom as fb-new', () => {
+    it('marks items in [newFrom, newTo) as fb-new', () => {
       const out = theme.renderHalf(contractCtx(theme, 7, 5));
       expect(out.match(/class="fb-item fb-new"/g) ?? []).toHaveLength(2);
       expect(out.match(/class="fb-item[^"]*"/g) ?? []).toHaveLength(7);
+    });
+
+    it('marks only items inside the range as fb-new', () => {
+      const out = theme.renderHalf(contractCtx(theme, 7, 2, undefined, undefined, 4));
+      expect(out.match(/class="fb-item fb-new"/g) ?? []).toHaveLength(2);
     });
   });
 }

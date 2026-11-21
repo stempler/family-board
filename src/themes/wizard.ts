@@ -131,7 +131,7 @@ function gems(sk: Sketch, p: Placement, ctx: HalfContext): string {
   for (let i = 0; i < big + small && i < SLOTS.length; i++) {
     const isBig = i < big;
     const [x, y] = SLOTS[i];
-    out += item(isBig ? 'big' : 'small', i, ctx.newFrom, isBig ? crystal(sk, p, x, y, colour) : gem(sk, p, x, y, colour));
+    out += item(isBig ? 'big' : 'small', i, ctx, isBig ? crystal(sk, p, x, y, colour) : gem(sk, p, x, y, colour));
   }
   return out;
 }

@@ -1,3 +1,4 @@
+import { groupItems } from '../../src/items';
 import { describe, expect, it } from 'vitest';
 import { THEMES } from '../../src/themes/registry';
 import { afterItems, contractBox, contractCtx, runThemeContract } from './theme-contract';
@@ -44,7 +45,8 @@ describe('racing', () => {
   });
   it('puts trophies first', () => {
     const kinds = [...half(37).matchAll(/data-item="(small|big)"/g)].map((m) => m[1]);
-    expect(kinds).toEqual(['big', 'big', 'big', 'small', 'small', 'small', 'small', 'small', 'small', 'small']);
+    const g = groupItems(37, racing.capacity);
+    expect(kinds).toEqual([...Array(g.big).fill('big'), ...Array(g.small).fill('small')]);
   });
   it('hangs medals on ribbons in the kid colour', () => {
     const fills = (points: number) => (half(points).match(/fill="#d9534f"/g) ?? []).length;

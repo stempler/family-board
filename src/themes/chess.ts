@@ -150,7 +150,7 @@ function pieces(p: Placement, ctx: HalfContext): string {
     const { x, y } = SLOTS[i];
     const sk = createSketch(`${ctx.seedKey}:square:${i}`);
     const body = isBig ? queen(sk, p, x, y, colour) : pawn(sk, p, x, y, colour);
-    out += item(isBig ? 'big' : 'small', i, ctx.newFrom, `<g data-slot="${i}">${body}</g>`);
+    out += item(isBig ? 'big' : 'small', i, ctx, `<g data-slot="${i}">${body}</g>`);
   }
   return out;
 }

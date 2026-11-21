@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newItemsFrom, renderBoard } from '../src/board';
+import { renderBoard } from '../src/board';
 import { DEFAULT_SEASONS, type CardConfig, type KidConfig } from '../src/config';
 import { de } from '../src/i18n';
 import type { BoardModel, Kid, SharedJar } from '../src/model';
@@ -204,28 +204,9 @@ describe('renderBoard', () => {
       const out = renderBoard(model([kid('k1', points)]), twoKids, { date: DECEMBER, prevPoints: { k1: prev } });
       return (out.match(/fb-new/g) ?? []).length;
     };
-    it('marks the new big item above capacity', () => expect(seasonCount(99, 100)).toBeGreaterThanOrEqual(1));
+    it('marks only the new big item when a merge happens above capacity', () => expect(seasonCount(39, 40)).toBe(1));
     it('marks the new small item above capacity', () => expect(seasonCount(37, 38)).toBe(1));
     it('marks nothing above capacity when points dropped', () => expect(seasonCount(40, 38)).toBe(0));
-  });
-
-  describe('newItemsFrom', () => {
-    it('is the previous count below capacity', () => expect(newItemsFrom(10, 12, 30)).toBe(10));
-    it('marks nothing without previous points, or when unchanged or dropped', () => {
-      expect(newItemsFrom(undefined, 12, 30)).toBe(12);
-      expect(newItemsFrom(12, 12, 30)).toBe(12);
-      expect(newItemsFrom(14, 12, 30)).toBe(12);
-      expect(newItemsFrom(40, 38, 30)).toBe(11);
-    });
-    it('starts at the first new big item when big items were added', () => {
-      expect(newItemsFrom(99, 100, 30)).toBe(9); // 9 big + 9 small -> 10 big + 0 small
-    });
-    it('starts after the old small items when only small items were added', () => {
-      expect(newItemsFrom(37, 38, 30)).toBe(10); // 3 big + 7 small -> 3 big + 8 small
-    });
-    it('marks nothing when the unit changes', () => {
-      expect(newItemsFrom(29, 31, 30)).toBe(4); // 29 small -> 3 big + 1 small
-    });
   });
 
   it('spans the full width with one kid', () => {

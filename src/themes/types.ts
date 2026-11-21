@@ -1,8 +1,8 @@
 import type { Box } from '../draw/jar';
-import type { ItemGroups } from '../items';
+import type { ItemGroups, NewRange } from '../items';
 import type { Kid } from '../model';
 
-export interface HalfContext { kid: Kid; box: Box; groups: ItemGroups; newFrom: number; seedKey: string } // newFrom: item index from which items get class "fb-new"
+export interface HalfContext { kid: Kid; box: Box; groups: ItemGroups; newFrom: number; newTo: number; seedKey: string } // items with newFrom <= index < newTo get class "fb-new"
 
 export interface Theme {
   id: string;
@@ -14,6 +14,6 @@ export interface Theme {
 }
 
 /** Wraps one drawn item in the marker group every theme must emit. */
-export function item(kind: 'small' | 'big', index: number, newFrom: number, body: string): string {
-  return `<g class="fb-item${index >= newFrom ? ' fb-new' : ''}" data-item="${kind}">${body}</g>`;
+export function item(kind: 'small' | 'big', index: number, ctx: NewRange, body: string): string {
+  return `<g class="fb-item${index >= ctx.newFrom && index < ctx.newTo ? ' fb-new' : ''}" data-item="${kind}">${body}</g>`;
 }

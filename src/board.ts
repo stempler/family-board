@@ -3,7 +3,7 @@ import { drawJar, drawSharedJar, type Box } from './draw/jar';
 import { renderIcon } from './draw/icon';
 import { esc, INK, num, PAPER, truncate } from './draw/sketch';
 import { de } from './i18n';
-import { groupItems } from './items';
+import { groupItems, newItemRange } from './items';
 import type { BoardModel, Kid } from './model';
 import { activeSeason } from './season';
 import { getTheme, THEMES } from './themes/registry';
@@ -42,19 +42,6 @@ function svg(body: string): string {
 
 function text(x: number, y: number, size: number, content: string, anchor = 'middle', extra = ''): string {
   return `<text x="${num(x)}" y="${num(y)}" font-size="${num(size)}" text-anchor="${anchor}" fill="${INK}"${extra}>${esc(content)}</text>`;
-}
-
-/**
- * Item index from which a theme marks items as new. Themes draw big items first (0..big-1), then small ones.
- * No animation (the item count) without previous points, when points did not go up, or when the grouping unit changed.
- */
-export function newItemsFrom(prevPoints: number | undefined, points: number, capacity: number): number {
-  const cur = groupItems(points, capacity);
-  const total = cur.big + cur.small;
-  if (typeof prevPoints !== 'number' || !(points > prevPoints)) return total;
-  const prev = groupItems(prevPoints, capacity);
-  if (prev.unit !== cur.unit) return total;
-  return cur.big > prev.big ? prev.big : cur.big + prev.small;
 }
 
 function avatar(kid: Kid, x: number, index: number): string {
@@ -124,7 +111,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     const kc = config.kids.find((k) => k.id === kid.id);
     const theme = seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
-    const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom: newItemsFrom(opts.prevPoints?.[kid.id], kid.points, theme.capacity), seedKey: `${kid.id}:scene` };
+    const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), ...newItemRange(opts.prevPoints?.[kid.id], kid.points, theme.capacity), seedKey: `${kid.id}:scene` };
     return { kid, box, theme, showNumber: kc?.show_number ?? false, ctx };
   });
 
