@@ -116,6 +116,7 @@ with shelf trophies worth 5, 25 and 125 games.
 | `chess` | Schach | 16 points are 1 won game, shown as a toppled king on a shelf (more than 10 wins merge into trophies worth 5); the remaining points of the current game (points mod 16) are captured opponent pieces beside a top-down chessboard showing a real game position. |
 | `halloween` | Halloween | Candy in a pumpkin bucket. Season scene: a spooky night with a ghost. |
 | `easter` | Ostern | Painted eggs in a basket on a meadow with a bunny. Season scene: one basket per kid. |
+| `pirates` | Piraten | Gold coins in an open treasure chest on a beach and gold bars stacked beside it; a small ship bobs on the sea. |
 
 `christmas`, `halloween` and `easter` also have a season scene (see `seasons`
 above); all others are favourites only. Preview them with `mise run dev`: the
