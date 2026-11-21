@@ -21,7 +21,7 @@ export function seasonPlacement(box: Box, half: Box, u: Units): { cx: number; p:
   return { cx, p: placement(box, u, cx, Math.max(b - a, 0)) };
 }
 
-/** Wraps a kid's object in a season scene in the group that marks whose it is and where it stands; `attrs` go first. */
+/** Wraps a kid's object in a season scene in the group that marks whose it is and where it stands; `attrs` (if any) go first, separated by a space. */
 export function seasonKid(id: string, cx: number, body: string, attrs = ''): string {
-  return `<g ${attrs}data-season-kid="${esc(id)}" data-cx="${num(cx)}">${body}</g>`;
+  return `<g ${attrs ? `${attrs} ` : ''}data-season-kid="${esc(id)}" data-cx="${num(cx)}">${body}</g>`;
 }
