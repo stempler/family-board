@@ -1,4 +1,5 @@
 // Idempotently bootstrap the local dev Home Assistant: onboarding, token, TaskMate, card resource, demo data, dashboard.
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +9,7 @@ const BASE = 'http://localhost:8123';
 const CLIENT_ID = `${BASE}/`;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const tokenFile = join(root, 'dev/ha/.token');
-const RESOURCE_URL = '/local/family-board/family-board-card.js';
+const RESOURCE_PATH = '/local/family-board/family-board-card.js';
 const DASHBOARD = 'family-board';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -93,11 +94,18 @@ await waitFor('sensor.taskmate_rewards', async () => Array.isArray((await state(
 
 const ws = await connect(BASE, token);
 try {
-  // 4. Lovelace resource.
+  // 4. Lovelace resource. Its URL carries a hash of the built card, so the browser never keeps running an
+  // older build from its cache after the card was rebuilt.
+  const build = createHash('sha256').update(readFileSync(join(root, 'dist/family-board-card.js'))).digest('hex').slice(0, 12);
   const resources = await ws.call({ type: 'lovelace/resources' });
-  if (!resources.some((r) => r.url === RESOURCE_URL)) {
-    log(`adding Lovelace resource ${RESOURCE_URL}`);
-    await ws.call({ type: 'lovelace/resources/create', res_type: 'module', url: RESOURCE_URL });
+  const url = `${RESOURCE_PATH}?v=${build}`;
+  const existing = resources.find((r) => r.url.startsWith(RESOURCE_PATH));
+  if (!existing) {
+    log(`adding Lovelace resource ${url}`);
+    await ws.call({ type: 'lovelace/resources/create', res_type: 'module', url });
+  } else if (existing.url !== url) {
+    log(`pointing the Lovelace resource at ${url}`);
+    await ws.call({ type: 'lovelace/resources/update', resource_id: existing.id, res_type: 'module', url });
   }
 
   // 5. Demo data: kids and chores (the wizard skips names that already exist).
