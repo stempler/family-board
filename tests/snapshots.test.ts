@@ -56,14 +56,27 @@ describe('board snapshots', () => {
     });
   }
 
-  // Narrow halves: every theme once on a five-kid board.
-  const ids = Object.keys(THEMES);
-  for (let start = 0; start < ids.length; start += 5) {
-    const five = ids.slice(start, start + 5);
+  // Narrow halves: every theme once on a five-kid board. The lists are explicit and fixed so that adding a theme
+  // never reshuffles (and so never rewrites) the existing boards. A new theme goes on a board with room left
+  // (at most five kids) or on a new board with the next number.
+  const FIVE_KID_BOARDS: string[][] = [
+    ['christmas', 'bricks', 'dino', 'wizard', 'racing'],
+    ['space', 'dog', 'chess', 'halloween', 'easter'],
+  ];
+  it('puts every registered theme on a five-kid board', () => {
+    const listed = FIVE_KID_BOARDS.flat();
+    const missing = Object.keys(THEMES).filter((id) => !listed.includes(id));
+    expect(missing, `theme(s) ${missing.join(', ')} not on a five-kid board: add each to a list in FIVE_KID_BOARDS (a board holds at most five kids; start a new list when full)`).toEqual([]);
+    const unknown = listed.filter((id) => !(id in THEMES));
+    expect(unknown, 'FIVE_KID_BOARDS lists themes that are not registered').toEqual([]);
+    expect(new Set(listed).size, 'a theme is listed twice in FIVE_KID_BOARDS').toBe(listed.length);
+    for (const five of FIVE_KID_BOARDS) expect(five.length).toBeLessThanOrEqual(5);
+  });
+  FIVE_KID_BOARDS.forEach((five, n) => {
     it(`five kids: ${five.join(', ')}`, async () => {
-      await expect(board(five, [7, 30, 31, 300, 4321].slice(0, five.length))).toMatchFileSnapshot(file(`five-kids-${start / 5 + 1}`));
+      await expect(board(five, [7, 30, 31, 300, 4321].slice(0, five.length))).toMatchFileSnapshot(file(`five-kids-${n + 1}`));
     });
-  }
+  });
 
   // The date of each season scene comes from the theme's default season rule.
   const SEASON_DATES: Record<string, Date> = Object.fromEntries(DEFAULT_SEASONS.map((r) => [r.theme, seasonStart(r, 2026)]));
@@ -76,4 +89,18 @@ describe('board snapshots', () => {
       await expect(board('bricks', [12, 37], date, true)).toMatchFileSnapshot(file(`season-${id}`));
     });
   }
+
+  // Every snapshot file must belong to a test above; a renamed or removed theme leaves orphans behind that
+  // vitest never reports.
+  it('has no orphaned snapshot files', () => {
+    const expected = [
+      ...Object.keys(THEMES).flatMap((id) => [`${id}-12-37.svg`, `${id}-0-1000.svg`]),
+      ...FIVE_KID_BOARDS.map((_, n) => `five-kids-${n + 1}.svg`),
+      ...Object.keys(SEASON_DATES).map((id) => `season-${id}.svg`),
+    ].sort();
+    const actual = Object.keys(import.meta.glob('./__snapshots__/svg/*')).map((p) => p.split('/').pop()!).sort();
+    const orphans = actual.filter((f) => !expected.includes(f));
+    const missing = expected.filter((f) => !actual.includes(f));
+    expect({ orphans, missing }, 'tests/__snapshots__/svg must hold exactly the files written by this test: delete orphans (git rm) or run `mise run test -- -u` for missing ones').toEqual({ orphans: [], missing: [] });
+  });
 });
