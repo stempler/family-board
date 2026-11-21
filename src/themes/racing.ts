@@ -1,6 +1,7 @@
 import { timing } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { around, at, moved, placement, points, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A race track scene drawn in "scene units": a trophy shelf on the left, a
@@ -15,6 +16,7 @@ const UNITS_W = 320;
 const TOP = 16;
 const BOTTOM = 262;
 const UNITS_H = BOTTOM - TOP;
+const UNITS: Units = { mid: MID, top: TOP, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 
 const COLS = 8;
 const ROWS = 3;
@@ -47,32 +49,9 @@ const STEPS = ['#e8e3d6', '#f4efe2', '#ddd6c6']; // 2nd, 1st, 3rd (left to right
 const TYRE = '#2b2b2b';
 const HUB = '#c9ccd1';
 
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
 const CAR_X0 = 113; // scene x of the car's leftmost / rightmost point
 const CAR_X1 = 214;
 const CAR_MARGIN = 10; // px of slack so wobble and tyres are fully out of sight
-
-type Pt = [number, number];
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Rewrites every "x y" pair of a path in scene units into board coordinates. */
-function moved(p: Placement, d: string): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, +x, +y).map(num).join(' '));
-}
-
-/** Fits the scene into the scene band of `box`, horizontally centred. */
-function placement(box: Box): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (box.w * 0.92) / UNITS_W);
-  return { cx: box.x + box.w / 2, top: top + (height - UNITS_H * s), s };
-}
 
 const colX = (k: number) => COL_X0 + k * PITCH;
 const rowTop = (r: number) => ROW_TOP + r * ROW_H;
@@ -90,13 +69,10 @@ const STANDS: Pt[] = [
   }),
 ];
 
-const points = (pts: Pt[]) => pts.map((q) => q.map(num).join(',')).join(' ');
-const local = (p: Placement, x: number, y: number, pts: Pt[]): Pt[] => pts.map(([dx, dy]) => at(p, x + dx, y + dy));
-
 /** A gold medal hanging from a hook at (x, y) on a V of ribbon in the kid's colour. */
 function medal(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
-  const straps = sk.polygon(local(p, x, y, [[-7, 0], [-2, 0], [3, 17], [-2, 17]]), { fill: colour, strokeWidth: 1.4, roughness: 0.4 }) +
-    sk.polygon(local(p, x, y, [[7, 0], [2, 0], [-3, 17], [2, 17]]), { fill: colour, strokeWidth: 1.4, roughness: 0.4 });
+  const straps = sk.polygon(around(p, x, y, [[-7, 0], [-2, 0], [3, 17], [-2, 17]]), { fill: colour, strokeWidth: 1.4, roughness: 0.4 }) +
+    sk.polygon(around(p, x, y, [[7, 0], [2, 0], [-3, 17], [2, 17]]), { fill: colour, strokeWidth: 1.4, roughness: 0.4 });
   const [cx, cy] = at(p, x, y + 24);
   const disc = sk.circle(cx, cy, 16 * p.s, { fill: GOLD, strokeWidth: 1.8, roughness: 0.5 });
   const rim = `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(5 * p.s)}" fill="none" stroke="${GOLD_DARK}" stroke-width="1.2"/>`;
@@ -109,9 +85,9 @@ function trophy(sk: Sketch, p: Placement, x: number, y: number, colour: string):
   const handles = sk.path(moved(p, `M ${x - 7} ${y - 27} C ${x - 12} ${y - 27} ${x - 12} ${y - 19} ${x - 5} ${y - 17}`), { stroke: GOLD_DARK, strokeWidth: 2.2, roughness: 0.4 }) +
     sk.path(moved(p, `M ${x + 7} ${y - 27} C ${x + 12} ${y - 27} ${x + 12} ${y - 19} ${x + 5} ${y - 17}`), { stroke: GOLD_DARK, strokeWidth: 2.2, roughness: 0.4 });
   const cup = sk.path(moved(p, `M ${x - 8} ${y - 30} L ${x + 8} ${y - 30} Q ${x + 8} ${y - 15} ${x} ${y - 13} Q ${x - 8} ${y - 15} ${x - 8} ${y - 30} Z`), { fill: GOLD, strokeWidth: 2, roughness: 0.5 });
-  const stem = sk.polygon(local(p, x, y, [[-2, -13], [2, -13], [4, -8], [-4, -8]]), { fill: GOLD, strokeWidth: 1.6, roughness: 0.4 });
+  const stem = sk.polygon(around(p, x, y, [[-2, -13], [2, -13], [4, -8], [-4, -8]]), { fill: GOLD, strokeWidth: 1.6, roughness: 0.4 });
   const base = sk.rect(...at(p, x - 7, y - 8), 14 * p.s, 8 * p.s, { fill: colour, strokeWidth: 1.8, roughness: 0.5 });
-  const shine = `<polyline points="${points(local(p, x, y, [[-5, -27], [-5, -21], [-3, -17]]))}" fill="none" stroke="#fff" stroke-width="${num(1.6 * p.s)}" stroke-linecap="round" opacity="0.85"/>`;
+  const shine = `<polyline points="${points(around(p, x, y, [[-5, -27], [-5, -21], [-3, -17]]))}" fill="none" stroke="#fff" stroke-width="${num(1.6 * p.s)}" stroke-linecap="round" opacity="0.85"/>`;
   return handles + cup + stem + base + shine;
 }
 
@@ -251,7 +227,7 @@ function car(sk: Sketch, p: Placement, colour: string, seedKey: string, box: Box
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
   const front = createSketch(`${ctx.seedKey}:front`);
-  const p = placement(ctx.box);
+  const p = placement(ctx.box, UNITS);
   const colour = ctx.kid.colour;
   return `<g>${clouds(p)}${track(sk, p)}${shelf(sk, p)}${podium(sk, p)}${items(sk, p, ctx)}` +
     `${flag(front, p, ctx.seedKey)}${car(front, p, colour, ctx.seedKey, ctx.box)}</g>`;

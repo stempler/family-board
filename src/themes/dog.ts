@@ -1,6 +1,6 @@
 import { timing } from '../draw/anim';
-import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { at, mapPath, moved, placement, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A sunny yard with a dog house, drawn in "yard units": a round-eared pup in a
@@ -16,8 +16,7 @@ const TOP = 14; // top of the sun
 const GROUND = 240; // where the house, the pup and the pile stand
 const BOTTOM = 258; // bottom of the grass strip
 const UNITS_H = BOTTOM - TOP;
-
-type Pt = [number, number];
+const UNITS: Units = { mid: MID, top: TOP, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 
 /** Nails on the dog house wall, in filling order: a row under the roof, the gable, then beside the door. */
 const NAILS: Pt[] = [[101, 132], [125, 132], [79, 132], [147, 132], [113, 98], [82, 174], [144, 174], [82, 210], [144, 210]];
@@ -69,33 +68,11 @@ const FUR_DARK = '#8a5a35';
 const FUR_LIGHT = '#f6e3c6';
 const TONGUE = '#ef8a8a';
 
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Rewrites every "x y" pair of a path in yard units into board coordinates. */
-function moved(p: Placement, d: string): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, +x, +y).map(num).join(' '));
-}
-
 /** Like `moved`, for a path drawn around (0, 0): scaled by `k`, turned by `deg` and centred on (cx, cy). */
 function shape(p: Placement, cx: number, cy: number, k: number, deg: number, d: string): string {
   const c = Math.cos((deg * Math.PI) / 180);
   const s = Math.sin((deg * Math.PI) / 180);
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, cx + k * (x * c - y * s), cy + k * (x * s + y * c)).map(num).join(' '));
-}
-
-/** Fits the yard into the scene band of `box`, horizontally centred. */
-function placement(box: Box): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (box.w * 0.92) / UNITS_W);
-  return { cx: box.x + box.w / 2, top: top + (height - UNITS_H * s), s };
+  return mapPath(d, (x, y) => at(p, cx + k * (x * c - y * s), cy + k * (x * s + y * c)));
 }
 
 const BONE_D = 'M -6 -2.4 L 6 -2.4 C 6 -6.5 12 -6.5 11 -2 C 10.5 -0.8 10.5 0.8 11 2 C 12 6.5 6 6.5 6 2.4 L -6 2.4 C -6 6.5 -12 6.5 -11 2 C -10.5 0.8 -10.5 -0.8 -11 -2 C -12 -6.5 -6 -6.5 -6 -2.4 Z';
@@ -212,7 +189,7 @@ function pup(sk: Sketch, p: Placement, ctx: HalfContext): string {
 
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
-  const p = placement(ctx.box);
+  const p = placement(ctx.box, UNITS);
   // The pup is drawn last with its own sketch, so adding an item never changes its wobble.
   return `<g>${sky(sk, p)}${ground(sk, p)}${house(sk, p)}${strings(createSketch(`${ctx.seedKey}:strings`), p, ctx.groups.big)}${items(sk, createSketch(`${ctx.seedKey}:bones`), p, ctx)}${pup(createSketch(`${ctx.seedKey}:pup`), p, ctx)}</g>`;
 }

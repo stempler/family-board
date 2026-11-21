@@ -1,6 +1,7 @@
 import { rand, scaledCount, timing, twinkle } from '../draw/anim';
 import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { at, placement, points, SCENE_BOTTOM, SCENE_TOP, starPoints, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A night sky over a little moon, drawn in "sky units": a rocket stands on a
@@ -16,8 +17,7 @@ const UNITS_W = 320;
 const TOP = 0;
 const BOTTOM = 250;
 const UNITS_H = BOTTOM - TOP;
-
-type Pt = [number, number];
+const UNITS: Units = { mid: MID, top: TOP, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 
 /** Constellations: star spots in filling order and the lines between them (pairs of indices into the spots). */
 const CONSTELLATIONS: { stars: Pt[]; lines: [number, number][] }[] = [
@@ -65,41 +65,15 @@ const FLAME = '#f6993f';
 const FLAME_CORE = '#ffe066';
 const COMET = '#f4f8ff';
 
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Fits the sky units into the scene band of `box`, horizontally centred, bottom-aligned. */
-function placement(box: Box): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (box.w * 0.92) / UNITS_W);
-  return { cx: box.x + box.w / 2, top: top + (height - UNITS_H * s), s };
-}
-
-const points = (pts: Pt[]) => pts.map((q) => q.map(num).join(',')).join(' ');
-
-function starPoints(p: Placement, x: number, y: number, r: number): Pt[] {
-  const pts: Pt[] = [];
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rr = i % 2 ? r * 0.45 : r;
-    pts.push(at(p, x + rr * Math.cos(a), y + rr * Math.sin(a)));
-  }
-  return pts;
-}
+/** A star centred on (x, y) in sky units, in board coordinates. */
+const starAt = (p: Placement, x: number, y: number, r: number): Pt[] => starPoints(x, y, r).map(([sx, sy]) => at(p, sx, sy));
 
 const SMALL_R = 10; // units, outer radius of a star
 const BIG_R = SMALL_R * 1.4;
 
 /** A fat yellow star with a white glint. */
 function star(sk: Sketch, p: Placement, x: number, y: number): string {
-  const body = sk.polygon(starPoints(p, x, y, SMALL_R), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
+  const body = sk.polygon(starAt(p, x, y, SMALL_R), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
   const [gx, gy] = at(p, x - 2, y - 2);
   return `${body}<circle cx="${num(gx)}" cy="${num(gy)}" r="${num(1.6 * p.s)}" fill="#fff" opacity="0.9"/>`;
 }
@@ -108,7 +82,7 @@ function star(sk: Sketch, p: Placement, x: number, y: number): string {
 function goldStar(sk: Sketch, p: Placement, x: number, y: number): string {
   const [cx, cy] = at(p, x, y);
   const glow = `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(BIG_R * 1.45 * p.s)}" fill="${STAR}" opacity="0.3"/>`;
-  const body = sk.polygon(starPoints(p, x, y, BIG_R), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
+  const body = sk.polygon(starAt(p, x, y, BIG_R), { fill: STAR, stroke: STAR_EDGE, strokeWidth: 1.5, roughness: 0.5 });
   const [gx, gy] = at(p, x - 2.8, y - 2.8);
   return `${glow}${body}<circle cx="${num(gx)}" cy="${num(gy)}" r="${num(2.2 * p.s)}" fill="#fff" opacity="0.9"/>`;
 }
@@ -246,7 +220,7 @@ function comet(p: Placement, seedKey: string): string {
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
   const front = createSketch(`${ctx.seedKey}:front`);
-  const p = placement(ctx.box);
+  const p = placement(ctx.box, UNITS);
   const colour = ctx.kid.colour;
   return `<g>${sky(sk, ctx.box, ctx.seedKey)}${items(sk, p, ctx)}${moon(front, p)}${rocket(front, p, colour, ctx.seedKey)}${comet(p, ctx.seedKey)}</g>`;
 }
