@@ -9,7 +9,8 @@ describe('normalizeConfig', () => {
     expect(c.overview_entity).toBe('sensor.taskmate_overview');
     expect(c.rewards_entity).toBe('sensor.taskmate_rewards');
     expect(c.seasons).toEqual(DEFAULT_SEASONS);
-    expect(c.kids[0].show_number).toBe(false);
+    expect(c.kids[0].show_number).toBe(true);
+    expect(normalizeConfig({ ...base, kids: [{ id: 'a', theme: 'dino', show_number: false }] }).kids[0].show_number).toBe(false);
     expect(c.reward_icons).toEqual({});
   });
   it('throws for missing or empty kids', () => {

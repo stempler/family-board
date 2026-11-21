@@ -44,7 +44,7 @@ function normalizeKid(raw: unknown, i: number): KidConfig {
   if (!isRecord(raw)) throw new Error(`kids[${i}] must be an object`);
   if (!nonEmptyString(raw.id)) throw new Error(`kids[${i}]: id is required`);
   if (!nonEmptyString(raw.theme)) throw new Error(`kids[${i}]: theme is required`);
-  const kid: KidConfig = { id: raw.id.trim(), theme: raw.theme.trim(), show_number: raw.show_number === true };
+  const kid: KidConfig = { id: raw.id.trim(), theme: raw.theme.trim(), show_number: raw.show_number !== false };
   if (raw.colour !== undefined) {
     if (typeof raw.colour !== 'string') throw new Error(`kids[${i}]: colour must be a string`);
     kid.colour = raw.colour;
