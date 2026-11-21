@@ -43,7 +43,7 @@ describe('registry', () => {
 
 describe('theme renames', () => {
   it('registers bricks and dog in order', () => {
-    expect(Object.keys(THEMES)).toEqual(['christmas', 'bricks', 'dino', 'wizard', 'racing', 'space', 'dog', 'chess', 'halloween', 'easter', 'pirates', 'underwater', 'football', 'martin', 'birthday', 'construction']);
+    expect(Object.keys(THEMES)).toEqual(['christmas', 'bricks', 'dino', 'wizard', 'racing', 'space', 'dog', 'chess', 'halloween', 'easter', 'pirates', 'underwater', 'football', 'martin', 'birthday', 'construction', 'garden']);
   });
   it('maps the retired ids to bricks', () => {
     expect(getTheme('lego').id).toBe('bricks');

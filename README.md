@@ -124,6 +124,7 @@ with shelf trophies worth 5, 25 and 125 games.
 | `martin` | St. Martin | Paper lanterns in rows on a line from the lantern stick, big round sun and moon lanterns on the top line, dark houses with lit windows at dusk. Season scene: one lantern line per kid along a dusk street. |
 | `birthday` | Geburtstag | Candles in rows of five on a three-tier cake with icing in the kid colour, wrapped presents stacked beside the cake and on the floor; bunting overhead, a balloon sways and the first candles flicker. |
 | `construction` | Baustelle | Red bricks laid into a wall on a building site and pallets stacked with bricks in rows in front of it; a yellow excavator swings its arm and the light on the barrier blinks. |
+| `garden` | Garten | Small flowers in many colours in rows in a flower bed and tall sunflowers at the wooden fence behind it; a watering can stands at the fence, the grass sways and bees fly little loops. |
 
 `christmas`, `halloween`, `easter` and `martin` also have a season scene (see `seasons`
 above); all others are favourites only. Preview them with `mise run dev`: the
