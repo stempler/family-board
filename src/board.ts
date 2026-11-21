@@ -140,9 +140,10 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
 
   const season = activeSeason(opts.date, config.seasons, Object.keys(THEMES));
   const seasonTheme = season ? getTheme(season.theme) : null;
+  // TaskMate's birthday mode is the main source; the card's `birthday` is the fallback.
   const birthdayIds = new Set(model.kids.filter((kid) => {
     const birthday = config.kids.find((k) => k.id === kid.id)?.birthday;
-    return kid.found && birthday !== undefined && isBirthday(birthday, opts.date);
+    return kid.found && (kid.birthday !== undefined || (birthday !== undefined && isBirthday(birthday, opts.date)));
   }).map((kid) => kid.id));
   // On a birthday the shared scene is not drawn, so the birthday half is not covered by it.
   const seasonal = seasonTheme?.renderSeasonScene && birthdayIds.size === 0 ? seasonTheme : null;
@@ -154,7 +155,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
     const prev = opts.prevPoints?.[kid.id];
     const { newFrom, newTo } = theme.items ? theme.items(kid.points, prev) : newItemRange(prev, kid.points, theme.capacity);
-    const age = kc?.birthday !== undefined ? ageOn(kc.birthday, opts.date) : undefined;
+    const age = kid.birthday?.age ?? (kc?.birthday !== undefined ? ageOn(kc.birthday, opts.date) : undefined);
     const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom, newTo, seedKey: `${kid.id}:scene`, ...(age !== undefined ? { age } : {}) };
     return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });

@@ -1,5 +1,5 @@
 import { DEFAULT_ENTITIES, type CardConfig } from './config';
-import type { BoardModel, IconRef, Jar, Kid, SharedJar } from './model';
+import type { BoardModel, IconRef, Jar, Kid, KidBirthday, SharedJar } from './model';
 
 export type HassStates = Record<string, { state: string; attributes: Record<string, unknown> }>;
 
@@ -35,6 +35,15 @@ function rewardIcon(r: Rec, config: CardConfig): IconRef {
   const name = str(r.name);
   const raw = config.reward_icons[id] ?? config.reward_icons[name] ?? (str(r.icon) || undefined);
   return parseIcon(raw, DEFAULT_REWARD_ICON);
+}
+
+/**
+ * TaskMate's birthday mode: on the day only, a child carries `birthday: { multiplier, age?, chores_off? }`.
+ * The age is taken only as a whole number of at least 1.
+ */
+function taskmateBirthday(v: unknown): KidBirthday | undefined {
+  if (!isRec(v)) return undefined;
+  return Number.isInteger(v.age) && (v.age as number) >= 1 ? { age: v.age as number } : {};
 }
 
 /** The TaskMate child ids listed by the overview entity (empty when it is missing). */
@@ -95,6 +104,8 @@ export function toBoardModel(states: HassStates, config: CardConfig): BoardModel
     };
     const img = str(child.avatar_image);
     if (img) kid.avatarImage = img;
+    const birthday = taskmateBirthday(child.birthday);
+    if (birthday) kid.birthday = birthday;
     return kid;
   });
 

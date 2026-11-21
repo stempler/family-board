@@ -464,9 +464,68 @@ describe('birthday', () => {
     expect(half(out, 'k1')).toContain(de.kidNotFound);
   });
 
-  it('never treats a kid without a config entry as a birthday kid', () => {
+  it('never treats a kid without a config entry as a birthday kid without TaskMate', () => {
     const out = two({ date: DECEMBER }, config([{ id: 'k2', theme: 'dino', show_number: true }]), [kid('k1', 5), kid('k2', 3)]);
     expect(out).not.toContain('data-theme="birthday"');
+  });
+
+  it('treats a kid without a config entry as a birthday kid when TaskMate reports the birthday', () => {
+    const out = two({ date: DECEMBER }, config([{ id: 'k2', theme: 'dino', show_number: true }]), [kid('k1', 5, { birthday: { age: 6 } }), kid('k2', 3)]);
+    expect(half(out, 'k1')).toContain('data-theme="birthday"');
+    expect(candles(half(out, 'k1'))).toBe(6);
+  });
+
+  describe('from TaskMate', () => {
+    const plain = () => config([
+      { id: 'k1', theme: 'bricks', show_number: false },
+      { id: 'k2', theme: 'dino', show_number: true },
+    ]);
+
+    it('shows the birthday half with TaskMate\'s age without any card birthday', () => {
+      const out = two({ date: june10(1) }, plain(), [kid('k1', 5, { birthday: { age: 9 } }), kid('k2', 3)]);
+      expect(half(out, 'k1')).toContain('data-theme="birthday"');
+      expect(candles(half(out, 'k1'))).toBe(9);
+      expect(half(out, 'k2')).toContain('data-theme="dino"');
+    });
+
+    it('takes the age from the card birthday when TaskMate gives none', () => {
+      const c = cfg();
+      c.kids[0].birthday = '2019-12-10';
+      const out = half(two({ date: DECEMBER }, c, [kid('k1', 5, { birthday: {} }), kid('k2', 3)]), 'k1');
+      expect(out).toContain('data-theme="birthday"');
+      expect(candles(out)).toBe(7);
+    });
+
+    it('prefers TaskMate\'s age over the card birthday', () => {
+      const c = cfg();
+      c.kids[0].birthday = '2019-12-10';
+      expect(candles(half(two({ date: DECEMBER }, c, [kid('k1', 5, { birthday: { age: 8 } }), kid('k2', 3)]), 'k1'))).toBe(8);
+    });
+
+    it('shows the birthday half when the card birthday is another day', () => {
+      const c = cfg();
+      c.kids[0].birthday = '2019-03-04';
+      const out = half(two({ date: june10(10) }, c, [kid('k1', 5, { birthday: {} }), kid('k2', 3)]), 'k1');
+      expect(out).toContain('data-theme="birthday"');
+    });
+
+    it('falls back to the card birthday without TaskMate\'s birthday', () => {
+      const out = two({ date: june10(10) }, juneCfg(), [kid('k1', 5), kid('k2', 3)]);
+      expect(half(out, 'k1')).toContain('data-theme="birthday"');
+    });
+
+    it('switches the shared season scene off during the Christmas season', () => {
+      const out = two({ date: DECEMBER }, plain(), [kid('k1', 5, { birthday: { age: 7 } }), kid('k2', 3)]);
+      expect(out).not.toContain('data-season-kid');
+      expect(half(out, 'k1')).toContain('data-theme="birthday"');
+      expect(half(out, 'k2')).toContain('data-theme="christmas"');
+    });
+
+    it('never treats a kid not found as a birthday kid', () => {
+      const out = two({ date: DECEMBER }, plain(), [kid('k1', 5, { found: false, birthday: { age: 7 } }), kid('k2', 3)]);
+      expect(out).not.toContain('data-theme="birthday"');
+      expect(out).toContain('data-season-kid="k2"');
+    });
   });
 
   it('pops the new item in the birthday half, counted with the birthday capacity', () => {

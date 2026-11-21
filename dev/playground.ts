@@ -23,20 +23,16 @@ const card = document.querySelector('family-board-card') as FamilyBoardCard;
 const controls = document.getElementById('controls')!;
 
 function applyConfig(): void {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  // With a birth year, so the kid turns 7 on the playground date and the cake shows candles; on 29 February
-  // 8 (7 years back is no leap year, 8 years back is).
-  const leapDay = date.getMonth() === 1 && date.getDate() === 29;
-  const birthday = `${date.getFullYear() - (leapDay ? 8 : 7)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   card.setConfig({
-    kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour, ...(birthdayKids.has(k.id) ? { birthday } : {}) })),
+    kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour })),
     ...(seasonsOff ? { seasons: [] } : {}),
   });
 }
 
 function push(): void {
   card.now = () => date;
-  card.hass = makeFakeHass(kids, jars);
+  // The birthday goes through the fake TaskMate payload (its birthday mode, the main path): the kid turns 7 today.
+  card.hass = makeFakeHass(kids.map((k) => (birthdayKids.has(k.id) ? { ...k, birthday: { age: 7 } } : k)), jars);
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]): HTMLElementTagNameMap[K] {
@@ -90,7 +86,7 @@ function renderControls(): void {
     for (const [id, t] of Object.entries(THEMES)) theme.append(el('option', { value: id, textContent: t.label ?? id, selected: id === k.theme }));
     theme.addEventListener('change', () => { k.theme = theme.value; applyConfig(); push(); });
     const birthday = el('input', { type: 'checkbox', checked: birthdayKids.has(k.id) });
-    birthday.addEventListener('change', () => { if (birthday.checked) birthdayKids.add(k.id); else birthdayKids.delete(k.id); applyConfig(); push(); });
+    birthday.addEventListener('change', () => { if (birthday.checked) birthdayKids.add(k.id); else birthdayKids.delete(k.id); push(); });
     controls.append(el('fieldset', {}, el('legend', { textContent: k.id }),
       el('label', {}, 'Name: ', name), el('label', {}, 'Theme: ', theme), el('label', {}, birthday, ' hat heute Geburtstag'), slider('Punkte', k.points, 200, (v) => { k.points = v; })));
   }
