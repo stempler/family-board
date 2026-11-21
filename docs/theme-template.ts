@@ -18,6 +18,8 @@
 // The contract (src/themes/types.ts and tests/themes/theme-contract.ts): renderHalf draws one kid's
 // scene inside ctx.box (no jars, no header), wraps every counted item with item(), keeps all
 // coordinates inside the box and uses only esc/num for text and numbers.
+// Item layout (README step 3): also export the item spots(big, small) and footprint(spot) and test that no
+// two items overlap and that a big item is clearly bigger than a small one (tests/themes/layout.ts).
 import { timing } from '../src/draw/anim';
 import { createSketch, num, type Sketch } from '../src/draw/sketch';
 import { at, placement, type Placement, type Units } from '../src/draw/units';

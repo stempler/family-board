@@ -156,13 +156,15 @@ reviewing all themes in one go.
 ### Adding a theme
 
 1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase), fix the imports as its header says and replace `template`. Set `label` to the German display name. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation.
-2. Register it in `THEMES` in `src/themes/registry.ts`. That is the only list: the playground, the gallery, the Home Assistant browser check and the snapshot tests read it.
+2. Register it in `THEMES` in `src/themes/registry.ts` (append at the end). The playground, the gallery, the Home Assistant browser check and the snapshot tests read it. The only other list is the test in `tests/themes/christmas.test.ts` that names every registered id in order: append your id there too.
 3. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` (and `runSeasonContract(theme)` for a seasonal theme) plus theme-specific checks. The contract covers the css rules:
    - every `@keyframes` name and class starts with `fb-<id>-`;
    - rules set only `animation-name`, `animation-timing-function`, `transform-origin` and `transform-box`; duration, delay and iteration come from the shared `.fb-anim` rule through `--t` and `--d`;
    - animated elements carry `class="fb-anim fb-<id>-..."`, 1 to 30 per half (a season scene at most 60), never together with `fb-item`.
 
    Also: only escaped text (`esc`) and `num` for numbers, everything inside the half, and scenery drawn after the items with its own sketch key (`${seedKey}:<name>`) so adding an item never re-wobbles it. A theme that counts items differently (chess) implements `items(points, prev)`.
+
+   Layout: export the theme's item `spots(big, small)` and `footprint(spot)` (the box a drawn item covers, in your units) and test with the helpers in `tests/themes/layout.ts` that no two items overlap (at capacity and at a few larger counts such as 37, 199 and 1000) and that every big item, wherever it stands, is clearly bigger than a small one (area above 1.5x). `tests/themes/pirates.test.ts` is an example.
 4. Seasonal theme only: add a rule to `DEFAULT_SEASONS` in `src/config.ts` (the snapshot test, the gallery and the playground take the season date from it), mark each kid's object with `seasonKid()` and update the `seasons` row of the [configuration table](#card-configuration), which lists the default rules by hand. Do this before writing the snapshots, so the season scene snapshot is written too.
 5. Add the theme to a list in `FIVE_KID_BOARDS` in `tests/snapshots.test.ts` (a guard test fails until you do). A board holds at most five kids; when the lists are full, start a new list, which gets its own `five-kids-<n>.svg`. Existing lists are never reshuffled.
 6. Write the snapshots: `mise run test -- -u tests/snapshots.test.ts` (and check that no other snapshot changed).
