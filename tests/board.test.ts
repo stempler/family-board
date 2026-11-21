@@ -154,10 +154,84 @@ describe('renderBoard', () => {
     expect(out).toContain('>Maximilian-Alexan…<');
   });
 
-  it('shows the number only when show_number is set', () => {
-    const out = renderBoard(model([kid('k1', 4321), kid('k2', 1234)]), twoKids, { date: JUNE });
-    expect(out).not.toContain('>4321<');
-    expect(out).toContain('>1234<');
+  describe('number chip', () => {
+    const pointsGroup = (out: string, id: string) => group(out, `data-points="${id}"`);
+    const attr = (src: string, tag: string, name: string) => Number(new RegExp(`<${tag}[^>]* ${name}="([-\\d.]+)"`).exec(src)![1]);
+    const nameOf = (half: string) => {
+      const m = /<text x="([-\d.]+)"[^>]* font-size="([-\d.]+)"[^>]*text-anchor="start"[^>]*>([^<]*)</.exec(half)!;
+      return { x: Number(m[1]), size: Number(m[2]), content: m[3] };
+    };
+
+    it('puts a name-high number chip at the right edge of the half', () => {
+      const cfg = config([{ id: 'k1', theme: 'lego', show_number: true }, { id: 'k2', theme: 'dino', show_number: true }]);
+      const out = renderBoard(model([kid('k1', 12, { name: 'Mia' }), kid('k2', 37, { name: 'Ben' })]), cfg, { date: JUNE });
+      for (const [id, pts] of [['k1', '12'], ['k2', '37']]) {
+        const half = group(out, `data-kid-half="${id}"`);
+        const chip = pointsGroup(half, id);
+        const n = nameOf(half);
+        const end = n.x + Array.from(n.content).length * n.size * 0.55;
+        const x = attr(chip, 'rect', 'x');
+        const i = id === 'k1' ? 0 : 1;
+        expect(x).toBeGreaterThanOrEqual(end);
+        expect(x + attr(chip, 'rect', 'width')).toBeCloseTo(i * 400 + 400 - 14, 0); // flush with the right margin
+        const h = attr(chip, 'rect', 'height');
+        expect(h).toBeGreaterThanOrEqual(0.6 * n.size); // about the height of the name's letters
+        expect(h).toBeLessThanOrEqual(0.8 * n.size);
+        expect(chip).toMatch(new RegExp(`<text[^>]*font-weight="bold"[^>]*>${pts}</text>`));
+        expect(chip).toContain('fill="#d9534f"');
+      }
+    });
+
+    it('keeps the chip inside the half for 5 kids with long names and 4-digit points', () => {
+      const ids = ['a', 'b', 'c', 'd', 'e'];
+      const cfg = config(ids.map((id) => ({ id, theme: 'lego', show_number: true })));
+      const out = renderBoard(model(ids.map((id, i) => kid(id, (i + 1) * 1000, { name: 'Maximiliane-Sophie' }))), cfg, { date: JUNE });
+      ids.forEach((id, i) => {
+        const half = group(out, `data-kid-half="${id}"`);
+        const chip = pointsGroup(half, id);
+        const n = nameOf(half);
+        const x = attr(chip, 'rect', 'x');
+        expect(x + attr(chip, 'rect', 'width')).toBeLessThanOrEqual(i * 160 + 160 - 14);
+        expect(x).toBeGreaterThanOrEqual(n.x + Array.from(n.content).length * n.size * 0.55);
+        expect(n.size).toBeGreaterThanOrEqual(12);
+        expect(Array.from(n.content).length).toBeGreaterThanOrEqual(4);
+      });
+    });
+
+    it('picks white or ink text by the luminance of a hex kid colour', () => {
+      const cfg = config([{ id: 'k1', theme: 'bricks', show_number: true }, { id: 'k2', theme: 'bricks', show_number: true }]);
+      const out = renderBoard(model([kid('k1', 12, { colour: '#1a237e' }), kid('k2', 12, { colour: '#ffd54f' })]), cfg, { date: JUNE });
+      expect(pointsGroup(out, 'k1')).toMatch(/<text[^>]*fill="#ffffff"[^>]*>12</);
+      expect(pointsGroup(out, 'k2')).toMatch(/<text[^>]*fill="#3a2f28"[^>]*>12</);
+    });
+
+    it('keeps ink text for a non-hex colour', () => {
+      const cfg = config([{ id: 'k1', theme: 'bricks', show_number: true }]);
+      const out = renderBoard(model([kid('k1', 12, { colour: 'rebeccapurple' })]), cfg, { date: JUNE });
+      expect(pointsGroup(out, 'k1')).toMatch(/<text[^>]*fill="#3a2f28"[^>]*>12</);
+    });
+
+    it('shows no chip for a kid that is not found', () => {
+      const cfg = config([{ id: 'k1', theme: 'bricks', show_number: true }]);
+      const out = renderBoard(model([kid('k1', 0, { found: false })]), cfg, { date: JUNE });
+      expect(out).toContain(de.kidNotFound);
+      expect(out).not.toContain('data-points=');
+    });
+
+    it('shows whole points only', () => {
+      const cfg = config([{ id: 'k1', theme: 'bricks', show_number: true }]);
+      const out = renderBoard(model([kid('k1', 12.5)]), cfg, { date: JUNE });
+      expect(pointsGroup(out, 'k1')).toMatch(/>12</);
+      expect(pointsGroup(out, 'k1')).not.toContain('12.5');
+    });
+
+    it('hides the chip with show_number: false', () => {
+      const out = renderBoard(model([kid('k1', 4321), kid('k2', 1234)]), twoKids, { date: JUNE });
+      expect(out).not.toContain('>4321<');
+      expect(out).not.toContain('data-points="k1"');
+      expect(out).toContain('data-points="k2"');
+      expect(out).toContain('>1234<');
+    });
   });
 
   it('shows the tap hint and marks the half tappable only with a tap_path', () => {

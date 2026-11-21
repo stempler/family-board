@@ -23,8 +23,10 @@ const NAME_Y = 47;
 const HINT_Y = 68;
 const NAME_SIZE = 30;
 const MIN_NAME_SIZE = 12;
-const NUMBER_SIZE = 34;
-const NAME_GAP = 20; // space between the name and the number
+const NUMBER_SIZE = 18; // chip text size; the chip (about 23 high) matches the height of the name's letters
+const CHIP_SIZES = [NUMBER_SIZE, 14, 11]; // tried in turn when the half is narrow
+const MIN_CHARS = 4; // 3 glyphs plus the ellipsis
+const NAME_GAP = 20; // space between the name and the chip
 const GLYPH_W = 0.55; // average glyph width in em, on the wide side
 
 // Jar row in the bottom ~21% of the board, below every theme's scene band (ends at 0.79h).
@@ -40,8 +42,8 @@ function svg(body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="${esc(FONT)}"><rect x="0" y="0" width="${W}" height="${H}" fill="${PAPER}"/>${body}</svg>`;
 }
 
-function text(x: number, y: number, size: number, content: string, anchor = 'middle', extra = ''): string {
-  return `<text x="${num(x)}" y="${num(y)}" font-size="${num(size)}" text-anchor="${anchor}" fill="${INK}"${extra}>${esc(content)}</text>`;
+function text(x: number, y: number, size: number, content: string, anchor = 'middle', extra = '', fill = INK): string {
+  return `<text x="${num(x)}" y="${num(y)}" font-size="${num(size)}" text-anchor="${anchor}" fill="${fill}"${extra}>${esc(content)}</text>`;
 }
 
 function avatar(kid: Kid, x: number, index: number): string {
@@ -54,17 +56,51 @@ function avatar(kid: Kid, x: number, index: number): string {
   return renderIcon(kid.avatar, x, AVATAR_Y, AVATAR);
 }
 
+/** Relative luminance of a #rgb or #rrggbb colour, or null for anything else. */
+function luminance(colour: string): number | null {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(colour.trim());
+  if (!m) return null;
+  const hex = m[1].length === 3 ? Array.from(m[1], (c) => c + c).join('') : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+const INK_LUMINANCE = 0.0309; // relative luminance of INK (#3a2f28)
+
+/** Chip text: white on a dark hex colour (better contrast than ink), ink otherwise. */
+function chipInk(colour: string): string {
+  const l = luminance(colour);
+  return l !== null && 1.05 / (l + 0.05) > (l + 0.05) / (INK_LUMINANCE + 0.05) ? '#ffffff' : INK;
+}
+
 function header(half: Half, index: number): string {
   const { kid, box } = half;
   const right = box.x + box.w - MARGIN;
   const nameX = box.x + MARGIN + AVATAR + 10;
-  const number = String(kid.points);
-  const numberW = half.showNumber ? number.length * NUMBER_SIZE * GLYPH_W + NAME_GAP : 0;
-  const shown = truncate(kid.name, 18);
-  // Shrink long names so they never run into the number (estimated width; the real font is narrower).
-  const nameSize = Math.max(MIN_NAME_SIZE, Math.min(NAME_SIZE, (right - numberW - nameX) / (Math.max(1, Array.from(shown).length) * GLYPH_W)));
+  const avail = right - nameX;
+  const digits = String(Math.floor(kid.points));
+  const minName = MIN_CHARS * MIN_NAME_SIZE * GLYPH_W;
+  // Chip at the right edge: full size when the shortest name still fits beside it, otherwise smaller and tighter.
+  const chipFor = (size: number) => ({ size, gap: size === NUMBER_SIZE ? NAME_GAP : 8, w: digits.length * size * GLYPH_W + size * 0.6 });
+  const chip = half.showNumber && kid.found ? (CHIP_SIZES.map(chipFor).find((c) => c.w + c.gap + minName <= avail) ?? chipFor(CHIP_SIZES[CHIP_SIZES.length - 1])) : null;
+  const room = avail - (chip ? chip.w + chip.gap : 0);
+  // Shrink the name first (estimated width; the real font is narrower), then truncate it, never below 3 glyphs and the ellipsis.
+  const maxChars = Math.min(18, Math.max(MIN_CHARS, Math.floor(room / (MIN_NAME_SIZE * GLYPH_W))));
+  const shown = truncate(kid.name, maxChars);
+  const glyphs = Math.max(1, Array.from(shown).length);
+  const nameSize = Math.max(MIN_NAME_SIZE, Math.min(NAME_SIZE, room / (glyphs * GLYPH_W)));
   const name = text(nameX, NAME_Y, nameSize, shown, 'start');
-  const points = half.showNumber ? text(right, NAME_Y, NUMBER_SIZE, number, 'end', ' font-weight="bold"') : '';
+  let points = '';
+  if (chip) {
+    const h = Math.round(chip.size * 1.3);
+    const x = right - chip.w;
+    const cy = NAME_Y - nameSize * 0.35; // the middle of the name's letters
+    points = `<g data-points="${esc(kid.id)}"><rect x="${num(x)}" y="${num(cy - h / 2)}" width="${num(chip.w)}" height="${num(h)}" rx="8" fill="${esc(kid.colour)}" stroke="${INK}" stroke-width="2"/>` +
+      text(x + chip.w / 2, cy + chip.size * 0.35, chip.size, digits, 'middle', ' font-weight="bold"', chipInk(kid.colour)) + '</g>';
+  }
   return avatar(kid, box.x + MARGIN, index) + name + points;
 }
 
@@ -112,7 +148,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     const theme = seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
     const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), ...newItemRange(opts.prevPoints?.[kid.id], kid.points, theme.capacity), seedKey: `${kid.id}:scene` };
-    return { kid, box, theme, showNumber: kc?.show_number ?? false, ctx };
+    return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });
 
   const span = sharedSpan(model.sharedJars.length);

@@ -52,7 +52,7 @@ screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
 | `theme` | required | Favourite theme, any id from [Themes](#themes). Unknown themes fall back to `lego`. |
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
 | `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. |
-| `show_number` | `false` | Also show the point total as a number. |
+| `show_number` | `true` | Show the point total as a number chip next to the name. Set `false` to hide it. |
 
 ```yaml
 type: custom:family-board-card
@@ -63,7 +63,6 @@ kids:
     theme: dino
     colour: "#4caf50"
     tap_path: /taskmate-anna
-    show_number: true
   - id: 8e16ad66b23f404e
     theme: lego
     tap_path: /taskmate-ben
