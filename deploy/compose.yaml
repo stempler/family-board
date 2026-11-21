@@ -13,7 +13,7 @@
 #    (HACS > TaskMate > three-dot menu > untick "Show update notifications"/auto-update), so updates happen
 #    on purpose after reading the release notes (see README, "Updating TaskMate").
 #
-# 3. Deploy the card: see README, "Deploy". The card file lives in ./config/www/family-board/.
+# 3. Install the card through HACS: see README, "Install".
 #
 # 4. Create a non-admin Home Assistant user for the tablet (Settings > People > Users, e.g. "Kinder"):
 #    untick "Administrator", and log the tablet in with it. Make a dashboard with the card and the
