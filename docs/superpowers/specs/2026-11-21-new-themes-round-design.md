@@ -230,3 +230,31 @@ section 3 where they differ.
 In the shared Christmas scene the snow hill dips on the right, so the right tree's trunk ends above the ground line.
 The ground is moved up so that every tree's trunk and ribbon stand in the snow, for two and for five kids. This is
 an intended change to an existing theme: `season-christmas.svg` changes, and no other existing snapshot does.
+
+## Second amendment: TaskMate's birthday mode is the main source (2026-11-21)
+
+An earlier statement in this document, that TaskMate does not know the birth date, was wrong. TaskMate (v7.12.0) has
+a birthday mode: each child may have a `birthday` (`YYYY-MM-DD`, or `MM-DD` for no age, 29 February celebrated on 28
+February in non-leap years). On the day, and only then, the child's entry in `sensor.taskmate_overview` carries
+`birthday: { multiplier, age?, chores_off? }`.
+
+The parent's decision: **TaskMate is the main source, the card's `kids[].birthday` stays as a fallback.**
+
+- A kid has birthday today when TaskMate reports `birthday` for the child, or when the card's `birthday` matches the
+  board's date. The card field is for families who want the picture without TaskMate's birthday mode (double points,
+  badge), and it is the only source of the age on ordinary days (a kid with `birthday` as favourite theme), because
+  TaskMate sends the age only on the day.
+- The age on the cake: TaskMate's `age` when TaskMate reports the birthday and gives one; otherwise the age from the
+  card's `birthday` if it has a year; otherwise none (topper).
+- TaskMate does not expose the date on other days, so the card cannot detect that the two dates differ. If they do,
+  the birthday picture shows on both days. *(Stated limitation.)*
+- TaskMate names stay in `src/adapter.ts`: the adapter maps the payload to `Kid.birthday?: { age?: number }`
+  (present = birthday today). `age` is taken only when it is a whole number of at least 1.
+- Everything else (the override in `renderBoard`, no shared season scene that day, the picture) is unchanged.
+
+### Polish taken in the same pass
+
+- The "ten" items read too small in three themes: the present (Geburtstag), the pallet (Baustelle) and the trophy
+  (Fußball) are drawn clearly larger. The football's shot ball no longer starts behind a trophy.
+- Piraten: the starfish and the shell on the beach are removed (they are Sommer's counted items).
+- Geburtstag: a row of ten candles gets more room.
