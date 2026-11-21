@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Theme } from '../../src/themes/types';
-import { afterItems, contractCtx, coordsOutside } from './theme-contract';
+import { afterItems, contractCtx, coordsOutside, loopDurations } from './theme-contract';
 
 export const seasonBox = { x: 0, y: 0, w: 800, h: 450 };
 
@@ -39,6 +39,13 @@ export function runSeasonContract(theme: Theme): void {
     it('uses the kid colour', () => {
       expect(out).toContain('#d9534f');
     });
+    it('escapes the kid colour exactly once', () => {
+      const halves = seasonHalves(theme).map((c) => ({ ...c, kid: { ...c.kid, colour: 'red&"x' } }));
+      const odd = theme.renderSeasonScene!(halves, seasonBox);
+      expect(odd).not.toContain('&amp;amp;');
+      expect(odd).not.toContain('&amp;quot;');
+      expect(odd).not.toContain('red&"');
+    });
     it('is deterministic', () => {
       expect(scene()).toBe(out);
     });
@@ -47,6 +54,11 @@ export function runSeasonContract(theme: Theme): void {
         expect((s.match(/class="fb-anim/g) ?? []).length).toBeLessThanOrEqual(60);
         expect(s).not.toContain('NaN');
         expect(coordsOutside(s, seasonBox)).toEqual([]);
+      }
+    });
+    it('loops for at least 2 s', () => {
+      for (const s of [out, scene(1000, 1000)]) {
+        for (const t of loopDurations(s)) expect(t).toBeGreaterThanOrEqual(2);
       }
     });
     it('never animates a counted item directly', () => {

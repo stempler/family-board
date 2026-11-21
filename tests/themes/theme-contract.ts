@@ -36,6 +36,11 @@ export function afterItems(svg: string): string {
   throw new Error('unclosed group');
 }
 
+/** Every `--t:` loop duration in the markup, in seconds. */
+export function loopDurations(svg: string): number[] {
+  return [...svg.matchAll(/--t:(-?[\d.]+)s/g)].map((m) => parseFloat(m[1]));
+}
+
 export function runThemeContract(theme: Theme): void {
   describe(`theme contract: ${theme.id}`, () => {
     for (const points of [0, 7, 30, 1000]) {
@@ -61,6 +66,9 @@ export function runThemeContract(theme: Theme): void {
           expect(n).toBeGreaterThanOrEqual(1);
           expect(n).toBeLessThanOrEqual(30);
         });
+        it('loops for at least 2 s', () => {
+          for (const t of loopDurations(out)) expect(t).toBeGreaterThanOrEqual(2);
+        });
         it('never animates a counted item directly', () => {
           const both = (out.match(/class="[^"]*"/g) ?? []).filter((c) => c.includes('fb-item') && c.includes('fb-anim'));
           expect(both).toEqual([]);
@@ -75,6 +83,14 @@ export function runThemeContract(theme: Theme): void {
       expect(outside).not.toContain('@keyframes');
       const names = [...css.matchAll(/@keyframes\s+([\w-]+)/g), ...outside.matchAll(/\.([\w-]+)/g)].map((m) => m[1]);
       for (const name of names) expect(name.startsWith(`fb-${theme.id}-`), name).toBe(true);
+    });
+
+    it('escapes the kid colour exactly once', () => {
+      const ctx = contractCtx(theme, 37);
+      const out = theme.renderHalf({ ...ctx, kid: { ...ctx.kid, colour: 'red&"x' } });
+      expect(out).not.toContain('&amp;amp;');
+      expect(out).not.toContain('&amp;quot;');
+      expect(out).not.toContain('red&"');
     });
 
     it('marks items from newFrom as fb-new', () => {
