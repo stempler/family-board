@@ -79,6 +79,15 @@ describe('normalizeConfig', () => {
     ]);
     expect(normalizeConfig(base).seasons).toEqual(DEFAULT_SEASONS);
   });
+  it('trims tap_path', () => {
+    expect(normalizeConfig({ kids: [{ id: 'a', theme: 't', tap_path: '  /k  ' }] }).kids[0].tap_path).toBe('/k');
+    expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 't', tap_path: '   ' }] })).toThrow(/tap_path/);
+  });
+
+  it('rejects duplicate kid ids (also after trimming)', () => {
+    expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 't' }, { id: ' a ', theme: 'u' }] })).toThrow(/kids\[1\]: duplicate id "a"/);
+  });
+
   it('validates colour and tap_path', () => {
     expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 't', colour: 5 }] })).toThrow(/colour/);
     expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 't', tap_path: 'x' }] })).toThrow(/tap_path/);
