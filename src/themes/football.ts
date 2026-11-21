@@ -4,9 +4,10 @@ import { at, moved, placement, points, type Placement, type Pt, type Units } fro
 import { item, type HalfContext, type Theme } from './types';
 
 // A football pitch, drawn in "pitch units": the far touchline at the top with a corner flag in the kid
-// colour at its right end, a goal with a net at the left and its goal line. Footballs lie on the grass
-// beside the goal in six rows of five; trophies (a tall two-handled cup with a ball on top) stand in a row
-// in front of the goal. Now and then a ball bounces into the net, where it then rests.
+// colour at its right end, a goal with a net at the left and its goal line. Footballs lie on the grass in two rows
+// of five beside the goal and two rows of ten along the touchline. Trophies (a tall two-handled cup with a ball on top)
+// stand five big ones in a row in front of the goal first, then medium ones in a row of ten beyond the touchline, then
+// on the ball rows. Now and then a ball bounces into the net, where it then rests.
 const MID = 160;
 const UNITS_W = 320;
 const UNITS_H = 260;
@@ -28,34 +29,54 @@ const GOAL_TOP = 116; // crossbar
 const GOAL_GROUND = 192; // goal line
 
 const BALL_D = 20; // a football: 20 units across
-const TROPHY_W = 30; // a trophy with its handles: 30 x 42 units
+const TROPHY_W = 30; // a trophy with its handles at scale 1: 30 x 42 units
 const TROPHY_H = 42;
-const BIG = 1.5; // scale of a trophy on its own spot in front of the goal: about three balls tall, it reads as "ten"
-const SPILL = 0.7; // scale of a trophy standing on a ball spot: still clearly bigger than a ball
+const BIG = 1.5; // the first five: 45 x 63, about three balls tall, seven times a ball's area
+const MEDIUM = 0.87; // the rest: 26.1 x 36.5, almost two balls tall, more than twice a ball's area
 
-/** Trophy spots in front of the goal, the middle one first: 47 apart, so no two touch. Spots are footprint centres. */
-const TROPHIES: Pt[] = [[70.5, 226.5], [117.5, 226.5], [23.5, 226.5]];
+/** The x of `n` spots centred on `cx`, `pitch` apart, left to right. */
+const across = (n: number, cx: number, pitch: number) => Array.from({ length: n }, (_, i) => cx + pitch * (i - (n - 1) / 2));
 
-/** One row of five balls at a pitch of 30, left to right. */
-const row = (y: number): Pt[] => Array.from({ length: 5 }, (_, i): Pt => [180 + 30 * i, y]);
+/** Big trophy spots in a row in front of the goal, the middle one first, then outwards to the right and the left. */
+const BIG_SPOTS: Pt[] = [2, 3, 1, 4, 0].map((i): Pt => [across(5, 155, 50)[i], 259 - (TROPHY_H * BIG) / 2]);
 
-/** Ball spots beside the goal, the front row first, 32 apart between rows (room for a trophy at SPILL). */
-const BALLS: Pt[] = [244, 212, 180, 148, 116, 84].flatMap(row);
+/** Ball rows: two of five beside the goal, the front one first, then two of ten along the touchline, the nearer one first. */
+const SIDE_X = across(5, 240, 30);
+const LINE_X = across(10, 160, 30);
+const SIDE_Y = [172, 142];
+const LINE_Y = [97, 67];
+const BALLS: Pt[] = [
+  ...SIDE_Y.flatMap((y) => SIDE_X.map((x): Pt => [x, y])),
+  ...LINE_Y.flatMap((y) => LINE_X.map((x): Pt => [x, y])),
+];
 
 const CAPACITY = BALLS.length;
 
-export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number; slot: number } // pitch units, centre of the footprint; k scales the drawing; slot is the ball spot, -1 on a trophy spot
+/**
+ * Medium trophy spots, in order: a row of ten beyond the touchline (never needed by a ball), right to left; then one
+ * on each column of the ball rows along the touchline and beside the goal, right to left, covering the column's two
+ * balls. The n-th trophy leaves room for at most 30 - n balls, so the balls it covers are the last ones in the ball
+ * order: the 16th covers balls 20 and 30, the 25th balls 11 and 21, the 26th balls 5 and 10, the 30th balls 1 and 6.
+ */
+const MEDIUM_SPOTS: Pt[] = [
+  ...across(10, 140, TROPHY_W * MEDIUM + 2.05).reverse().map((x): Pt => [x, 24]),
+  ...[...LINE_X].reverse().map((x): Pt => [x, (LINE_Y[0] + LINE_Y[1]) / 2]),
+  ...[...SIDE_X].reverse().map((x): Pt => [x, (SIDE_Y[0] + SIDE_Y[1]) / 2]),
+];
 
-/** Where the items go: trophies first on their own spots, then on ball spots (smaller); balls fill the remaining ball spots in order. */
+const TROPHIES: [x: number, y: number, k: number][] = [
+  ...BIG_SPOTS.map(([x, y]): [number, number, number] => [x, y, BIG]),
+  ...MEDIUM_SPOTS.map(([x, y]): [number, number, number] => [x, y, MEDIUM]),
+];
+
+export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number } // pitch units, centre of the footprint; k scales the drawing
+
+/** Where the items go: trophies on their spots in order, balls on the ball spots in order. No item ever moves when one is added. */
 export function spots(big: number, small: number): Spot[] {
-  const out: Spot[] = [];
-  let slot = 0;
-  for (let i = 0; i < big && slot < BALLS.length; i++) {
-    if (i < TROPHIES.length) out.push({ kind: 'big', x: TROPHIES[i][0], y: TROPHIES[i][1], k: BIG, slot: -1 });
-    else out.push({ kind: 'big', x: BALLS[slot][0], y: BALLS[slot][1], k: SPILL, slot: slot++ });
-  }
-  for (let i = 0; i < small && slot < BALLS.length; i++, slot++) out.push({ kind: 'small', x: BALLS[slot][0], y: BALLS[slot][1], k: 1, slot });
-  return out;
+  return [
+    ...TROPHIES.slice(0, big).map(([x, y, k]): Spot => ({ kind: 'big', x, y, k })),
+    ...BALLS.slice(0, Math.max(0, Math.min(small, CAPACITY - big))).map(([x, y]): Spot => ({ kind: 'small', x, y, k: 1 })),
+  ];
 }
 
 /** The box a drawn item covers, in pitch units: [left, top, right, bottom]. */
@@ -139,7 +160,7 @@ function goalFrame(sk: Sketch, p: Placement): string {
 const SHOT_X = 112; // the shot ball at rest, in the net
 const SHOT_Y = 183;
 export const SHOT_R = 9;
-export const SHOT_FROM: Pt = [158, 250]; // where it is kicked from, between the trophies and the balls, clear of both
+export const SHOT_FROM: Pt = [300, 236]; // where it is kicked from, right of the big trophies and below the balls, clear of both
 
 /** One extra ball (not counted), the kid's match ball with patches in the kid colour, that bounces from the front of the pitch into the net once per cycle; at rest it lies in the net. */
 function shot(sk: Sketch, p: Placement, ctx: HalfContext): string {
