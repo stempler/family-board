@@ -41,7 +41,7 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 | `overview_entity` | `sensor.taskmate_overview` | TaskMate overview sensor. See "Sensor names" below. |
 | `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). See "Sensor names" below. |
 | `kids` | required, non-empty | One entry per kid, see below. |
-| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`) shows one shared scene across the board; any other theme is used for every kid's half. |
+| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1`, martin `11-01`..`11-11` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`, `martin`) shows one shared scene across the board; any other theme is used for every kid's half. |
 | `reward_icons` | `{}` | Map of reward id or name to an emoji or `mdi:...` icon. Default: TaskMate's own MDI icon. |
 
 `kids[]` entries:
@@ -119,8 +119,9 @@ with shelf trophies worth 5, 25 and 125 games.
 | `pirates` | Piraten | Gold coins in an open treasure chest on a beach and gold bars stacked beside it; a small ship bobs on the sea. |
 | `underwater` | Unterwasser | Shells in rows on the sea floor and open shells with a pearl; seaweed sways, bubbles rise and now and then a fish swims across. |
 | `football` | Fußball | Footballs in rows on the grass beside a goal and trophies in front of it; the corner flag waves and now and then a ball bounces into the net. |
+| `martin` | St. Martin | Paper lanterns in rows on a line from the lantern stick, big round sun and moon lanterns on the top line, dark houses with lit windows at dusk. Season scene: one lantern line per kid along a dusk street. |
 
-`christmas`, `halloween` and `easter` also have a season scene (see `seasons`
+`christmas`, `halloween`, `easter` and `martin` also have a season scene (see `seasons`
 above); all others are favourites only. Preview them with `mise run dev`: the
 playground has a theme picker per kid and a "Saison" switch: "nach Datum" (the
 default) uses the date field with seasons on, "keine" sets today and turns
