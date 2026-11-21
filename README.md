@@ -23,6 +23,18 @@ mise run ha:up    # local Home Assistant with TaskMate, the card and demo data
 
 Other tasks: `typecheck`, `build`, `gallery:shots`, `ha:down`, `ha:reset`, `ha:seed`, `ha:screenshot`, `fixtures:capture`.
 
+### Snapshot tests
+
+`tests/snapshots.test.ts` renders whole boards for every theme and season scene
+and compares them with the SVG files in `tests/__snapshots__/svg/`.
+
+- Rendering is deterministic, so any difference is a visible change to the
+  board.
+- A refactor must leave the snapshots untouched.
+- For an intended visual change, run `mise run test -- -u`, open the changed
+  `.svg` files in a browser and commit them with the change.
+- In CI, missing snapshots fail the run instead of being written.
+
 ### Local Home Assistant
 
 `mise run ha:up` builds the card, starts Home Assistant in Docker
@@ -170,7 +182,8 @@ reviewing all themes in one go.
 4. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` and, for a seasonal theme, `runSeasonContract(theme)`, plus theme-specific checks.
 5. For a seasonal theme: add a default rule to `seasons` (config) and mark each kid's object with `data-season-kid` and `data-cx`.
 6. Optional: a theme that counts its items differently (chess) implements `items(points, prev)`, returning how many `data-item` elements it draws and which of them are new; it is used instead of the capacity-based grouping.
-7. The gallery lists every registered theme (and every season scene) by itself: look at it with `mise run dev` and `mise run gallery:shots`, then run `mise run ha:screenshot` (it checks each theme in the local Home Assistant).
+7. Write its snapshots with `mise run test -- -u tests/snapshots.test.ts`. A seasonal theme also needs a date in `SEASON_DATES` there; a test fails until it has one.
+8. The gallery lists every registered theme (and every season scene) by itself: look at it with `mise run dev` and `mise run gallery:shots`, then run `mise run ha:screenshot` (it checks each theme in the local Home Assistant).
 
 ## Updating TaskMate
 
