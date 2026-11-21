@@ -3,7 +3,7 @@ import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
 import { footprint, spots } from '../../src/themes/martin';
 import { THEMES } from '../../src/themes/registry';
-import { layout } from './layout';
+import { type Footprint, layout, mixes, movedItems } from './layout';
 import { runSeasonContract, seasonBox, seasonHalves } from './season-contract';
 import { beforeItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
@@ -70,22 +70,50 @@ describe('martin season scene', () => {
 });
 
 describe('martin item layout', () => {
-  const { overlapping, area } = layout(footprint);
+  const { overlapping, area, size, onScenery } = layout(footprint);
+  const small = () => area(spots(0, 1)[0]);
+  const bigs = () => spots(martin.capacity, 0);
 
-  it('keeps every big lantern clearly bigger than a small one, also on a small spot', () => {
-    const small = area(spots(0, 1)[0]);
-    for (const s of spots(martin.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
+  it('has a spot for as many big lanterns as the grouping can ask for', () => {
+    expect(bigs()).toHaveLength(martin.capacity);
   });
-  it('keeps every big lantern spot clear of every small spot and of each other', () => {
-    const own = spots(martin.capacity, 0).filter((s) => s.slot < 0);
-    expect(overlapping([...own, ...spots(0, martin.capacity)])).toEqual([]);
+  it('makes the first five big lanterns large, at least four times a small one\'s area, on the top line', () => {
+    const five = bigs().slice(0, 5);
+    for (const s of five) expect(area(s)).toBeGreaterThanOrEqual(4 * small());
+    expect(Math.max(...five.map((s) => s.y))).toBeLessThan(Math.min(...bigs().slice(5).map((s) => s.y)));
   });
-  for (const points of [30, 37, 199, 1000]) {
-    it(`draws no two items on top of each other at ${points} points`, () => {
-      const { big, small } = groupItems(points, martin.capacity);
-      const list = spots(big, small);
-      expect(list).toHaveLength(big + small);
-      expect(overlapping(list)).toEqual([]);
-    });
-  }
+  it('keeps every big lantern at least twice a small one\'s area', () => {
+    for (const s of bigs()) expect(area(s)).toBeGreaterThanOrEqual(2 * small());
+  });
+  it('gives big lanterns 6 to 30 one medium size, clearly smaller than the first five', () => {
+    const rest = bigs().slice(5);
+    for (const s of rest) {
+      expect(size(s).w).toBeCloseTo(size(rest[0]).w, 9);
+      expect(size(s).h).toBeCloseTo(size(rest[0]).h, 9);
+    }
+    expect(area(bigs()[0])).toBeGreaterThan(1.5 * area(rest[0]));
+  });
+  it('hangs the medium lanterns in rows of ten on the lines, from the bottom line up', () => {
+    const rows = new Map<number, number>();
+    for (const s of bigs().slice(5)) rows.set(s.hang - s.hang % 50, (rows.get(s.hang - s.hang % 50) ?? 0) + 1);
+    expect([...rows.values()]).toEqual([10, 10, 5]);
+  });
+  it('keeps every lantern clear of the lantern stick and the tall house, above the street', () => {
+    const scenery: Record<string, Footprint> = { stick: [11.5, 17, 16.5, 232], tower: [298, 10, 318, 228] };
+    for (const { big, small: n } of mixes(martin.capacity)) {
+      const list = spots(big, n);
+      expect(onScenery(list, scenery), `${big} big, ${n} small`).toEqual([]);
+      for (const s of list) expect(footprint(s)[1] > 28 && footprint(s)[3] < 228, `${s.kind} at ${s.x},${s.y}`).toBe(true);
+    }
+  });
+  it('never moves or resizes a lantern when one is added', () => {
+    expect(movedItems(spots, footprint, martin.capacity)).toEqual([]);
+  });
+  it('draws no two lanterns on top of each other at any total up to 1000', () => {
+    for (const { big, small: n, points } of mixes(martin.capacity)) {
+      const list = spots(big, n);
+      expect(list, `${points} points`).toHaveLength(big + n);
+      expect(overlapping(list), `${points} points`).toEqual([]);
+    }
+  });
 });

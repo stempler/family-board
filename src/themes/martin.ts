@@ -6,9 +6,9 @@ import { at, placement, points, SCENE_BOTTOM, SCENE_TOP, starPoints, type Placem
 import { item, type HalfContext, type Theme } from './types';
 
 // A St. Martin lantern walk at dusk, drawn in "street units": the kid's lantern stick (in the kid
-// colour) stands at the left, a narrow tall house at the right; four lines run between them. Big
+// colour) stands at the left, a narrow tall house at the right; four lines run between them. Five big
 // round lanterns with a sun or a moon on them hang on the top line, small paper lanterns in three
-// rows of ten on the lines below. Behind them a row of dark houses with lit windows stands on the
+// rows of ten on the lines below; further round lanterns, medium sized, take the small spots from the last one back. Behind them a row of dark houses with lit windows stands on the
 // street (y 228 down to 240), a moon and a few stars are in the sky. The half itself stays a pale
 // dusk lilac so the board's dark header and jar labels stay readable; only the scene band is dark.
 const MID = 160;
@@ -44,9 +44,10 @@ const RIG_MID = (POLE_X + TOWER_X) / 2;
 const SMALL_W = 14; // a small paper lantern: 14 x 20 units with its caps
 const SMALL_H = 20;
 const SMALL_DROP = 15; // from the line down to a small lantern's centre
-const BIG_R = 15; // a big lantern: 30 x 36 units with its caps
+const BIG_R = 15; // a round lantern at scale 1: 30 x 36 units with its caps
 const BIG_DROP = 22;
-const SPILL = 0.8; // scale of a big lantern hanging on a small spot, so it fits the pitch of 28
+const BIG = 1.15; // the five on the top line: 34.5 x 41.4, five times a small lantern's area
+const MEDIUM = 0.85; // the rest, on small spots: 25.5 x 30.6, almost three times a small lantern's area
 const GLOWING = 8; // only the first lanterns flicker
 
 /** The height of line `row` at x, in units. */
@@ -58,32 +59,37 @@ function lineY(row: number, x: number): number {
 /** Big lantern spots on the top line, centre outwards, 56 apart. */
 const BIGS = [0, -56, 56, -112, 112].map((dx) => RIG_MID + dx);
 
+/** The centre of the rows of ten: a medium lantern at either end keeps the same room to the stick and to the house. */
+const ROW_MID = 157.25;
+
 /** Small lantern spots: ten per line, 28 apart, the upper line first, left to right. */
-const SMALLS: Pt[] = [1, 2, 3].flatMap((row) => Array.from({ length: 10 }, (_, i): Pt => [RIG_MID + (i - 4.5) * 28, row]));
+const SMALLS: Pt[] = [1, 2, 3].flatMap((row) => Array.from({ length: 10 }, (_, i): Pt => [ROW_MID + (i - 4.5) * 28, row]));
 
 const CAPACITY = SMALLS.length;
 
 /** street units; k scales the drawing; hang is where its string meets the line; slot is the small spot, -1 on a big spot. */
 export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number; hang: number; slot: number }
 
-function smallSpot(kind: 'big' | 'small', slot: number, k: number): Spot {
+function smallSpot(kind: 'big' | 'small', slot: number): Spot {
   const [x, row] = SMALLS[slot];
   const hang = lineY(row, x);
-  return { kind, x, y: hang + SMALL_DROP, k, hang, slot };
+  return kind === 'big' ? { kind, x, y: hang + BIG_DROP * MEDIUM, k: MEDIUM, hang, slot } : { kind, x, y: hang + SMALL_DROP, k: 1, hang, slot };
 }
 
-/** Where the items go: big lanterns first on the top line, then on small spots (smaller); small lanterns fill the remaining small spots in order. */
+/**
+ * Where the items go: big lanterns first on the top line, then (medium sized) on the small spots from the last one
+ * back; small lanterns on the small spots in order. With n big lanterns there are at most CAPACITY - n small ones, so
+ * a small spot under a medium lantern is never in use by a small one at the same time, and no item ever moves.
+ */
 export function spots(big: number, small: number): Spot[] {
-  const out: Spot[] = [];
-  let slot = 0;
-  for (let i = 0; i < big && slot < SMALLS.length; i++) {
-    if (i < BIGS.length) {
-      const hang = lineY(0, BIGS[i]);
-      out.push({ kind: 'big', x: BIGS[i], y: hang + BIG_DROP, k: 1, hang, slot: -1 });
-    } else out.push(smallSpot('big', slot++, SPILL));
-  }
-  for (let i = 0; i < small && slot < SMALLS.length; i++) out.push(smallSpot('small', slot++, 1));
-  return out;
+  const b = Math.max(0, Math.min(big, CAPACITY));
+  const own = BIGS.slice(0, b).map((x): Spot => {
+    const hang = lineY(0, x);
+    return { kind: 'big', x, y: hang + BIG_DROP * BIG, k: BIG, hang, slot: -1 };
+  });
+  const medium = Array.from({ length: b - own.length }, (_, i) => smallSpot('big', CAPACITY - 1 - i));
+  const smalls = Array.from({ length: Math.max(0, Math.min(small, CAPACITY - b)) }, (_, i) => smallSpot('small', i));
+  return [...own, ...medium, ...smalls];
 }
 
 /** The box a drawn lantern covers (caps included, string and glow not), in street units: [left, top, right, bottom]. */
@@ -99,7 +105,7 @@ const rect = (x: number, y: number, w: number, h: number, fill: string) =>
 const pane = (x: number, y: number, w: number, h: number, fill: string) =>
   `<rect x="${num(x)}" y="${num(y)}" width="${num(w)}" height="${num(h)}" fill="${fill}" opacity="0.6"/>`;
 
-/** The warm glow behind a lantern at (x, y), radius r px (a big lantern on a small spot glows only a little wider than a small one, so the glows stay apart); it flickers when `key` is given. Never the counted item itself. */
+/** The warm glow behind a lantern at (x, y), radius r px (a medium lantern on a small spot glows only a little wider than a small one, so the glows stay apart); it flickers when `key` is given. Never the counted item itself. */
 function glow(x: number, y: number, r: number, key: string | null): string {
   const anim = key ? ` class="fb-anim fb-martin-flicker" style="${timing(key, [2.2, 3.4])}"` : '';
   return `<g${anim}><circle cx="${num(x)}" cy="${num(y)}" r="${num(r)}" fill="${GLOW}" fill-opacity="0.3"/>` +
@@ -144,7 +150,7 @@ function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
     const [, hang] = at(p, s.x, s.hang);
     const k = s.k * p.s;
     const key = i < GLOWING ? `${ctx.seedKey}:flicker:${i}` : null;
-    if (s.kind === 'big') return item('big', i, ctx, glow(x, y, (s.slot < 0 ? 24 : 14) * p.s, key) + roundLantern(sk, x, y, hang, k, ctx.kid.colour, i % 2 === 0));
+    if (s.kind === 'big') return item('big', i, ctx, glow(x, y, (s.slot < 0 ? 26 : 14) * p.s, key) + roundLantern(sk, x, y, hang, k, ctx.kid.colour, i % 2 === 0));
     return item('small', i, ctx, glow(x, y, 12 * p.s, key) + paperLantern(sk, x, y, hang, k, PAPER[s.slot % PAPER.length]));
   }).join('');
 }
