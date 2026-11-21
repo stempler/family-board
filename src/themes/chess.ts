@@ -224,6 +224,7 @@ const css = `
 
 export const chess: Theme = {
   id: 'chess',
+  label: 'Schach',
   capacity: SHELF_CAP + 15, // the most items chess draws; `items` below does the grouping, not `capacity`
   background: WALL,
   renderHalf,

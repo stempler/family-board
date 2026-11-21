@@ -314,6 +314,7 @@ const css = `
 
 export const easter: Theme = {
   id: 'easter',
+  label: 'Ostern',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,

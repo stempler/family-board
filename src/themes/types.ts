@@ -6,6 +6,7 @@ export interface HalfContext { kid: Kid; box: Box; groups: ItemGroups; newFrom: 
 
 export interface Theme {
   id: string;
+  label?: string; // German display name for pickers (dev playground); the id is shown without one
   capacity: number; // max drawn items per kid (with `items`, only the upper bound; grouping is the theme's own)
   background: string; // half background colour
   renderHalf(ctx: HalfContext): string; // the kid's scene inside ctx.box, no jars or header

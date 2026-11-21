@@ -219,6 +219,7 @@ const css = `
 
 export const dino: Theme = {
   id: 'dino',
+  label: 'Dino',
   capacity: CAPACITY,
   background: MEADOW,
   renderHalf,
