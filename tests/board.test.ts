@@ -25,7 +25,7 @@ function config(kids: KidConfig[]): CardConfig {
 }
 
 const twoKids = config([
-  { id: 'k1', theme: 'lego', show_number: false },
+  { id: 'k1', theme: 'bricks', show_number: false },
   { id: 'k2', theme: 'dino', show_number: true },
 ]);
 
@@ -53,12 +53,16 @@ describe('renderBoard', () => {
     expect(out.endsWith('</svg>')).toBe(true);
   });
 
+  it('renders a retired theme id without throwing', () => {
+    expect(() => renderBoard(model([kid('k1', 5)]), config([{ id: 'k1', theme: 'rescue', show_number: true }]), { date: JUNE })).not.toThrow();
+  });
+
   it('draws one half per kid with its own theme outside a season', () => {
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: JUNE });
     expect(out.match(/data-kid-half="/g) ?? []).toHaveLength(2);
-    const legoHalf = group(out, 'data-kid-half="k1"');
-    const lego = group(legoHalf, 'data-theme="lego"');
-    expect(lego.match(/data-item="small"/g) ?? []).toHaveLength(5);
+    const bricksHalf = group(out, 'data-kid-half="k1"');
+    const bricks = group(bricksHalf, 'data-theme="bricks"');
+    expect(bricks.match(/data-item="small"/g) ?? []).toHaveLength(5);
     expect(group(out, 'data-kid-half="k2"')).toContain('data-theme="dino"');
   });
 
@@ -66,7 +70,7 @@ describe('renderBoard', () => {
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: DECEMBER });
     expect(out.match(/data-theme="/g) ?? []).toHaveLength(1);
     expect(out).toContain('data-theme="christmas"');
-    expect(out).not.toContain('data-theme="lego"');
+    expect(out).not.toContain('data-theme="bricks"');
     expect(out.match(/data-kid-half="/g) ?? []).toHaveLength(2);
     expect(out.match(/data-item="/g) ?? []).toHaveLength(8);
   });
@@ -79,7 +83,7 @@ describe('renderBoard', () => {
       const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: new Date(2026, 6, 15) });
       expect(group(out, 'data-kid-half="k1"')).toContain('data-theme="dino"');
       expect(group(out, 'data-kid-half="k2"')).toContain('data-theme="dino"');
-      expect(out).not.toContain('data-theme="lego"');
+      expect(out).not.toContain('data-theme="bricks"');
     });
 
     it('still finds a christmas rule listed after a non-matching rule', () => {
@@ -92,7 +96,7 @@ describe('renderBoard', () => {
     it('skips a rule with an unknown theme', () => {
       const cfg = withSeasons([{ theme: 'nope', from: '06-01', to: '06-30' }]);
       const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: JUNE });
-      expect(group(out, 'data-kid-half="k1"')).toContain('data-theme="lego"');
+      expect(group(out, 'data-kid-half="k1"')).toContain('data-theme="bricks"');
       expect(group(out, 'data-kid-half="k2"')).toContain('data-theme="dino"');
     });
   });
@@ -163,7 +167,7 @@ describe('renderBoard', () => {
     };
 
     it('puts a name-high number chip at the right edge of the half', () => {
-      const cfg = config([{ id: 'k1', theme: 'lego', show_number: true }, { id: 'k2', theme: 'dino', show_number: true }]);
+      const cfg = config([{ id: 'k1', theme: 'bricks', show_number: true }, { id: 'k2', theme: 'dino', show_number: true }]);
       const out = renderBoard(model([kid('k1', 12, { name: 'Mia' }), kid('k2', 37, { name: 'Ben' })]), cfg, { date: JUNE });
       for (const [id, pts] of [['k1', '12'], ['k2', '37']]) {
         const half = group(out, `data-kid-half="${id}"`);
@@ -184,7 +188,7 @@ describe('renderBoard', () => {
 
     it('keeps the chip inside the half for 5 kids with long names and 4-digit points', () => {
       const ids = ['a', 'b', 'c', 'd', 'e'];
-      const cfg = config(ids.map((id) => ({ id, theme: 'lego', show_number: true })));
+      const cfg = config(ids.map((id) => ({ id, theme: 'bricks', show_number: true })));
       const out = renderBoard(model(ids.map((id, i) => kid(id, (i + 1) * 1000, { name: 'Maximiliane-Sophie' }))), cfg, { date: JUNE });
       ids.forEach((id, i) => {
         const half = group(out, `data-kid-half="${id}"`);
@@ -236,7 +240,7 @@ describe('renderBoard', () => {
 
   it('shows the tap hint and marks the half tappable only with a tap_path', () => {
     const cfg = config([
-      { id: 'k1', theme: 'lego', show_number: false, tap_path: '/lovelace/k1' },
+      { id: 'k1', theme: 'bricks', show_number: false, tap_path: '/lovelace/k1' },
       { id: 'k2', theme: 'dino', show_number: false },
     ]);
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), cfg, { date: JUNE });
@@ -249,7 +253,7 @@ describe('renderBoard', () => {
   });
 
   it('shows no tap hint for a kid that was not found', () => {
-    const cfg = config([{ id: 'k1', theme: 'lego', show_number: false, tap_path: '/x' }]);
+    const cfg = config([{ id: 'k1', theme: 'bricks', show_number: false, tap_path: '/x' }]);
     const out = renderBoard(model([kid('k1', 0, { found: false })]), cfg, { date: JUNE });
     expect(group(out, 'data-kid-half="k1"')).not.toContain(de.tapHint);
     expect(out).not.toContain('data-tappable');
@@ -290,7 +294,7 @@ describe('renderBoard', () => {
   });
 
   it('splits three kids into thirds without NaN', () => {
-    const cfg = config([...twoKids.kids, { id: 'k3', theme: 'lego', show_number: true }]);
+    const cfg = config([...twoKids.kids, { id: 'k3', theme: 'bricks', show_number: true }]);
     const shared: SharedJar = { id: 's1', name: 'Zoo', icon: { kind: 'emoji', value: '🦁' }, goal: 100, contributions: { k1: 20 } };
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3), kid('k3', 40)], [shared]), cfg, { date: JUNE });
     expect(out.match(/data-kid-half="/g) ?? []).toHaveLength(3);

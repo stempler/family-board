@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS, normalizeConfig } from '../src/config';
 
-const base = { type: 'custom:family-board-card', kids: [{ id: 'a', theme: 'lego' }] };
+const base = { type: 'custom:family-board-card', kids: [{ id: 'a', theme: 'bricks' }] };
 
 describe('normalizeConfig', () => {
   it('applies defaults', () => {
@@ -18,15 +18,15 @@ describe('normalizeConfig', () => {
     expect(() => normalizeConfig({ type: 'x', kids: [] })).toThrow(/kids/);
   });
   it('throws for kid without id', () => {
-    expect(() => normalizeConfig({ kids: [{ theme: 'lego' }] })).toThrow(/id/);
+    expect(() => normalizeConfig({ kids: [{ theme: 'bricks' }] })).toThrow(/id/);
   });
   it('throws for kid without theme', () => {
     expect(() => normalizeConfig({ kids: [{ id: 'a' }] })).toThrow(/theme/);
   });
   it('trims kid id and theme', () => {
-    const c = normalizeConfig({ kids: [{ id: ' a872165c ', theme: ' lego ' }] });
+    const c = normalizeConfig({ kids: [{ id: ' a872165c ', theme: ' bricks ' }] });
     expect(c.kids[0].id).toBe('a872165c');
-    expect(c.kids[0].theme).toBe('lego');
+    expect(c.kids[0].theme).toBe('bricks');
   });
   it('does not validate theme names', () => {
     expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 'nope' }] })).not.toThrow();

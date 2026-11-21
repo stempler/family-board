@@ -35,8 +35,18 @@ describe('christmas decorations after the ornaments', () => {
 });
 
 describe('registry', () => {
-  it('falls back to lego for unknown ids', () => {
-    expect(getTheme('nope').id).toBe('lego');
+  it('falls back to bricks for unknown ids', () => {
+    expect(getTheme('nope').id).toBe('bricks');
     expect(getTheme('christmas')).toBe(christmas);
+  });
+});
+
+describe('theme renames', () => {
+  it('registers bricks and dog in order', () => {
+    expect(Object.keys(THEMES)).toEqual(['christmas', 'bricks', 'dino', 'wizard', 'racing', 'space', 'dog', 'chess', 'halloween', 'easter']);
+  });
+  it('maps the retired ids to bricks', () => {
+    expect(getTheme('lego').id).toBe('bricks');
+    expect(getTheme('rescue').id).toBe('bricks');
   });
 });

@@ -18,7 +18,7 @@ beforeAll(() => {
   expect(customElements.get('family-board-card')).toBe(FamilyBoardCard);
 });
 
-async function make(config: unknown = { kids: [{ id: 'k1', theme: 'lego', tap_path: '/family-board/aufgaben' }, { id: 'k2', theme: 'dino' }] }) {
+async function make(config: unknown = { kids: [{ id: 'k1', theme: 'bricks', tap_path: '/family-board/aufgaben' }, { id: 'k2', theme: 'dino' }] }) {
   const el = document.createElement('family-board-card') as FamilyBoardCard;
   document.body.appendChild(el);
   el.setConfig(config);
@@ -109,12 +109,12 @@ describe('family-board-card element', () => {
   });
 
   it('builds a stub config from the TaskMate children when hass is given', () => {
-    expect(FamilyBoardCard.getStubConfig({ states })).toEqual({ kids: [{ id: 'k1', theme: 'lego' }, { id: 'k2', theme: 'dino' }] });
+    expect(FamilyBoardCard.getStubConfig({ states })).toEqual({ kids: [{ id: 'k1', theme: 'bricks' }, { id: 'k2', theme: 'dino' }] });
   });
 
   it('has a valid placeholder stub config without hass', async () => {
     const stub = FamilyBoardCard.getStubConfig();
-    expect(stub).toEqual({ kids: [{ id: 'kind-1', theme: 'lego' }] });
+    expect(stub).toEqual({ kids: [{ id: 'kind-1', theme: 'bricks' }] });
     const el = await make();
     expect(() => el.setConfig(stub)).not.toThrow();
     expect(FamilyBoardCard.getStubConfig({ states: {} })).toEqual(stub);

@@ -4,7 +4,7 @@
 
 A custom Home Assistant Lovelace card that shows the kids' points from
 [TaskMate](https://github.com/tempus2016/taskmate) (Home Assistant integration) as a hand-drawn-style picture (ornaments on a
-tree, bricks in a LEGO tower, eggs in a dino nest, stars in a night sky), plus savings jars. It runs
+tree, bricks in a brick tower, eggs in a dino nest, stars in a night sky), plus savings jars. It runs
 on a landscape tablet in the living room. The kids tap it themselves; the card
 is read-only and only navigates (tapping a kid opens their TaskMate view).
 Everything shown to the kids is in German. Design:
@@ -49,7 +49,7 @@ screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
 | Field | Default | Description |
 |---|---|---|
 | `id` | required | TaskMate child id (see below). |
-| `theme` | required | Favourite theme, any id from [Themes](#themes). Unknown themes fall back to `lego`. |
+| `theme` | required | Favourite theme, any id from [Themes](#themes). Unknown themes fall back to `bricks`. |
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
 | `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. |
 | `show_number` | `true` | Show the point total as a number chip next to the name. Set `false` to hide it. |
@@ -64,7 +64,7 @@ kids:
     colour: "#4caf50"
     tap_path: /taskmate-anna
   - id: 8e16ad66b23f404e
-    theme: lego
+    theme: bricks
     tap_path: /taskmate-ben
     show_number: false
 seasons:
@@ -88,12 +88,12 @@ The card resource is `/local/family-board/family-board-card.js` (type: JavaScrip
 | Id | Name | What the kid sees |
 |---|---|---|
 | `christmas` | Weihnachten | Ornaments on a Christmas tree; falling snow. Season scene: one big tree per kid in a snowy landscape. |
-| `lego` | LEGO | A tower of bricks. |
+| `bricks` | Bausteine | A tower of bricks. |
 | `dino` | Dino | Eggs in a dino nest. |
 | `wizard` | Zauberschule | Gems filling an hourglass in a wizard's tower room, with an owl and a candle. |
 | `racing` | Rennstrecke | Medals and trophies on a shelf and podium, a race car on the track. |
 | `space` | Weltraum | Stars and planets in constellations; a rocket on the moon, an occasional comet. |
-| `rescue` | Rettungshunde | Badges and bones at a dog house with a pup. |
+| `dog` | Hund | Badges and bones at a dog house with a pup. |
 | `chess` | Schach | Pawns and queens on a chessboard, with a king and a knight beside it. |
 | `halloween` | Halloween | Candy in a pumpkin bucket. Season scene: a spooky night with a ghost. |
 | `easter` | Ostern | Painted eggs in a basket on a meadow with a bunny. Season scene: one basket per kid. |

@@ -6,7 +6,7 @@ import fixture from './fixtures/docs-sample.json';
 
 const states = fixture as unknown as HassStates;
 const cfg = (kids: string[], extra: Record<string, unknown> = {}) =>
-  normalizeConfig({ kids: kids.map((id) => ({ id, theme: 'lego' })), ...extra });
+  normalizeConfig({ kids: kids.map((id) => ({ id, theme: 'bricks' })), ...extra });
 
 describe('toBoardModel', () => {
   const m = toBoardModel(states, cfg(['k1', 'k2']));
@@ -78,8 +78,8 @@ describe.each(captured)('captured TaskMate data %s', (_file, data) => {
   it('maps jars per kid', () => {
     const mia = m.kids[0].jars;
     expect(mia.map((j) => j.name)).toContain('Kino');
-    const lego = mia.find((j) => j.name === 'LEGO-Set');
-    expect([lego?.current, lego?.goal]).toEqual([22, 50]);
+    const jar = mia.find((j) => j.name === 'LEGO-Set');
+    expect([jar?.current, jar?.goal]).toEqual([22, 50]);
     expect(m.kids[1].jars.map((j) => j.name)).toEqual(['Kino']);
   });
   it('maps the shared jar', () => {

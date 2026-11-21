@@ -6,7 +6,7 @@ const box = { x: 400, y: 0, w: 400, h: 450 };
 describe('rand', () => {
   it('is deterministic and in [0, 1)', () => {
     expect(rand('a')).toBe(rand('a'));
-    for (const k of ['a', 'b', 'k1:lego:wave', '', 'x'.repeat(50)]) {
+    for (const k of ['a', 'b', 'k1:bricks:wave', '', 'x'.repeat(50)]) {
       expect(rand(k)).toBeGreaterThanOrEqual(0);
       expect(rand(k)).toBeLessThan(1);
     }

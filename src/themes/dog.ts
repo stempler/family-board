@@ -180,7 +180,7 @@ function house(sk: Sketch, p: Placement): string {
 function pup(sk: Sketch, p: Placement, ctx: HalfContext): string {
   const fur = { fill: FUR, strokeWidth: 2.2, roughness: 0.7 };
   const tailShape = sk.path(moved(p, 'M 50 230 Q 68 228 66 204 Q 61 205 61 211 Q 61 222 48 222 Z'), fur);
-  const tail = `<g class="fb-anim fb-rescue-wag" style="${timing(`${ctx.seedKey}:wag`, [2.2, 2.8])}">${tailShape}</g>`;
+  const tail = `<g class="fb-anim fb-dog-wag" style="${timing(`${ctx.seedKey}:wag`, [2.2, 2.8])}">${tailShape}</g>`;
   const body = sk.ellipse(...at(p, 34, 211), 48 * p.s, 56 * p.s, fur);
   const belly = sk.ellipse(...at(p, 34, 218), 24 * p.s, 34 * p.s, { fill: FUR_LIGHT, strokeWidth: 1.2, roughness: 0.5 });
   const hind = sk.ellipse(...at(p, 14, 236), 22 * p.s, 10 * p.s, fur) + sk.ellipse(...at(p, 54, 236), 22 * p.s, 10 * p.s, fur);
@@ -195,7 +195,7 @@ function pup(sk: Sketch, p: Placement, ctx: HalfContext): string {
 
   const head = sk.ellipse(...at(p, 34, 160), 48 * p.s, 42 * p.s, fur);
   const ear = (x: number) => sk.ellipse(...at(p, x, 165), 14 * p.s, 28 * p.s, { fill: FUR_DARK, strokeWidth: 2, roughness: 0.6 });
-  const leftEar = `<g class="fb-anim fb-rescue-ear" style="${timing(`${ctx.seedKey}:ear`, [7.5, 8.5])}">${ear(11)}</g>`;
+  const leftEar = `<g class="fb-anim fb-dog-ear" style="${timing(`${ctx.seedKey}:ear`, [7.5, 8.5])}">${ear(11)}</g>`;
   const muzzle = sk.ellipse(...at(p, 34, 170), 24 * p.s, 15 * p.s, { fill: FUR_LIGHT, strokeWidth: 1.4, roughness: 0.4 });
   let eyes = '';
   for (const x of [25, 43]) {
@@ -206,7 +206,7 @@ function pup(sk: Sketch, p: Placement, ctx: HalfContext): string {
   const nose = `<ellipse cx="${num(nx)}" cy="${num(ny)}" rx="${num(4.2 * p.s)}" ry="${num(2.8 * p.s)}" fill="${INK}"/>`;
   const tongue = sk.path(moved(p, 'M 32 174 Q 32 180 34 180 Q 36 180 36 174 Z'), { fill: TONGUE, strokeWidth: 1.2, roughness: 0.3 });
   const mouth = sk.path(moved(p, 'M 29 172 Q 31.5 175 34 172.5 Q 36.5 175 39 172'), { strokeWidth: 1.4, roughness: 0.3 });
-  const headGroup = `<g class="fb-anim fb-rescue-tilt" style="${timing(`${ctx.seedKey}:tilt`, [13, 15])}">${head}${leftEar}${ear(57)}${muzzle}${tongue}${mouth}${nose}${eyes}</g>`;
+  const headGroup = `<g class="fb-anim fb-dog-tilt" style="${timing(`${ctx.seedKey}:tilt`, [13, 15])}">${head}${leftEar}${ear(57)}${muzzle}${tongue}${mouth}${nose}${eyes}</g>`;
   return `<g data-part="pup">${tail}${body}${belly}${hind}${legs}${paws}${scarf}${headGroup}</g>`;
 }
 
@@ -218,26 +218,26 @@ function renderHalf(ctx: HalfContext): string {
 }
 
 const css = `
-  @keyframes fb-rescue-wag {
+  @keyframes fb-dog-wag {
     0%, 100% { transform: rotate(-7deg); }
     50% { transform: rotate(7deg); }
   }
-  @keyframes fb-rescue-ear {
+  @keyframes fb-dog-ear {
     0%, 90%, 100% { transform: rotate(0deg); }
     93% { transform: rotate(-14deg); }
     96% { transform: rotate(5deg); }
   }
-  @keyframes fb-rescue-tilt {
+  @keyframes fb-dog-tilt {
     0%, 70%, 96%, 100% { transform: rotate(0deg); }
     76%, 90% { transform: rotate(-10deg); }
   }
-  .fb-rescue-wag { animation-name: fb-rescue-wag; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 100%; }
-  .fb-rescue-ear { animation-name: fb-rescue-ear; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 8%; }
-  .fb-rescue-tilt { animation-name: fb-rescue-tilt; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 100%; }
+  .fb-dog-wag { animation-name: fb-dog-wag; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 100%; }
+  .fb-dog-ear { animation-name: fb-dog-ear; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 8%; }
+  .fb-dog-tilt { animation-name: fb-dog-tilt; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 100%; }
 `;
 
-export const rescue: Theme = {
-  id: 'rescue',
+export const dog: Theme = {
+  id: 'dog',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,
