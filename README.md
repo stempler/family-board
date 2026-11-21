@@ -41,7 +41,7 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 | `overview_entity` | `sensor.taskmate_overview` | TaskMate overview sensor. See "Sensor names" below. |
 | `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). See "Sensor names" below. |
 | `kids` | required, non-empty | One entry per kid, see below. |
-| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1`, martin `11-01`..`11-11` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`, `martin`) shows one shared scene across the board; any other theme is used for every kid's half. |
+| `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1`, martin `11-01`..`11-11`, summer `07-15`..`08-31` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`, `martin`, `summer`) shows one shared scene across the board; any other theme is used for every kid's half. |
 | `reward_icons` | `{}` | Map of reward id or name to an emoji or `mdi:...` icon. Default: TaskMate's own MDI icon. |
 
 `kids[]` entries:
@@ -125,8 +125,9 @@ with shelf trophies worth 5, 25 and 125 games.
 | `birthday` | Geburtstag | Candles in rows of five on a three-tier cake with icing in the kid colour, wrapped presents stacked beside the cake and on the floor; bunting overhead, a balloon sways and the first candles flicker. |
 | `construction` | Baustelle | Red bricks laid into a wall on a building site and pallets stacked with bricks in rows in front of it; a yellow excavator swings its arm and the light on the barrier blinks. |
 | `garden` | Garten | Small flowers in many colours in rows in a flower bed and tall sunflowers at the wooden fence behind it; a watering can stands at the fence, the grass sways and bees fly little loops. |
+| `summer` | Sommer | Snail shells in rows of ten on a sunny beach in front of the kid's bucket and starfish beside the sandcastle; the castle flag waves, waves roll on the turquoise sea and the sun's rays turn slowly. Season scene: one bucket and sandcastle per kid along one beach under the sun. |
 
-`christmas`, `halloween`, `easter` and `martin` also have a season scene (see `seasons`
+`christmas`, `halloween`, `easter`, `martin` and `summer` also have a season scene (see `seasons`
 above); all others are favourites only. Preview them with `mise run dev`: the
 playground has a theme picker per kid and a "Saison" switch: "nach Datum" (the
 default) uses the date field with seasons on, "keine" sets today and turns

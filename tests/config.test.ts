@@ -71,12 +71,13 @@ describe('normalizeConfig', () => {
   it('trims the season theme', () => {
     expect(normalizeConfig({ ...base, seasons: [{ theme: ' x ', from: '01-01', to: '01-02' }] }).seasons[0].theme).toBe('x');
   });
-  it('defaults to christmas, halloween, easter and martin seasons', () => {
+  it('defaults to christmas, halloween, easter, martin and summer seasons', () => {
     expect(DEFAULT_SEASONS).toEqual([
       { theme: 'christmas', from: '12-01', to: '12-26' },
       { theme: 'halloween', from: '10-24', to: '10-31' },
       { theme: 'easter', from: 'easter-7', to: 'easter+1' },
       { theme: 'martin', from: '11-01', to: '11-11' },
+      { theme: 'summer', from: '07-15', to: '08-31' },
     ]);
     expect(normalizeConfig(base).seasons).toEqual(DEFAULT_SEASONS);
   });

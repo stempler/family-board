@@ -16,6 +16,7 @@ export const DEFAULT_SEASONS: SeasonRule[] = [
   { theme: 'halloween', from: '10-24', to: '10-31' },
   { theme: 'easter', from: 'easter-7', to: 'easter+1' },
   { theme: 'martin', from: '11-01', to: '11-11' },
+  { theme: 'summer', from: '07-15', to: '08-31' },
 ];
 
 const MM_DD = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
