@@ -1,6 +1,6 @@
 import { timing } from '../draw/anim';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
-import { at, moved, placement, starPoints, type Placement, type Pt, type Units } from '../draw/units';
+import { at, moved, placement, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A beach in front of the sea, drawn in "beach units": the horizon is at y 70, the sand starts at the
@@ -32,8 +32,6 @@ const SAIL = '#fffaf0';
 const TRUNK = '#a67c52';
 const LEAF = '#5cb85c';
 const COCONUT = '#6b4423';
-const STARFISH = '#f08a5d';
-const SHELL = '#f7c6c7';
 
 const COIN_W = 16; // a coin lies flat: 16 x 9 units
 const COIN_H = 9;
@@ -190,13 +188,10 @@ function chest(sk: Sketch, p: Placement): string {
   return `<g data-part="chest">${lid}${lidBand}${body}${planks}${strap(116)}${strap(178)}${lock}${hole}${hold}</g>`;
 }
 
-/** A starfish, a shell on the shore and a seagull, drawn after the items with their own sketch. */
+/** A seagull, drawn after the items with its own sketch. No starfish or shells: those are Sommer's counted items. */
 function extras(sk: Sketch, p: Placement): string {
-  const star = sk.polygon(starPoints(...at(p, 20, 228), 9 * p.s), { fill: STARFISH, strokeWidth: 1.4, roughness: 0.4 });
-  const shell = sk.path(moved(p, 'M 74 158 Q 83 137 92 158 Q 83 161 74 158 Z'), { fill: SHELL, strokeWidth: 1.4, roughness: 0.4 }) +
-    sk.path(moved(p, 'M 83 158 L 83 144 M 78 158 L 81 146 M 88 158 L 85 146'), { stroke: '#c98b8d', strokeWidth: 1, roughness: 0.3 });
   const gull = sk.path(moved(p, 'M 108 34 Q 113 27 118 34 Q 123 27 128 34'), { strokeWidth: 1.8, roughness: 0.4 });
-  return `<g data-part="beach">${star}${shell}</g><g data-part="gull">${gull}</g>`;
+  return `<g data-part="gull">${gull}</g>`;
 }
 
 function renderHalf(ctx: HalfContext): string {
