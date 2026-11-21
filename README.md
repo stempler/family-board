@@ -10,12 +10,17 @@ is read-only and only navigates (tapping a kid opens their TaskMate view).
 Everything shown to the kids is in German. Design:
 `docs/superpowers/specs/2026-11-20-bonus-points-display-design.md`.
 
+![Two kids on the dino theme: eggs in a nest beside a dino, savings jars below](docs/images/board-dino.png)
+
+![The Christmas season scene: one tree with ornaments per kid](docs/images/board-season-christmas.png)
+
 ## Local development
 
 Tools come from [mise](https://mise.jdx.dev).
 
 ```sh
 mise install
+npm ci
 mise run dev      # theme playground (no Home Assistant needed), gallery at /gallery.html
 mise run test     # unit tests
 mise run ha:up    # local Home Assistant with TaskMate, the card and demo data
@@ -247,4 +252,5 @@ it. Options, still to decide:
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The built card bundles Lit, Rough.js and the font Patrick Hand,
+each under its own licence: see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
