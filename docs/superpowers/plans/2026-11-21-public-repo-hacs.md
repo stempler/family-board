@@ -36,9 +36,9 @@
 - Create: `LICENSE`
 - Modify: `package.json`, `README.md`
 
-- [ ] **Step 1:** Create `LICENSE` with the standard MIT text, unchanged, and the copyright line `Copyright (c) 2026 Simon Templer`.
-- [ ] **Step 2:** Add `"license": "MIT",` to `package.json` directly after the `"private": true,` line. Leave `"private": true`.
-- [ ] **Step 3:** Append to `README.md`:
+- [x] **Step 1:** Create `LICENSE` with the standard MIT text, unchanged, and the copyright line `Copyright (c) 2026 Simon Templer`.
+- [x] **Step 2:** Add `"license": "MIT",` to `package.json` directly after the `"private": true,` line. Leave `"private": true`.
+- [x] **Step 3:** Append to `README.md`:
 
 ```markdown
 ## License
@@ -46,9 +46,9 @@
 [MIT](LICENSE)
 ```
 
-- [ ] **Step 4:** Run `npm install --package-lock-only` and check that `package-lock.json` changes only by the added `license` field (if it changes at all).
-- [ ] **Step 5:** Run `mise run typecheck && mise run test`. Expected: pass.
-- [ ] **Step 6:** Commit `chore: add the MIT licence`.
+- [x] **Step 4:** Run `npm install --package-lock-only` and check that `package-lock.json` changes only by the added `license` field (if it changes at all).
+- [x] **Step 5:** Run `mise run typecheck && mise run test`. Expected: pass.
+- [x] **Step 6:** Commit `chore: add the MIT licence`.
 
 ### Task 2: Naming check
 
@@ -65,12 +65,12 @@ The demo savings jar is renamed everywhere to one name, `Bausteine-Set`:
 | `Lego` (`tests/draw.test.ts`) | `Bausteine` |
 | function `minifig` | `figure` |
 
-- [ ] **Step 1:** Apply the renames in the files above. In `tests/fixtures/taskmate-v7.12.0.json` change only the `name` value on line 333 by hand; do not re-capture the fixture.
-- [ ] **Step 2:** In `README.md`, add to the `mise run ha:reset` bullet: a Home Assistant seeded before the jar was renamed needs one `ha:reset`, otherwise `ha:seed` adds the jar a second time.
-- [ ] **Step 3:** Run `git grep -n -i -E "lego|minifig" -- . ':!docs/superpowers'`. Expected: exactly one hit, `tests/themes/christmas.test.ts:49`, plus the fallback itself if `src/themes/registry.ts` names it.
-- [ ] **Step 4:** Run `mise run typecheck && mise run test`, then `git status --short tests/__snapshots__`. Expected: tests pass, no snapshot file changed.
-- [ ] **Step 5:** Read `label`, `id` and every visible text string of all ten themes in `src/themes/*.ts`, and the theme table in `README.md`. Look for brand, franchise or character names. Change nothing; write the result (either "nothing found" or a list with file and line) into the commit body and report it at the end of the task.
-- [ ] **Step 6:** Commit `chore: rename the demo jar and the brick figure helper`.
+- [x] **Step 1:** Apply the renames in the files above. In `tests/fixtures/taskmate-v7.12.0.json` change only the `name` value on line 333 by hand; do not re-capture the fixture.
+- [x] **Step 2:** In `README.md`, add to the `mise run ha:reset` bullet: a Home Assistant seeded before the jar was renamed needs one `ha:reset`, otherwise `ha:seed` adds the jar a second time.
+- [x] **Step 3:** Run `git grep -n -i -E "lego|minifig" -- . ':!docs/superpowers'`. Expected: exactly one hit, `tests/themes/christmas.test.ts:49`, plus the fallback itself if `src/themes/registry.ts` names it.
+- [x] **Step 4:** Run `mise run typecheck && mise run test`, then `git status --short tests/__snapshots__`. Expected: tests pass, no snapshot file changed.
+- [x] **Step 5:** Read `label`, `id` and every visible text string of all ten themes in `src/themes/*.ts`, and the theme table in `README.md`. Look for brand, franchise or character names. Change nothing; write the result (either "nothing found" or a list with file and line) into the commit body and report it at the end of the task.
+- [x] **Step 6:** Commit `chore: rename the demo jar and the brick figure helper`.
 
 ### Task 3: Remove the deploy script and document HACS
 
@@ -78,25 +78,25 @@ The demo savings jar is renamed everywhere to one name, `Bausteine-Set`:
 - Delete: `scripts/deploy.mjs`, `tests/deploy.test.ts`
 - Modify: `README.md` (line 129 and the "Deploy" section, lines 211-240), `deploy/compose.yaml:16`
 
-- [ ] **Step 1:** Delete the two files. Check with `git grep -n "deploy.mjs"` that nothing outside `docs/superpowers/` refers to the script. `scripts/ha-client.mjs` stays.
-- [ ] **Step 2:** Replace `README.md` line 129 with: with HACS the resource is `/hacsfiles/family-board/family-board-card.js` (type: JavaScript module); the local dev setup uses `/local/family-board/family-board-card.js`.
-- [ ] **Step 3:** Rewrite the "Deploy" section. Rename it to "Install". Keep the first paragraph about production and `deploy/compose.yaml`. Remove the "undecided" sentence and both route subsections. Add these steps:
+- [x] **Step 1:** Delete the two files. Check with `git grep -n "deploy.mjs"` that nothing outside `docs/superpowers/` refers to the script. `scripts/ha-client.mjs` stays.
+- [x] **Step 2:** Replace `README.md` line 129 with: with HACS the resource is `/hacsfiles/family-board/family-board-card.js` (type: JavaScript module); the local dev setup uses `/local/family-board/family-board-card.js`.
+- [x] **Step 3:** Rewrite the "Deploy" section. Rename it to "Install". Keep the first paragraph about production and `deploy/compose.yaml`. Remove the "undecided" sentence and both route subsections. Add these steps:
   1. HACS → three-dot menu → Custom repositories → add `https://github.com/stempler/family-board`, type Dashboard.
   2. Search for "Family Board Card" in HACS and download it. This needs at least one release (see "Release").
   3. Dashboards in storage mode get the resource added by HACS. For a YAML-mode dashboard, add `/hacsfiles/family-board/family-board-card.js` as a JavaScript module by hand.
   4. Add the card to a dashboard (see "Card configuration").
   5. Updates: HACS shows new releases; update there and reload the tablet.
-- [ ] **Step 4:** In `deploy/compose.yaml` replace line 16 with: `# 3. Install the card through HACS: see README, "Install".`
-- [ ] **Step 5:** Run `git grep -n -i -E "undecided|route \(a\)|route \(b\)|FB_SSH_TARGET" -- . ':!docs/superpowers'`. Expected: no hits.
-- [ ] **Step 6:** Run `mise run typecheck && mise run test`. Expected: pass, with the deploy tests gone.
-- [ ] **Step 7:** Commit `docs: install through HACS and remove the deploy script` with the footer `Closes #10`.
+- [x] **Step 4:** In `deploy/compose.yaml` replace line 16 with: `# 3. Install the card through HACS: see README, "Install".`
+- [x] **Step 5:** Run `git grep -n -i -E "undecided|route \(a\)|route \(b\)|FB_SSH_TARGET" -- . ':!docs/superpowers'`. Expected: no hits.
+- [x] **Step 6:** Run `mise run typecheck && mise run test`. Expected: pass, with the deploy tests gone.
+- [x] **Step 7:** Commit `docs: install through HACS and remove the deploy script` with the footer `Closes #10`.
 
 ### Task 4: HACS validation in CI
 
 **Files:**
 - Modify: `.github/workflows/ci.yml`
 
-- [ ] **Step 1:** Add a second job after `ci`:
+- [x] **Step 1:** Add a second job after `ci`:
 
 ```yaml
   hacs:
@@ -110,7 +110,7 @@ The demo savings jar is renamed everywhere to one name, `Bausteine-Set`:
 ```
 
 - [ ] **Step 2:** Push the branch and read the job log with `gh run view --log --job <id>`. Expected: the `ci` job is green. The `hacs` job is red while the repo is private; note which checks it lists as failing.
-- [ ] **Step 3:** Commit `ci: validate the repo for HACS`. In the PR description, state that the `hacs` job is expected to fail until the repo is public, has a description and topics, and (probably) has its first release (#12), since HACS looks for `family-board-card.js` in a release.
+- [x] **Step 3:** Commit `ci: validate the repo for HACS`. In the PR description, state that the `hacs` job is expected to fail until the repo is public, has a description and topics, and (probably) has its first release (#12), since HACS looks for `family-board-card.js` in a release.
 
 ### Task 5: GitHub settings (after the merge, only with Simon's go-ahead)
 
