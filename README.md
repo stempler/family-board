@@ -53,6 +53,7 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
 | `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. A kid that is not found in TaskMate is not tappable. |
 | `show_number` | `true` | Show the point total as a small number chip at the right of the header. Set `false` to hide it. |
+| `birthday` | none | A fallback: TaskMate's own birthday setting for the child is used first, and on the day it supplies the birthday, and the age when TaskMate knows the birth year, so with a full date in TaskMate you need nothing here. Set this field to show the picture without TaskMate's birthday mode, or to show the age when `birthday` is a kid's favourite theme (TaskMate sends the age only on the day). `YYYY-MM-DD` or `MM-DD`, with or without quotes in YAML. On that day the kid's half shows the Geburtstag theme, whatever their favourite and the season. A 29 February birthday is shown on 28 February in other years. With the year (`YYYY-MM-DD`) the cake shows the kid's age as candles (unless TaskMate gives the age): on the birthday already the new age, and every day for a kid who picks `birthday` as a favourite. Without any age the cake gets a cherry instead. Limitation: TaskMate does not tell the card the date on other days, so if this date and TaskMate's differ, the birthday picture shows on both days. |
 | `birthday` | none | `MM-DD`. On that day the kid's half shows the Geburtstag theme, whatever their favourite and the season. A 29 February birthday is shown on 28 February in other years. |
 
 ```yaml
@@ -64,6 +65,7 @@ kids:
     theme: dino
     colour: "#4caf50"
     tap_path: /taskmate-anna
+    birthday: "2019-12-10"
     birthday: "12-10"
   - id: 8e16ad66b23f404e
     theme: bricks
@@ -122,6 +124,7 @@ with shelf trophies worth 5, 25 and 125 games.
 | `underwater` | Unterwasser | Shells in rows on the sea floor and open shells with a pearl; seaweed sways, bubbles rise and now and then a fish swims across. |
 | `football` | Fußball | Footballs in rows on the grass beside a goal and trophies in front of it; the corner flag waves and now and then a ball bounces into the net. |
 | `martin` | St. Martin | Paper lanterns in rows on a line from the lantern stick, big round sun and moon lanterns on the top line, dark houses with lit windows at dusk. Season scene: one lantern line per kid along a dusk street. |
+| `birthday` | Geburtstag | Balloons on their strings in columns of up to five left and right of a small two-tier cake with icing in the kid colour; wrapped presents on the floor in front of the table, then stacked on the table, where they take balloon places at high totals. The candles on the cake are the kid's age (from TaskMate on the birthday, else from the birth year in `birthday`; up to 10 in one row, two rows up to 20), else a cherry. A banner reads "Alles Gute zum Geburtstag!" ("Alles Gute!" in a narrow half); its ends wave and the first candle flames flicker. |
 | `birthday` | Geburtstag | Candles in rows of five on a three-tier cake with icing in the kid colour, wrapped presents stacked beside the cake and on the floor; bunting overhead, a balloon sways and the first candles flicker. |
 | `construction` | Baustelle | Red bricks laid into a wall on a building site and pallets stacked with bricks in rows in front of it; a yellow excavator swings its arm and the light on the barrier blinks. |
 | `garden` | Garten | Small flowers in many colours in rows in a flower bed and tall sunflowers at the wooden fence behind it; a watering can stands at the fence, the grass sways and bees fly little loops. |
@@ -131,7 +134,19 @@ with shelf trophies worth 5, 25 and 125 games.
 above); all others are favourites only. Preview them with `mise run dev`: the
 playground has a theme picker per kid and a "Saison" switch: "nach Datum" (the
 default) uses the date field with seasons on, "keine" sets today and turns
-seasons off, and each season option sets a date inside that season.
+seasons off, and each season option sets a date inside that season. Each kid
+also has a "hat heute Geburtstag" checkbox: it reports the birthday through the fake
+TaskMate data, the way TaskMate's birthday mode does on the day (the kid turns 7, so
+the cake shows 7 candles), so it follows the date field and combines with every
+"Saison" option. The gallery's `birthday-in-christmas` tile uses the card's `birthday`
+field instead, the fallback path.
+
+Geburtstag is not a season. A kid has their birthday when TaskMate reports it for
+the child (TaskMate's birthday mode) or, as a fallback, when the card's `birthday`
+matches the date. The age on the cake is TaskMate's when it gives one, otherwise the
+one from the card's `birthday` with a year, otherwise there are no candles. On a
+birthday inside a season with a shared scene, the shared scene is not drawn that day
+and the other kids see the season theme's own half picture.
 
 Geburtstag is not a season. On a birthday inside a season with a shared scene, the
 shared scene is not drawn that day and the other kids see the season theme's own
@@ -255,9 +270,11 @@ edits made to it in the UI are lost on the next seed.
 `ha:screenshot` opens the board in the local Home Assistant with Playwright (in
 Docker, `mcr.microsoft.com/playwright`), checks the tap navigation, a new item
 after `taskmate.add_points`, the Christmas scene, every favourite theme (both
-kids on it, seasons off, animated) and every season scene, and writes
-screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
-`dev/screenshots/` (or `$FB_SCREENSHOT_DIR`). Each run gives Mia one more point.
+kids on it, seasons off, animated), every season scene and Mia's birthday (on
+its own and inside a Christmas season), and writes screenshots
+(`ha-theme-<id>.png`, `ha-season-<id>.png`, `ha-birthday.png`,
+`ha-birthday-season.png`, ...) to `dev/screenshots/` (or `$FB_SCREENSHOT_DIR`).
+Each run gives Mia one more point.
 
 ## Updating TaskMate
 
