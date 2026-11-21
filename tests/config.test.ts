@@ -96,3 +96,20 @@ describe('normalizeConfig', () => {
     expect(c.kids[0]).toEqual({ id: 'a', theme: 't', colour: '#fff', tap_path: '/k', show_number: true });
   });
 });
+
+describe('kid birthday', () => {
+  const withBirthday = (birthday: unknown) => normalizeConfig({ kids: [{ id: 'a', theme: 'bricks', birthday }] });
+  it('normalizes and accepts a valid day', () => {
+    expect(withBirthday(' 12-10 ').kids[0].birthday).toBe('12-10');
+    expect(withBirthday('02-29').kids[0].birthday).toBe('02-29');
+  });
+  it('has no birthday key without one', () => {
+    expect('birthday' in normalizeConfig(base).kids[0]).toBe(false);
+  });
+  it.each(['10.12.', '2019-12-10', '12-1', '13-01', '', 1210, 12])('rejects the form %j', (v) => {
+    expect(() => withBirthday(v)).toThrow('kids[0]: birthday must be formatted MM-DD');
+  });
+  it.each(['02-30', '04-31', '06-31', '11-31'])('rejects %s as no calendar day', (v) => {
+    expect(() => withBirthday(v)).toThrow('kids[0]: birthday is not a calendar day');
+  });
+});

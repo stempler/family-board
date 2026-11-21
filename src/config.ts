@@ -1,6 +1,6 @@
 import { easterOffset, resolveSeasonDate } from './season';
 
-export interface KidConfig { id: string; theme: string; colour?: string; tap_path?: string; show_number: boolean }
+export interface KidConfig { id: string; theme: string; colour?: string; tap_path?: string; show_number: boolean; birthday?: string } // birthday: "MM-DD"
 export interface SeasonRule { theme: string; from: string; to: string } // "MM-DD" or "easter[±N]", inclusive; absolute-only rules may wrap year end
 export interface CardConfig {
   type: string;
@@ -54,6 +54,13 @@ function normalizeKid(raw: unknown, i: number): KidConfig {
     const path = typeof raw.tap_path === 'string' ? raw.tap_path.trim() : '';
     if (!path.startsWith('/')) throw new Error(`kids[${i}]: tap_path must be a string starting with "/"`);
     kid.tap_path = path;
+  }
+  if (raw.birthday !== undefined) {
+    const birthday = typeof raw.birthday === 'string' ? raw.birthday.trim() : '';
+    if (!MM_DD.test(birthday)) throw new Error(`kids[${i}]: birthday must be formatted MM-DD`);
+    const [m, d] = birthday.split('-').map(Number);
+    if (new Date(2028, m - 1, d).getMonth() !== m - 1) throw new Error(`kids[${i}]: birthday is not a calendar day`);
+    kid.birthday = birthday;
   }
   return kid;
 }

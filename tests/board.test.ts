@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { renderBoard } from '../src/board';
 import { DEFAULT_SEASONS, type CardConfig, type KidConfig } from '../src/config';
 import { de } from '../src/i18n';
+import { groupItems } from '../src/items';
 import type { BoardModel, Kid, SharedJar } from '../src/model';
-import { activeSeason } from '../src/season';
+import { activeSeason, seasonStart } from '../src/season';
 import { THEMES } from '../src/themes/registry';
 
 const JUNE = new Date(2026, 5, 1);
@@ -406,6 +407,90 @@ describe('renderBoard', () => {
         expect(n).toBeGreaterThan(0);
         expect(n).toBeLessThanOrEqual(60);
       });
+    }
+  });
+});
+
+describe('birthday', () => {
+  const cfg = (extra: Partial<CardConfig> = {}, k2Birthday?: string): CardConfig => ({
+    ...config([
+      { id: 'k1', theme: 'bricks', show_number: false, birthday: '12-10' },
+      { id: 'k2', theme: 'dino', show_number: true, ...(k2Birthday ? { birthday: k2Birthday } : {}) },
+    ]),
+    ...extra,
+  });
+  const two = (opts: { date: Date; prevPoints?: Record<string, number> }, c = cfg(), kids = [kid('k1', 5), kid('k2', 3)]) =>
+    renderBoard(model(kids), c, opts);
+  const half = (svg: string, id: string) => group(svg, `data-kid-half="${id}"`);
+  const june10 = (d: number) => new Date(2026, 5, d);
+  const juneCfg = () => { const c = cfg(); c.kids[0].birthday = '06-10'; return c; };
+
+  it('shows the birthday theme on the day, outside a season', () => {
+    const out = two({ date: june10(10) }, juneCfg());
+    expect(half(out, 'k1')).toContain('data-theme="birthday"');
+    expect(half(out, 'k2')).toContain('data-theme="dino"');
+  });
+
+  it('shows the favourite the day before and after', () => {
+    for (const d of [9, 11]) expect(half(two({ date: june10(d) }, juneCfg()), 'k1')).toContain('data-theme="bricks"');
+  });
+
+  it('switches the shared season scene off on a birthday in December', () => {
+    const out = two({ date: DECEMBER });
+    expect(out).not.toContain('data-season-kid');
+    expect(half(out, 'k1')).toContain('data-theme="birthday"');
+    const k2 = half(out, 'k2');
+    expect(k2).toContain('data-theme="christmas"');
+    expect(k2).toContain(`<rect x="400" y="0" width="400" height="450" fill="${THEMES.christmas.background}"/>`);
+    expect(k2).not.toContain('fill="transparent"');
+  });
+
+  it('keeps the season scene without any birthday', () => {
+    const out = two({ date: DECEMBER }, config(twoKids.kids));
+    expect(out.match(/data-season-kid/g) ?? []).toHaveLength(2);
+  });
+
+  it('shows both halves as birthday when both kids have one', () => {
+    const out = two({ date: DECEMBER }, cfg({}, '12-10'));
+    expect(half(out, 'k1')).toContain('data-theme="birthday"');
+    expect(half(out, 'k2')).toContain('data-theme="birthday"');
+    expect(out).not.toContain('data-season-kid');
+  });
+
+  it('keeps the season scene when the birthday kid is not found', () => {
+    const out = two({ date: DECEMBER }, cfg(), [kid('k1', 5, { found: false }), kid('k2', 3)]);
+    expect(out.match(/data-season-kid/g) ?? []).toHaveLength(1);
+    expect(out).toContain('data-season-kid="k2"');
+    expect(half(out, 'k1')).toContain(de.kidNotFound);
+  });
+
+  it('never treats a kid without a config entry as a birthday kid', () => {
+    const out = two({ date: DECEMBER }, config([{ id: 'k2', theme: 'dino', show_number: true }]), [kid('k1', 5), kid('k2', 3)]);
+    expect(out).not.toContain('data-theme="birthday"');
+  });
+
+  it('pops the new item in the birthday half, counted with the birthday capacity', () => {
+    const out = two({ date: DECEMBER, prevPoints: { k1: 31 } }, cfg(), [kid('k1', 32), kid('k2', 3)]);
+    const k1 = half(out, 'k1');
+    expect(k1.match(/fb-new/g) ?? []).toHaveLength(1);
+    const g = groupItems(32, THEMES.birthday.capacity);
+    expect(k1.match(/data-item="/g) ?? []).toHaveLength(g.big + g.small);
+  });
+
+  it('keeps the birthday half tappable', () => {
+    const c = cfg();
+    c.kids[0].tap_path = '/k1';
+    expect(half(two({ date: DECEMBER }, c), 'k1')).toContain('data-tappable="true"');
+  });
+
+  it('stays within the animation budget on every season day', () => {
+    for (const t of Object.values(THEMES).filter((x) => x.renderSeasonScene)) {
+      const rule = DEFAULT_SEASONS.find((r) => r.theme === t.id)!;
+      const date = seasonStart(rule, 2026);
+      const c = cfg();
+      c.kids[0].birthday = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const out = two({ date }, c, [kid('k1', 1000), kid('k2', 1000)]);
+      expect((out.match(/class="fb-anim/g) ?? []).length, t.id).toBeLessThanOrEqual(60);
     }
   });
 });

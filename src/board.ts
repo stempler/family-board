@@ -5,7 +5,7 @@ import { esc, INK, num, PAPER, truncate } from './draw/sketch';
 import { de } from './i18n';
 import { groupItems, newItemRange } from './items';
 import type { BoardModel, Kid } from './model';
-import { activeSeason } from './season';
+import { activeSeason, isBirthday } from './season';
 import { getTheme, THEMES } from './themes/registry';
 import type { HalfContext, Theme } from './themes/types';
 
@@ -140,12 +140,17 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
 
   const season = activeSeason(opts.date, config.seasons, Object.keys(THEMES));
   const seasonTheme = season ? getTheme(season.theme) : null;
-  const seasonal = seasonTheme?.renderSeasonScene ? seasonTheme : null;
+  const birthdayIds = new Set(model.kids.filter((kid) => {
+    const birthday = config.kids.find((k) => k.id === kid.id)?.birthday;
+    return kid.found && birthday !== undefined && isBirthday(birthday, opts.date);
+  }).map((kid) => kid.id));
+  // On a birthday the shared scene is not drawn, so the birthday half is not covered by it.
+  const seasonal = seasonTheme?.renderSeasonScene && birthdayIds.size === 0 ? seasonTheme : null;
 
   const hw = W / model.kids.length;
   const halves: Half[] = model.kids.map((kid, i) => {
     const kc = config.kids.find((k) => k.id === kid.id);
-    const theme = seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
+    const theme = birthdayIds.has(kid.id) ? THEMES.birthday : seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
     const prev = opts.prevPoints?.[kid.id];
     const { newFrom, newTo } = theme.items ? theme.items(kid.points, prev) : newItemRange(prev, kid.points, theme.capacity);
