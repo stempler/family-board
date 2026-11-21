@@ -117,6 +117,7 @@ with shelf trophies worth 5, 25 and 125 games.
 | `halloween` | Halloween | Candy in a pumpkin bucket. Season scene: a spooky night with a ghost. |
 | `easter` | Ostern | Painted eggs in a basket on a meadow with a bunny. Season scene: one basket per kid. |
 | `pirates` | Piraten | Gold coins in an open treasure chest on a beach and gold bars stacked beside it; a small ship bobs on the sea. |
+| `underwater` | Unterwasser | Shells in rows on the sea floor and open shells with a pearl; seaweed sways, bubbles rise and now and then a fish swims across. |
 
 `christmas`, `halloween` and `easter` also have a season scene (see `seasons`
 above); all others are favourites only. Preview them with `mise run dev`: the
