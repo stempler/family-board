@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason, ageOn, ageTurning, easterOffset, easterSunday, seasonStart, isBirthday } from '../src/season';
+import { activeSeason, ageOn, ageTurning, easterOffset, easterSunday, isBirthday, seasonStart } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
