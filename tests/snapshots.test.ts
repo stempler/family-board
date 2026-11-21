@@ -24,8 +24,8 @@ function kid(i: number, points: number): Kid {
   };
 }
 
-function board(theme: string | string[], points: number[], date = JUNE, seasons = false): string {
-  const kids: KidConfig[] = points.map((_, i) => ({ id: `k${i + 1}`, theme: Array.isArray(theme) ? theme[i] : theme, show_number: true }));
+function board(theme: string | string[], points: number[], date = JUNE, seasons = false, birthdays: Record<string, string> = {}): string {
+  const kids: KidConfig[] = points.map((_, i) => ({ id: `k${i + 1}`, theme: Array.isArray(theme) ? theme[i] : theme, show_number: true, ...(birthdays[`k${i + 1}`] ? { birthday: birthdays[`k${i + 1}`] } : {}) }));
   const config: CardConfig = {
     type: 'custom:family-board-card',
     overview_entity: 'sensor.taskmate_overview',
@@ -101,6 +101,17 @@ describe('board snapshots', () => {
     });
   }
 
+  // A birthday kid's half beside another kid, and inside a season whose shared scene is switched off for the day.
+  const BIRTHDAY_BOARDS: Record<string, string> = {
+    'birthday-beside-dino': board(['bricks', 'dino'], [12, 37], JUNE, false, { k1: '06-01' }),
+    'birthday-in-christmas': board(['bricks', 'dino'], [12, 37], new Date(2026, 11, 10), true, { k1: '12-10' }),
+  };
+  for (const [name, svg] of Object.entries(BIRTHDAY_BOARDS)) {
+    it(`birthday board ${name}`, async () => {
+      await expect(lines(svg)).toMatchFileSnapshot(file(name));
+    });
+  }
+
   // Every snapshot file must belong to a test above; a renamed or removed theme leaves orphans behind that
   // vitest never reports.
   it('has no orphaned snapshot files', () => {
@@ -108,6 +119,7 @@ describe('board snapshots', () => {
       ...Object.keys(THEMES).flatMap((id) => [`${id}-12-37.svg`, `${id}-0-1000.svg`]),
       ...FIVE_KID_BOARDS.map((_, n) => `five-kids-${n + 1}.svg`),
       ...Object.keys(SEASON_DATES).map((id) => `season-${id}.svg`),
+      ...Object.keys(BIRTHDAY_BOARDS).map((name) => `${name}.svg`),
     ].sort();
     const actual = Object.keys(import.meta.glob('./__snapshots__/svg/*')).map((p) => p.split('/').pop()!).sort();
     const orphans = actual.filter((f) => !expected.includes(f));

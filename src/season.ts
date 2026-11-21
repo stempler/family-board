@@ -66,3 +66,11 @@ export function seasonStart(rule: SeasonRule, year: number): Date {
   const [m, d] = md.split('-').map(Number);
   return new Date(year, m - 1, d);
 }
+
+/** True on the kid's birthday ("MM-DD", local date); a 29 February birthday is shown on 28 February in non-leap years. */
+export function isBirthday(birthday: string, date: Date): boolean {
+  if (mmdd(date) === birthday) return true;
+  const year = date.getFullYear();
+  const leap = new Date(year, 1, 29).getMonth() === 1;
+  return birthday === '02-29' && !leap && mmdd(date) === '02-28';
+}

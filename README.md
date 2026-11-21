@@ -53,6 +53,7 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
 | `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. A kid that is not found in TaskMate is not tappable. |
 | `show_number` | `true` | Show the point total as a small number chip at the right of the header. Set `false` to hide it. |
+| `birthday` | none | `MM-DD`. On that day the kid's half shows the Geburtstag theme, whatever their favourite and the season. A 29 February birthday is shown on 28 February in other years. |
 
 ```yaml
 type: custom:family-board-card
@@ -63,6 +64,7 @@ kids:
     theme: dino
     colour: "#4caf50"
     tap_path: /taskmate-anna
+    birthday: "12-10"
   - id: 8e16ad66b23f404e
     theme: bricks
     tap_path: /taskmate-ben
@@ -127,6 +129,10 @@ above); all others are favourites only. Preview them with `mise run dev`: the
 playground has a theme picker per kid and a "Saison" switch: "nach Datum" (the
 default) uses the date field with seasons on, "keine" sets today and turns
 seasons off, and each season option sets a date inside that season.
+
+Geburtstag is not a season. On a birthday inside a season with a shared scene, the
+shared scene is not drawn that day and the other kids see the season theme's own
+half picture.
 
 ### Animations
 

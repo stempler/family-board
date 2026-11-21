@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason, easterOffset, easterSunday, seasonStart } from '../src/season';
+import { activeSeason, easterOffset, easterSunday, seasonStart, isBirthday } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
@@ -100,5 +100,29 @@ describe('seasonStart', () => {
   });
   it('resolves an Easter-relative start', () => {
     expect(seasonStart({ theme: 'easter', from: 'easter-7', to: 'easter+1' }, 2027)).toEqual(new Date(2027, 2, 21));
+  });
+});
+
+describe('isBirthday', () => {
+  it('is true on the day only', () => {
+    expect(isBirthday('12-10', new Date(2026, 11, 10))).toBe(true);
+    expect(isBirthday('12-10', new Date(2026, 11, 9))).toBe(false);
+    expect(isBirthday('12-10', new Date(2026, 11, 11))).toBe(false);
+  });
+  it('uses the local date', () => {
+    expect(isBirthday('12-10', new Date(2026, 11, 10, 23, 59))).toBe(true);
+    expect(isBirthday('12-10', new Date(2026, 11, 10, 0, 0))).toBe(true);
+  });
+  it('shows a 29 February birthday on 28 February in non-leap years', () => {
+    expect(isBirthday('02-29', new Date(2027, 1, 28))).toBe(true);
+    expect(isBirthday('02-29', new Date(2027, 2, 1))).toBe(false);
+  });
+  it('shows a 29 February birthday only on the 29th in leap years', () => {
+    expect(isBirthday('02-29', new Date(2028, 1, 29))).toBe(true);
+    expect(isBirthday('02-29', new Date(2028, 1, 28))).toBe(false);
+  });
+  it('leaves a 28 February birthday alone', () => {
+    expect(isBirthday('02-28', new Date(2028, 1, 29))).toBe(false);
+    expect(isBirthday('02-28', new Date(2028, 1, 28))).toBe(true);
   });
 });

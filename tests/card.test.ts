@@ -95,6 +95,23 @@ describe('family-board-card element', () => {
     expect(el.shadowRoot!.innerHTML).toContain('data-theme="christmas"');
   });
 
+  it('switches to and from the birthday picture over midnight without a reload', async () => {
+    const el = await make({ kids: [{ id: 'k1', theme: 'bricks', birthday: '12-10' }, { id: 'k2', theme: 'dino' }] });
+    const html = () => el.shadowRoot!.innerHTML;
+    el.now = () => new Date(2026, 11, 9, 23, 59);
+    el.hass = { states };
+    await el.updateComplete;
+    expect(html()).not.toContain('data-theme="birthday"');
+    el.now = () => new Date(2026, 11, 10, 0, 1);
+    el.hass = { states };
+    await el.updateComplete;
+    expect(html()).toContain('data-theme="birthday"');
+    el.now = () => new Date(2026, 11, 11, 0, 1);
+    el.hass = { states };
+    await el.updateComplete;
+    expect(html()).not.toContain('data-theme="birthday"');
+  });
+
   it('navigates on a tap of the season scene in a kid half (10 December)', async () => {
     const el = await make();
     el.now = () => new Date(2026, 11, 10);
