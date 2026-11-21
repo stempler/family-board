@@ -23,6 +23,34 @@ mise run ha:up    # local Home Assistant with TaskMate, the card and demo data
 
 Other tasks: `typecheck`, `build`, `gallery:shots`, `ha:down`, `ha:reset`, `ha:seed`, `ha:screenshot`, `fixtures:capture`.
 
+### Local Home Assistant
+
+`mise run ha:up` builds the card, starts Home Assistant in Docker
+(`dev/ha/compose.yaml`, config in `dev/ha/config/`), and sets it up on the
+first run.
+
+- **Open:** http://localhost:8123/family-board/board
+- **Login:** `dev` / `dev`. This user is created on the first run, together
+  with a long-lived token in `dev/ha/.token` that the scripts use.
+- **Dashboard "Family Board"** (in the sidebar):
+  - **Board:** the card with the demo kids Mia (`bricks`) and Ben (`dino`).
+  - **Aufgaben:** the TaskMate kiosk card. Tapping a kid's half on the board
+    opens this view, and "Zurück" goes back.
+- **Demo data:**
+  - TaskMate with Mia and Ben, a few chores and rewards, and some starting
+    points.
+  - The kid ids are printed at the end of `ha:up`/`ha:seed`
+    (`kids: Mia=…, Ben=…`).
+- **Give points:** Developer tools → Actions → `taskmate.add_points` with
+  `child_id`, `points` and `reason`. The board updates live.
+- **Card changes:** run `mise run build` and reload the page with the cache
+  bypassed (Ctrl+Shift+R). `dist/` is mounted into Home Assistant as
+  `/local/family-board/`.
+- **Stop or reset:**
+  - `mise run ha:down` stops Home Assistant and keeps its data.
+  - `mise run ha:reset` deletes the config and the token, so the next
+    `ha:up` starts fresh.
+
 `ha:seed` overwrites the dev dashboard `/family-board` with the demo config, so
 edits made to it in the UI are lost on the next seed.
 
@@ -52,7 +80,7 @@ screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
 | `theme` | required | Favourite theme, any id from [Themes](#themes). Unknown themes fall back to `bricks`. |
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
 | `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. |
-| `show_number` | `true` | Show the point total as a number chip next to the name. Set `false` to hide it. |
+| `show_number` | `true` | Show the point total as a small number chip at the right of the header. Set `false` to hide it. |
 
 ```yaml
 type: custom:family-board-card
@@ -85,16 +113,26 @@ The card resource is `/local/family-board/family-board-card.js` (type: JavaScrip
 
 ## Themes
 
+Every kid's point total is drawn as items. Up to a theme's capacity every point
+is one small item. Beyond that, as few small items as needed are replaced by
+big ones (10, 50, 100, 500 or 1000 points each, the smallest unit that fits), so
+the most small items stay. Examples with a capacity of 30: 31 points are 1 big
+item (10) plus 21 small ones; 301 points are 6 big items (50) plus 1 small one.
+Items never move when a point is added; when small items merge into a big one,
+only the new big item pops in. `show_number` adds the exact total as a number
+chip at the right of the header. Chess counts its own way: games won and pieces captured,
+with shelf trophies worth 5, 25 and 125 games.
+
 | Id | Name | What the kid sees |
 |---|---|---|
 | `christmas` | Weihnachten | Ornaments on a Christmas tree; falling snow. Season scene: one big tree per kid in a snowy landscape. |
 | `bricks` | Bausteine | A tower of bricks. |
-| `dino` | Dino | Eggs in a dino nest. |
+| `dino` | Dino | Eggs in a nest with a whole dino standing beside it. |
 | `wizard` | Zauberschule | Gems filling an hourglass in a wizard's tower room, with an owl and a candle. |
-| `racing` | Rennstrecke | Medals and trophies on a shelf and podium, a race car on the track. |
-| `space` | Weltraum | Stars and planets in constellations; a rocket on the moon, an occasional comet. |
+| `racing` | Rennstrecke | Medals and trophies on a shelf and podium; a race car drives in from the left, stops at the finish line and drives out to the right. |
+| `space` | Weltraum | Yellow stars in constellations; 10 of them become one bigger, glowing star at a random-looking spot. A rocket on the moon, an occasional comet. |
 | `dog` | Hund | Badges and bones at a dog house with a pup. |
-| `chess` | Schach | A chessboard where every point captures an opponent piece; 16 points win a game, shown as a toppled king (5 wins make a trophy) on the shelf. |
+| `chess` | Schach | 16 points are 1 won game, shown as a toppled king on a shelf (more than 10 wins merge into trophies worth 5); the remaining points of the current game (points mod 16) are captured opponent pieces beside a top-down chessboard showing a real game position. |
 | `halloween` | Halloween | Candy in a pumpkin bucket. Season scene: a spooky night with a ghost. |
 | `easter` | Ostern | Painted eggs in a basket on a meadow with a bunny. Season scene: one basket per kid. |
 
@@ -131,7 +169,8 @@ reviewing all themes in one go.
    Sketch keys: scenery drawn after the items uses its own sketch key (`${seedKey}:<name>`), so adding an item never re-wobbles it.
 4. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` and, for a seasonal theme, `runSeasonContract(theme)`, plus theme-specific checks.
 5. For a seasonal theme: add a default rule to `seasons` (config) and mark each kid's object with `data-season-kid` and `data-cx`.
-6. The gallery lists every registered theme (and every season scene) by itself: look at it with `mise run dev` and `mise run gallery:shots`, then run `mise run ha:screenshot` (it checks each theme in the local Home Assistant).
+6. Optional: a theme that counts its items differently (chess) implements `items(points, prev)`, returning how many `data-item` elements it draws and which of them are new; it is used instead of the capacity-based grouping.
+7. The gallery lists every registered theme (and every season scene) by itself: look at it with `mise run dev` and `mise run gallery:shots`, then run `mise run ha:screenshot` (it checks each theme in the local Home Assistant).
 
 ## Updating TaskMate
 
