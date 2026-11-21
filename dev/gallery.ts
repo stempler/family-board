@@ -1,6 +1,7 @@
 import '../src/family-board-card';
 import type { FamilyBoardCard } from '../src/family-board-card';
-import { easterSunday } from '../src/season';
+import { DEFAULT_SEASONS } from '../src/config';
+import { seasonStart } from '../src/season';
 import { THEMES } from '../src/themes/registry';
 import { makeFakeHass, type FakeJar, type FakeKid } from './fake-hass';
 
@@ -11,13 +12,10 @@ const jars: FakeJar[] = [
 ];
 
 const year = new Date().getFullYear();
-const SEASON_DATES: Record<string, Date> = {
-  christmas: new Date(year, 11, 15),
-  halloween: new Date(year, 9, 28),
-};
-
-function seasonDate(id: string): Date {
-  return id === 'easter' ? easterSunday(year) : SEASON_DATES[id] ?? new Date(year, 11, 15);
+/** A date inside the theme's default season; null if it has no default rule. */
+function seasonDate(id: string): Date | null {
+  const rule = DEFAULT_SEASONS.find((r) => r.theme === id);
+  return rule ? seasonStart(rule, year) : null;
 }
 
 function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [12, 37]): void {
@@ -44,5 +42,5 @@ for (const id of Object.keys(THEMES)) addTile(id, id, null);
 // Chess shows games won and pieces captured; more point values show the start, a full row, a won game and trophies.
 for (const points of [[0, 15], [16, 300]] as [number, number][]) addTile(`chess-points-${points.join('-')}`, 'chess', null, points);
 for (const [id, theme] of Object.entries(THEMES)) {
-  if (theme.renderSeasonScene) addTile(`season-${id}`, id, seasonDate(id));
+  if (theme.renderSeasonScene) addTile(`season-${id}`, id, seasonDate(id) ?? new Date(year, 11, 15));
 }

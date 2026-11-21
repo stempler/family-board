@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason, easterOffset, easterSunday } from '../src/season';
+import { activeSeason, easterOffset, easterSunday, seasonStart } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
@@ -89,5 +89,16 @@ describe('easterOffset', () => {
     for (const v of ['easter+61', 'easter-61', 'easter+100', 'easter+007', 'ostern', 'easter+', 'Easter-7', '12-01']) {
       expect(easterOffset(v), v).toBeNull();
     }
+  });
+});
+
+describe('seasonStart', () => {
+  it('is a day on which every default season is active', () => {
+    for (const year of [2026, 2027, 2028]) {
+      for (const rule of DEFAULT_SEASONS) expect(activeSeason(seasonStart(rule, year), [rule], [rule.theme])).toEqual(rule);
+    }
+  });
+  it('resolves an Easter-relative start', () => {
+    expect(seasonStart({ theme: 'easter', from: 'easter-7', to: 'easter+1' }, 2027)).toEqual(new Date(2027, 2, 21));
   });
 });

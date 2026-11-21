@@ -59,3 +59,10 @@ export function easterSunday(year: number): Date {
   const day = ((h + l - 7 * m + 114) % 31) + 1;
   return new Date(year, month - 1, day);
 }
+
+/** The first day of `rule` in `year` as a local date (resolving "easter±N"): a date on which the season is active. */
+export function seasonStart(rule: SeasonRule, year: number): Date {
+  const { md } = resolveSeasonDate(rule.from, easterSunday(year));
+  const [m, d] = md.split('-').map(Number);
+  return new Date(year, m - 1, d);
+}

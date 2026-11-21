@@ -1,6 +1,7 @@
 import '../src/family-board-card';
 import type { FamilyBoardCard } from '../src/family-board-card';
-import { easterSunday } from '../src/season';
+import { DEFAULT_SEASONS } from '../src/config';
+import { seasonStart } from '../src/season';
 import { THEMES } from '../src/themes/registry';
 import { makeFakeHass, type FakeJar, type FakeKid } from './fake-hass';
 
@@ -57,9 +58,8 @@ function renderControls(): void {
   const seasonOptions: [string, string, Date | null][] = [
     ['auto', 'nach Datum', null],
     ['', 'keine', today],
-    ['christmas', 'Weihnachten', new Date(year, 11, 15)],
-    ['halloween', 'Halloween', new Date(year, 9, 28)],
-    ['easter', 'Ostern', easterSunday(year)],
+    ...DEFAULT_SEASONS.filter((r) => THEMES[r.theme]?.renderSeasonScene)
+      .map((r): [string, string, Date | null] => [r.theme, r.theme, seasonStart(r, year)]),
   ];
   for (const [value, label] of seasonOptions) seasonSelect.append(el('option', { value, textContent: label }));
   seasonSelect.addEventListener('change', () => {

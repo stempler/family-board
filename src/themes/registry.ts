@@ -20,3 +20,8 @@ export function getTheme(id: string): Theme {
 export function themeCss(): string {
   return Object.values(THEMES).map((t) => t.css ?? '').filter(Boolean).join('\n');
 }
+
+/** Ids of the themes that draw a season scene. */
+export function seasonThemeIds(): string[] {
+  return Object.values(THEMES).filter((t) => t.renderSeasonScene).map((t) => t.id);
+}
