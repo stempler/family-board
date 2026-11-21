@@ -14,76 +14,24 @@ Everything shown to the kids is in German. Design:
 
 ![The Christmas season scene: one tree with ornaments per kid](docs/images/board-season-christmas.png)
 
-## Local development
+## Install
 
-Tools come from [mise](https://mise.jdx.dev).
+Production is Home Assistant in Docker Compose on one home server with a
+persistent config volume; see `deploy/compose.yaml` for an example including
+notes on HACS, pinned TaskMate, the non-admin kids user and the tablet kiosk
+(landscape, fullscreen, screen always on).
 
-```sh
-mise install
-npm ci
-mise run dev      # theme playground (no Home Assistant needed), gallery at /gallery.html
-mise run test     # unit tests
-mise run ha:up    # local Home Assistant with TaskMate, the card and demo data
-```
+The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 
-Other tasks: `typecheck`, `build`, `gallery:shots`, `ha:down`, `ha:reset`, `ha:seed`, `ha:screenshot`, `fixtures:capture`.
-
-### Snapshot tests
-
-`tests/snapshots.test.ts` renders whole boards for every theme and season scene
-and compares them with the SVG files in `tests/__snapshots__/svg/`.
-
-- Rendering is deterministic, so any difference is a visible change to the
-  board.
-- A refactor must leave the snapshots untouched.
-- The files hold one SVG element per line (only the test's serialisation; the card's output is a single
-  line). To review a change, open the `.svg` in a browser to see it, or expand the diff in the PR:
-  the files are marked `linguist-generated` in `.gitattributes`, so GitHub collapses them by default, but
-  the diff is still readable once expanded.
-- `tests/__snapshots__/svg/` must contain exactly the files the test writes; a test fails on orphans.
-- For an intended visual change, run `mise run test -- -u`, open the changed
-  `.svg` files in a browser and commit them with the change.
-- In CI, missing snapshots fail the run instead of being written.
-
-### Local Home Assistant
-
-`mise run ha:up` builds the card, starts Home Assistant in Docker
-(`dev/ha/compose.yaml`, config in `dev/ha/config/`), and sets it up on the
-first run.
-
-- **Open:** http://localhost:8123/family-board/board
-- **Login:** `dev` / `dev`. This user is created on the first run, together
-  with a long-lived token in `dev/ha/.token` that the scripts use.
-- **Dashboard "Family Board"** (in the sidebar):
-  - **Board:** the card with the demo kids Mia (`bricks`) and Ben (`dino`).
-  - **Aufgaben:** the TaskMate kiosk card. Tapping a kid's half on the board
-    opens this view, and "Zurück" goes back.
-- **Demo data:**
-  - TaskMate with Mia and Ben, a few chores and rewards, and some starting
-    points.
-  - The kid ids are printed at the end of `ha:up`/`ha:seed`
-    (`kids: Mia=…, Ben=…`).
-- **Give points:** Developer tools → Actions → `taskmate.add_points` with
-  `child_id`, `points` and `reason`. The board updates live.
-- **Card changes:** run `mise run build` and reload the page with the cache
-  bypassed (Ctrl+Shift+R). `dist/` is mounted into Home Assistant as
-  `/local/family-board/`.
-- **Stop or reset:**
-  - `mise run ha:down` stops Home Assistant and keeps its data.
-  - `mise run ha:reset` deletes the config and the token, so the next
-    `ha:up` starts fresh. Run it once if your local Home Assistant was seeded
-    before the demo jar was renamed to `Bausteine-Set`; otherwise `ha:seed`
-    adds the jar a second time under the new name.
-
-`ha:seed` overwrites the dev dashboard `/family-board` with the demo config, so
-edits made to it in the UI are lost on the next seed.
-
-`ha:screenshot` opens the board in the local Home Assistant with Playwright (in
-Docker, `mcr.microsoft.com/playwright`), checks the tap navigation, a new item
-after `taskmate.add_points`, the Christmas scene, every favourite theme (both
-kids on it, seasons off, animated) and every season scene, and writes
-screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
-`dev/screenshots/` (or `$FB_SCREENSHOT_DIR`). Each run gives Mia one more point.
+1. HACS → three-dot menu → Custom repositories → add
+   `https://github.com/stempler/family-board` with type Dashboard.
+2. Search for "Family Board Card" in HACS and download it. This needs at least
+   one release (see [Release](#release)).
+3. For dashboards in storage mode, HACS adds the resource by itself. For a
+   dashboard in YAML mode, add `/hacsfiles/family-board/family-board-card.js`
+   as a JavaScript module by hand.
+4. Add the card to a dashboard (see [Card configuration](#card-configuration)).
+5. Updates: HACS shows new releases. Update there, then reload the tablet.
 
 ## Card configuration
 
@@ -200,6 +148,91 @@ reviewing all themes in one go.
 7. Add a row to the theme table above, with the same name as `label`.
 8. Look at it: `mise run dev` (playground, `/gallery.html`), `mise run gallery:shots`, `mise run ha:screenshot`. The gallery and the browser check pick the theme up by themselves.
 
+## Tablet: back to the picture (open item)
+
+Tapping a kid opens the TaskMate view (`tap_path`), and **nothing brings the
+tablet back to the picture yet**. TaskMate's kiosk card only returns to its own
+face picker after its idle `timeout` (or shows its own ambient mode); it has no
+option to leave for another view or URL, and leaving the dashboard just locks
+it. Options, still to decide:
+
+- Kiosk browser idle reload: e.g. Fully Kiosk Browser "Timer to Reload/Go to
+  Start URL" with the board as start URL.
+- browser_mod: navigate back to the board after an idle time.
+- The "Zurück" button card in the task view (as in the dev dashboard), which
+  needs a kid to tap it.
+
+## Local development
+
+Tools come from [mise](https://mise.jdx.dev).
+
+```sh
+mise install
+npm ci
+mise run dev      # theme playground (no Home Assistant needed), gallery at /gallery.html
+mise run test     # unit tests
+mise run ha:up    # local Home Assistant with TaskMate, the card and demo data
+```
+
+Other tasks: `typecheck`, `build`, `gallery:shots`, `ha:down`, `ha:reset`, `ha:seed`, `ha:screenshot`, `fixtures:capture`.
+
+### Snapshot tests
+
+`tests/snapshots.test.ts` renders whole boards for every theme and season scene
+and compares them with the SVG files in `tests/__snapshots__/svg/`.
+
+- Rendering is deterministic, so any difference is a visible change to the
+  board.
+- A refactor must leave the snapshots untouched.
+- The files hold one SVG element per line (only the test's serialisation; the card's output is a single
+  line). To review a change, open the `.svg` in a browser to see it, or expand the diff in the PR:
+  the files are marked `linguist-generated` in `.gitattributes`, so GitHub collapses them by default, but
+  the diff is still readable once expanded.
+- `tests/__snapshots__/svg/` must contain exactly the files the test writes; a test fails on orphans.
+- For an intended visual change, run `mise run test -- -u`, open the changed
+  `.svg` files in a browser and commit them with the change.
+- In CI, missing snapshots fail the run instead of being written.
+
+### Local Home Assistant
+
+`mise run ha:up` builds the card, starts Home Assistant in Docker
+(`dev/ha/compose.yaml`, config in `dev/ha/config/`), and sets it up on the
+first run.
+
+- **Open:** http://localhost:8123/family-board/board
+- **Login:** `dev` / `dev`. This user is created on the first run, together
+  with a long-lived token in `dev/ha/.token` that the scripts use.
+- **Dashboard "Family Board"** (in the sidebar):
+  - **Board:** the card with the demo kids Mia (`bricks`) and Ben (`dino`).
+  - **Aufgaben:** the TaskMate kiosk card. Tapping a kid's half on the board
+    opens this view, and "Zurück" goes back.
+- **Demo data:**
+  - TaskMate with Mia and Ben, a few chores and rewards, and some starting
+    points.
+  - The kid ids are printed at the end of `ha:up`/`ha:seed`
+    (`kids: Mia=…, Ben=…`).
+- **Give points:** Developer tools → Actions → `taskmate.add_points` with
+  `child_id`, `points` and `reason`. The board updates live.
+- **Card changes:** run `mise run build` and reload the page with the cache
+  bypassed (Ctrl+Shift+R). `dist/` is mounted into Home Assistant as
+  `/local/family-board/`.
+- **Stop or reset:**
+  - `mise run ha:down` stops Home Assistant and keeps its data.
+  - `mise run ha:reset` deletes the config and the token, so the next
+    `ha:up` starts fresh. Run it once if your local Home Assistant was seeded
+    before the demo jar was renamed to `Bausteine-Set`; otherwise `ha:seed`
+    adds the jar a second time under the new name.
+
+`ha:seed` overwrites the dev dashboard `/family-board` with the demo config, so
+edits made to it in the UI are lost on the next seed.
+
+`ha:screenshot` opens the board in the local Home Assistant with Playwright (in
+Docker, `mcr.microsoft.com/playwright`), checks the tap navigation, a new item
+after `taskmate.add_points`, the Christmas scene, every favourite theme (both
+kids on it, seasons off, animated) and every season scene, and writes
+screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
+`dev/screenshots/` (or `$FB_SCREENSHOT_DIR`). Each run gives Mia one more point.
+
 ## Updating TaskMate
 
 1. Bump `taskmate.version`.
@@ -216,39 +249,6 @@ git tag vX.Y.Z && git push --tags
 
 The `Release` workflow runs typecheck, tests and build, then creates a GitHub
 release with `dist/family-board-card.js` attached.
-
-## Install
-
-Production is Home Assistant in Docker Compose on one home server with a
-persistent config volume; see `deploy/compose.yaml` for an example including
-notes on HACS, pinned TaskMate, the non-admin kids user and the tablet kiosk
-(landscape, fullscreen, screen always on).
-
-The card is installed through [HACS](https://hacs.xyz) as a custom repository:
-
-1. HACS → three-dot menu → Custom repositories → add
-   `https://github.com/stempler/family-board` with type Dashboard.
-2. Search for "Family Board Card" in HACS and download it. This needs at least
-   one release (see [Release](#release)).
-3. For dashboards in storage mode, HACS adds the resource by itself. For a
-   dashboard in YAML mode, add `/hacsfiles/family-board/family-board-card.js`
-   as a JavaScript module by hand.
-4. Add the card to a dashboard (see [Card configuration](#card-configuration)).
-5. Updates: HACS shows new releases. Update there, then reload the tablet.
-
-## Tablet: back to the picture (open item)
-
-Tapping a kid opens the TaskMate view (`tap_path`), and **nothing brings the
-tablet back to the picture yet**. TaskMate's kiosk card only returns to its own
-face picker after its idle `timeout` (or shows its own ambient mode); it has no
-option to leave for another view or URL, and leaving the dashboard just locks
-it. Options, still to decide:
-
-- Kiosk browser idle reload: e.g. Fully Kiosk Browser "Timer to Reload/Go to
-  Start URL" with the board as start URL.
-- browser_mod: navigate back to the board after an idle time.
-- The "Zurück" button card in the task view (as in the dev dashboard), which
-  needs a kid to tap it.
 
 ## License
 
