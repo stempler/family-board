@@ -1,6 +1,8 @@
 import { particles, rand, scaledCount, timing } from '../draw/anim';
 import type { Box } from '../draw/jar';
-import { createSketch, esc, INK, num, type Sketch } from '../draw/sketch';
+import { seasonKid, seasonPlacement } from '../draw/season';
+import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { at, placement, points, SCENE_TOP, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A night pumpkin patch, drawn in "patch units": a big carved-pumpkin candy bucket stands in the
@@ -12,9 +14,9 @@ const MID = 150;
 const HALF_W = 150;
 const TOP = 0;
 const UNITS_H = 240;
+/** The scene takes at most 47% of the width it stands in. */
+const UNITS: Units = { mid: MID, top: TOP, w: HALF_W, h: UNITS_H, fill: 0.47 };
 const GROUND = 228;
-
-type Pt = [number, number];
 
 const SKY = '#bcaddf';
 const GROUND_FILL = '#7f8f4e';
@@ -36,9 +38,6 @@ const LANTERN_R = 16;
 const SPILL = 0.4; // scale of a lantern sitting on a candy spot, so it fits the candy pitch
 const GLOWING = 6; // only the first lanterns flicker
 
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
-
 /** Lantern spots beside the bucket: a little pile of three on each side, clear of every candy spot. */
 const LANTERNS: Pt[] = [[68, 208], [232, 208], [28, 208], [272, 208], [48, 172], [252, 172]];
 
@@ -59,22 +58,6 @@ const CANDY_SLOTS: Pt[] = [
 ];
 
 const CAPACITY = CANDY_SLOTS.length;
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Fits the patch units into the scene band of `box`, horizontally centred on `cx` within `width`, bottom-aligned. */
-function placement(box: Box, cx: number, width: number): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (width * 0.47) / HALF_W);
-  return { cx, top: top + (height - UNITS_H * s), s };
-}
-
-const points = (list: Pt[]) => list.map((q) => q.map(num).join(',')).join(' ');
 
 /** A friendly carved face on a pumpkin centred at (x, y) with radius r: round-ish triangle eyes and a big grin. */
 function face(sk: Sketch, x: number, y: number, r: number, fill: string): string {
@@ -212,7 +195,7 @@ function renderHalf(ctx: HalfContext): string {
   const { box } = ctx;
   const sk = createSketch(ctx.seedKey);
   const late = createSketch(`${ctx.seedKey}:late`);
-  const p = placement(box, box.x + box.w / 2, box.w);
+  const p = placement(box, UNITS);
   const ground = sk.ellipse(...at(p, MID, GROUND + 4), 310 * p.s, 26 * p.s, { fill: GROUND_FILL, strokeWidth: 2, roughness: 1 });
   const [fx0] = at(p, 2, 0);
   const [fx1, fy] = at(p, 298, 212);
@@ -228,8 +211,6 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
   const sk = createSketch(key);
   const late = createSketch(`${key}:late`);
   const mid = box.x + box.w / 2;
-  const bandL = mid - 40;
-  const bandR = mid + 40;
   const hillY = box.y + box.h * 0.74;
   const right = box.x + box.w;
   const sky = `<rect x="${num(box.x)}" y="${num(box.y)}" width="${num(box.w)}" height="${num(box.h)}" fill="${SKY}"/>`;
@@ -241,16 +222,9 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
   );
   const back = moon(sk, mid, box.y + box.h * 0.27, Math.min(34, box.h * 0.075)) + fence(sk, box.x + 6, right - 6, hillY - box.h * 0.02, Math.min(40, box.h * 0.09), key) + hill;
   const buckets = halves.map((ctx) => {
-    // The widest part of this half that keeps clear of the centre band (shared jars live there).
-    const l = ctx.box.x;
-    const r = ctx.box.x + ctx.box.w;
-    const left = [l, Math.min(r, bandL)];
-    const rightPart = [Math.max(l, bandR), r];
-    const [a, b] = left[1] - left[0] >= rightPart[1] - rightPart[0] ? left : rightPart;
-    const cx = (a + b) / 2;
-    const p = placement(box, cx, Math.max(b - a, 0));
+    const { cx, p } = seasonPlacement(box, ctx.box, UNITS);
     const ksk = createSketch(ctx.seedKey);
-    return `<g data-season-kid="${esc(ctx.kid.id)}" data-cx="${num(cx)}">${bucket(ksk, p, ctx.kid.colour)}${items(ksk, p, ctx)}</g>`;
+    return seasonKid(ctx.kid.id, cx, bucket(ksk, p, ctx.kid.colour) + items(ksk, p, ctx));
   }).join('');
   const g = ghost(late, mid, box.y + box.h * 0.52, Math.min(56, box.h * 0.12), key);
   const b = bat(late, box.x + box.w * 0.1, box.y + box.h * 0.22, Math.min(40, box.h * 0.09), key, 'fb-halloween-bat-wide');
