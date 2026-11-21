@@ -172,18 +172,18 @@ reviewing all themes in one go.
 
 ### Adding a theme
 
-1. Create `src/themes/<id>.ts` exporting a `Theme` (`renderHalf`, and for a seasonal theme `renderSeasonScene`) and register it in `src/themes/registry.ts`. The id is English and lowercase.
-2. Give it `css` for its ambient animation:
+1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase) and replace `template`. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation.
+2. Register it in `THEMES` in `src/themes/registry.ts`. That is the only list: the playground, the gallery, the Home Assistant browser check and the snapshot tests read it.
+3. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` (and `runSeasonContract(theme)` for a seasonal theme) plus theme-specific checks. The contract covers the css rules:
    - every `@keyframes` name and class starts with `fb-<id>-`;
-   - the rules set only `animation-name`, `animation-timing-function`, `transform-origin` and `transform-box`; duration, delay and iteration come from the shared `.fb-anim` rule through `--t` and `--d`;
-   - animated elements carry `class="fb-anim fb-<id>-..."`, at least 1 and at most 30 per half (a season scene at most 60), and never together with `fb-item` (wrap the item's body in an inner group instead).
-3. Use only escaped text (`esc`) and `num` for numbers, keep the drawing inside the half, and draw extra scenery with its own sketch key so existing shapes don't re-wobble when items are added.
-   Sketch keys: scenery drawn after the items uses its own sketch key (`${seedKey}:<name>`), so adding an item never re-wobbles it.
-4. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` and, for a seasonal theme, `runSeasonContract(theme)`, plus theme-specific checks.
-5. For a seasonal theme: add a default rule to `seasons` (config) and mark each kid's object with `data-season-kid` and `data-cx`.
-6. Optional: a theme that counts its items differently (chess) implements `items(points, prev)`, returning how many `data-item` elements it draws and which of them are new; it is used instead of the capacity-based grouping.
-7. Write its snapshots with `mise run test -- -u tests/snapshots.test.ts`. A seasonal theme also needs a date in `SEASON_DATES` there; a test fails until it has one.
-8. The gallery lists every registered theme (and every season scene) by itself: look at it with `mise run dev` and `mise run gallery:shots`, then run `mise run ha:screenshot` (it checks each theme in the local Home Assistant).
+   - rules set only `animation-name`, `animation-timing-function`, `transform-origin` and `transform-box`; duration, delay and iteration come from the shared `.fb-anim` rule through `--t` and `--d`;
+   - animated elements carry `class="fb-anim fb-<id>-..."`, 1 to 30 per half (a season scene at most 60), never together with `fb-item`.
+
+   Also: only escaped text (`esc`) and `num` for numbers, everything inside the half, and scenery drawn after the items with its own sketch key (`${seedKey}:<name>`) so adding an item never re-wobbles it. A theme that counts items differently (chess) implements `items(points, prev)`.
+4. Write the snapshots: `mise run test -- -u tests/snapshots.test.ts` (and check that no other snapshot changed).
+5. Add a row to the theme table above.
+6. Look at it: `mise run dev` (playground, `/gallery.html`), `mise run gallery:shots`, `mise run ha:screenshot`. The gallery and the browser check pick the theme up by themselves.
+7. Seasonal theme only: add a rule to `DEFAULT_SEASONS` in `src/config.ts` (the snapshot test, the gallery and the playground take the season date from it) and mark each kid's object with `seasonKid()`.
 
 ## Updating TaskMate
 

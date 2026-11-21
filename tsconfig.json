@@ -12,5 +12,5 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false
   },
-  "include": ["src", "tests", "dev", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "docs/theme-template.ts", "tests", "dev", "vite.config.ts", "vitest.config.ts"]
 }
