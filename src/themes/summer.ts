@@ -128,7 +128,7 @@ function sun(sk: Sketch, x: number, y: number, r: number, key: string): string {
   return `<g data-part="sun">${rays}${glow}${sk.circle(x, y, 2 * r, { fill: SUN, stroke: SUN_DARK, strokeWidth: 2, roughness: 0.5 })}</g>`;
 }
 
-/** The kid's bucket in the kid colour at the left, with a spade standing in it (its blade hidden in the bucket). */
+/** The kid's bucket in the kid colour at the left, with a spade standing in it: the shaft and its short T-handle at the top (the blade is hidden in the bucket). */
 function bucket(sk: Sketch, p: Placement, colour: string): string {
   const spade = sk.line(...at(p, 46, 140), ...at(p, 66, 104), { stroke: HANDLE, strokeWidth: Math.max(1.5, 3.5 * p.s), roughness: 0.4 }) +
     sk.line(...at(p, 60, 101), ...at(p, 72, 107), { stroke: HANDLE, strokeWidth: Math.max(1.5, 3.5 * p.s), roughness: 0.3 });

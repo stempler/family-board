@@ -22,7 +22,10 @@ function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [1
   const kids: FakeKid[] = [
     { id: 'k1', name: 'Mia', points: p1, theme, colour: '#d9534f' },
     { id: 'k2', name: 'Ben', points: p2, theme, colour: '#3b7dd8' },
-  ];
+  ].map((k) => {
+    const patched = kidPatch[k.id]?.theme;
+    return typeof patched === 'string' ? { ...k, theme: patched } : k;
+  });
   const figure = document.createElement('figure');
   figure.dataset.galleryTile = name;
   const card = document.createElement('family-board-card') as FamilyBoardCard;
