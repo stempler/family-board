@@ -13,11 +13,12 @@ import { pirates } from './pirates';
 import { racing } from './racing';
 import { dog } from './dog';
 import { space } from './space';
+import { summer } from './summer';
 import type { Theme } from './types';
 import { underwater } from './underwater';
 import { wizard } from './wizard';
 
-export const THEMES: Record<string, Theme> = { christmas, bricks, dino, wizard, racing, space, dog, chess, halloween, easter, pirates, underwater, football, martin, birthday, construction, garden };
+export const THEMES: Record<string, Theme> = { christmas, bricks, dino, wizard, racing, space, dog, chess, halloween, easter, pirates, underwater, football, martin, birthday, construction, garden, summer };
 
 export function getTheme(id: string): Theme {
   return Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES.bricks;

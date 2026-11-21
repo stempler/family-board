@@ -66,7 +66,7 @@ describe('board snapshots', () => {
     ['christmas', 'bricks', 'dino', 'wizard', 'racing'],
     ['space', 'dog', 'chess', 'halloween', 'easter'],
     ['pirates', 'underwater', 'football', 'martin', 'birthday'],
-    ['construction', 'garden'],
+    ['construction', 'garden', 'summer'],
   ];
   it('puts every registered theme on a five-kid board', () => {
     const listed = FIVE_KID_BOARDS.flat();
