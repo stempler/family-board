@@ -1,6 +1,6 @@
 import { timing } from '../draw/anim';
-import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { at, moved, placement, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // The scene is drawn in "scene units" after mockups/shared-screen.html (1):
@@ -13,6 +13,7 @@ const TOP = 52;
 const GROUND = 292;
 const UNITS_H = GROUND - TOP;
 const UNITS_W = 320;
+const UNITS: Units = { mid: MID, top: TOP, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 
 const EGG_RX = 15;
 const EGG_RY = 20;
@@ -34,9 +35,6 @@ const GRASS = '#9cc56b';
 const MEADOW = '#f3f6e6';
 
 const CAPACITY = 15;
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
-
 /** Egg slots, rows of 5, 4, 3, 2, 1 from the bottom of the nest up; each row is filled centre outwards. */
 function eggSlots(): [number, number][] {
   const slots: [number, number][] = [];
@@ -49,25 +47,6 @@ function eggSlots(): [number, number][] {
 }
 
 const SLOTS = eggSlots();
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): [number, number] {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Rewrites every "x y" pair of a path in nest units into board coordinates. */
-function moved(p: Placement, d: string): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, +x, +y).map(num).join(' '));
-}
-
-/** Fits the scene into the scene band of `box`, horizontally centred. */
-function placement(box: Box): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (box.w * 0.92) / UNITS_W);
-  return { cx: box.x + box.w / 2, top: top + (height - UNITS_H * s), s };
-}
 
 function egg(sk: Sketch, p: Placement, x: number, y: number, i: number, big: boolean): string {
   const [cx, cy] = at(p, x, y);
@@ -97,7 +76,6 @@ function eggs(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return out;
 }
 
-type Pt = [number, number];
 type Cubic = [Pt, Pt, Pt, Pt];
 
 /** The dinosaur's back, from the tail root over the hump and up the neck to the head, in scene units. */
@@ -207,7 +185,7 @@ function ground(sk: Sketch, p: Placement): string {
 
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
-  const p = placement(ctx.box);
+  const p = placement(ctx.box, UNITS);
   return `<g>${ground(sk, p)}${tail(sk, p, ctx.seedKey)}${leg(sk, p, 272, DINO_DARK)}${body(sk, p)}${leg(sk, p, 234, DINO)}${arm(sk, p)}${head(sk, p, ctx.seedKey)}${nestBack(sk, p)}${eggs(sk, p, ctx)}${nestFront(createSketch(`${ctx.seedKey}:nest`), p)}</g>`;
 }
 

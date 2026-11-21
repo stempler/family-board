@@ -1,6 +1,6 @@
 import { rand, timing } from '../draw/anim';
-import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { at, mapPath, placement, type Placement, type Pt, type Units } from '../draw/units';
 import { groupItems, newItemRange, type ItemGroups, type NewRange } from '../items';
 import { CAPTURE_ORDER, parsePlacement, POSITIONS } from './chess-positions';
 import { item, type HalfContext, type Theme } from './types';
@@ -24,6 +24,8 @@ export const SHELF_UNITS: readonly number[] = [5, 25, 125]; // wins per trophy
 const W = 300; // scene width
 const H = 280; // scene height
 const MID = W / 2;
+/** The scene sits in the middle of the scene band, not at its bottom. */
+const UNITS: Units = { mid: MID, top: 0, w: W, h: H, fill: 0.92, align: 'centre' };
 
 const SHELF_Y = 32; // top of the shelf plank; shelf items stand on it
 const SLOT_W = 29; // shelf slot pitch
@@ -49,36 +51,12 @@ const DARK_DETAIL = '#e8dcc2';
 const GOLD = '#f2c12e';
 const GOLD_DARK = '#c99a12';
 
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
-
-type Pt = [number, number];
-
-interface Placement { cx: number; top: number; s: number }
-
-/** Fits the scene into the scene band of `box`, horizontally centred, vertically centred in the band. */
-function placement(box: Box): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / H, (box.w * 0.92) / W);
-  return { cx: box.x + box.w / 2, top: top + (height - H * s) / 2, s };
-}
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + y * p.s];
-}
-
 /** Maps a drawing's local coordinates (piece base centre at 0 0, y up is negative) into the half. */
 type Local = (x: number, y: number) => Pt;
 
 function local(p: Placement, x0: number, y0: number, k: number, lying = false): Local {
   // Lying: the piece's up direction points right, its base at the left.
   return (x, y) => (lying ? at(p, x0 - k * y, y0 + k * x) : at(p, x0 + k * x, y0 + k * y));
-}
-
-/** Rewrites every "x y" pair of a local path. */
-function moved(f: Local, d: string): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => f(+x, +y).map(num).join(' '));
 }
 
 // Piece silhouettes, front view, base centred at 0 0. Chunky so they read at ~20 px.
@@ -113,12 +91,12 @@ function piece(sk: Sketch, f: Local, scale: number, letter: string, kidColour: s
   const art = ART[letter.toLowerCase()];
   const fill = kid ? kidColour : DARK_PIECE;
   const detailColour = kid ? INK : DARK_DETAIL;
-  let out = sk.path(moved(f, art.body), { fill, strokeWidth: 1.5, roughness: 0.35 });
+  let out = sk.path(mapPath(art.body, f), { fill, strokeWidth: 1.5, roughness: 0.35 });
   for (const [x, y, r] of art.balls ?? []) {
     // A tiny ball (an eye) is a detail mark; a bigger one (a pawn head, a crown ball) is part of the body.
     out += r < 1.5 ? sk.circle(...f(x, y), 2 * r * scale, { fill: detailColour, stroke: 'none', roughness: 0.2 }) : sk.circle(...f(x, y), 2 * r * scale, { fill, strokeWidth: 1.3, roughness: 0.3 });
   }
-  if (art.detail) out += sk.path(moved(f, art.detail), { stroke: detailColour, strokeWidth: 1.2, roughness: 0.25 });
+  if (art.detail) out += sk.path(mapPath(art.detail, f), { stroke: detailColour, strokeWidth: 1.2, roughness: 0.25 });
   return out;
 }
 
@@ -164,9 +142,9 @@ function board(p: Placement, ctx: HalfContext, captured: number): string {
 
 /** A gold trophy cup standing at local 0 0; one star per unit step above 5 wins. */
 function trophy(sk: Sketch, f: Local, stars: number): string {
-  const cup = sk.path(moved(f, 'M -9 -27 L 9 -27 Q 9.5 -15 2.5 -12 L 2.5 -6 L 6.5 -4 L 6.5 0 L -6.5 0 L -6.5 -4 L -2.5 -6 L -2.5 -12 Q -9.5 -15 -9 -27 Z'), { fill: GOLD, strokeWidth: 1.6, roughness: 0.35 });
-  const handles = sk.path(moved(f, 'M -8.8 -24 Q -14 -24 -13 -19 Q -12 -16 -6.5 -15.5 M 8.8 -24 Q 14 -24 13 -19 Q 12 -16 6.5 -15.5'), { stroke: GOLD_DARK, strokeWidth: 2, roughness: 0.3 });
-  const shine = sk.path(moved(f, 'M -5.5 -24 Q -5.5 -18 -2.5 -15.5'), { stroke: '#ffffff', strokeWidth: 1.6, roughness: 0.2 });
+  const cup = sk.path(mapPath('M -9 -27 L 9 -27 Q 9.5 -15 2.5 -12 L 2.5 -6 L 6.5 -4 L 6.5 0 L -6.5 0 L -6.5 -4 L -2.5 -6 L -2.5 -12 Q -9.5 -15 -9 -27 Z', f), { fill: GOLD, strokeWidth: 1.6, roughness: 0.35 });
+  const handles = sk.path(mapPath('M -8.8 -24 Q -14 -24 -13 -19 Q -12 -16 -6.5 -15.5 M 8.8 -24 Q 14 -24 13 -19 Q 12 -16 6.5 -15.5', f), { stroke: GOLD_DARK, strokeWidth: 2, roughness: 0.3 });
+  const shine = sk.path(mapPath('M -5.5 -24 Q -5.5 -18 -2.5 -15.5', f), { stroke: '#ffffff', strokeWidth: 1.6, roughness: 0.2 });
   let star = '';
   for (let i = 0; i < stars; i++) {
     const cx = (i - (stars - 1) / 2) * 6;
@@ -229,7 +207,7 @@ function items(points: number, prev: number | undefined): { total: number } & Ne
 }
 
 function renderHalf(ctx: HalfContext): string {
-  const p = placement(ctx.box);
+  const p = placement(ctx.box, UNITS);
   const { wins, captured } = split(ctx.kid.points);
   const g = groupItems(wins, SHELF_CAP, SHELF_UNITS);
   return `<g>${furniture(createSketch(ctx.seedKey), p)}${board(p, ctx, captured)}${shelf(p, ctx, g)}${capturedRow(p, ctx, captured, g.big + g.small)}</g>`;

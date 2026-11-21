@@ -1,6 +1,6 @@
 import { particles, timing } from '../draw/anim';
-import type { Box } from '../draw/jar';
 import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { around, at, moved, placement, points, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A tower room at a wizard school, drawn in "room units": a tall hourglass on a
@@ -14,6 +14,7 @@ const TOP = 14; // top of the hourglass's top plate
 const TABLE = 254; // table top; the hourglass, candle and books stand on it
 const BOTTOM = 272; // bottom of the table's front edge
 const UNITS_H = BOTTOM - TOP;
+const UNITS: Units = { mid: MID, top: TOP, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 
 const HG_X = 148;
 const NECK = 122; // narrowest point of the glass
@@ -46,30 +47,6 @@ const OWL_BELLY = '#ecdcb8';
 const BEAK = '#f0a830';
 const BOOKS = ['#7b5ea7', '#3f8f7f'];
 
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
-
-type Pt = [number, number];
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Rewrites every "x y" pair of a path in room units into board coordinates. */
-function moved(p: Placement, d: string): string {
-  return d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, +x, +y).map(num).join(' '));
-}
-
-/** Fits the room into the scene band of `box`, horizontally centred. */
-function placement(box: Box): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (box.w * 0.92) / UNITS_W);
-  return { cx: box.x + box.w / 2, top: top + (height - UNITS_H * s), s };
-}
-
 /** Half-width of a bulb at distance `d` from the neck, for a bulb `len` units long: a bell that widens fast near the neck. */
 function bulbHalfWidth(d: number, len: number): number {
   const t = Math.min(1, Math.max(0, d / len));
@@ -100,27 +77,24 @@ function gemSlots(): Pt[] {
 
 const SLOTS = gemSlots();
 
-const poly = (p: Placement, cx: number, cy: number, pts: Pt[]): Pt[] => pts.map(([dx, dy]) => at(p, cx + dx, cy + dy));
-const points = (pts: Pt[]) => pts.map((q) => q.map(num).join(',')).join(' ');
-
 /** A cut gem in the kid's house colour, centred on its slot. */
 function gem(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
-  const body = sk.polygon(poly(p, x, y, [[-6, -8.2], [6, -8.2], [9.5, -2.8], [0, 8.2], [-9.5, -2.8]]), { fill: colour, strokeWidth: 1.8, roughness: 0.5 });
-  const facets = `<polyline points="${points(poly(p, x, y, [[-9.5, -2.8], [9.5, -2.8]]))}" fill="none" stroke="${INK}" stroke-width="1" opacity="0.5"/>` +
-    `<polyline points="${points(poly(p, x, y, [[-2.8, -8.2], [-3.3, -2.8], [0, 8.2], [3.3, -2.8], [2.8, -8.2]]))}" fill="none" stroke="${INK}" stroke-width="0.8" opacity="0.35"/>`;
-  const glint = `<polygon points="${points(poly(p, x, y, [[-5, -6.9], [-1.7, -6.9], [-3.8, -4], [-7.1, -4]]))}" fill="#fff" opacity="0.75"/>`;
+  const body = sk.polygon(around(p, x, y, [[-6, -8.2], [6, -8.2], [9.5, -2.8], [0, 8.2], [-9.5, -2.8]]), { fill: colour, strokeWidth: 1.8, roughness: 0.5 });
+  const facets = `<polyline points="${points(around(p, x, y, [[-9.5, -2.8], [9.5, -2.8]]))}" fill="none" stroke="${INK}" stroke-width="1" opacity="0.5"/>` +
+    `<polyline points="${points(around(p, x, y, [[-2.8, -8.2], [-3.3, -2.8], [0, 8.2], [3.3, -2.8], [2.8, -8.2]]))}" fill="none" stroke="${INK}" stroke-width="0.8" opacity="0.35"/>`;
+  const glint = `<polygon points="${points(around(p, x, y, [[-5, -6.9], [-1.7, -6.9], [-3.8, -4], [-7.1, -4]]))}" fill="#fff" opacity="0.75"/>`;
   return body + facets + glint;
 }
 
 /** A large crystal standing in its slot: the house colour lightened, with a white inner edge so it reads as special. */
 function crystal(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
   const shape: Pt[] = [[-6.5, 9], [6.5, 9], [9, -6], [0, -20], [-9, -6]];
-  const body = sk.polygon(poly(p, x, y, shape), { fill: colour, strokeWidth: 2.2, roughness: 0.5 });
-  const light = `<polygon points="${points(poly(p, x, y, shape))}" fill="#fff" opacity="0.22"/>`;
-  const edge = `<polygon points="${points(poly(p, x, y, shape.map(([dx, dy]) => [dx * 0.72, dy * 0.72 - 1])))}" fill="none" stroke="#fff" stroke-width="1.6" opacity="0.95"/>`;
-  const ridge = `<polyline points="${points(poly(p, x, y, [[-9, -6], [0, -2], [9, -6]]))}" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.4"/>` +
-    `<polyline points="${points(poly(p, x, y, [[0, -20], [0, -2], [0, 9]]))}" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.4"/>`;
-  const glint = `<polygon points="${points(poly(p, x, y, [[-6, -6], [-3, -12], [-2, -8], [-5, -2]]))}" fill="#fff" opacity="0.85"/>`;
+  const body = sk.polygon(around(p, x, y, shape), { fill: colour, strokeWidth: 2.2, roughness: 0.5 });
+  const light = `<polygon points="${points(around(p, x, y, shape))}" fill="#fff" opacity="0.22"/>`;
+  const edge = `<polygon points="${points(around(p, x, y, shape.map(([dx, dy]) => [dx * 0.72, dy * 0.72 - 1])))}" fill="none" stroke="#fff" stroke-width="1.6" opacity="0.95"/>`;
+  const ridge = `<polyline points="${points(around(p, x, y, [[-9, -6], [0, -2], [9, -6]]))}" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.4"/>` +
+    `<polyline points="${points(around(p, x, y, [[0, -20], [0, -2], [0, 9]]))}" fill="none" stroke="${INK}" stroke-width="0.9" opacity="0.4"/>`;
+  const glint = `<polygon points="${points(around(p, x, y, [[-6, -6], [-3, -12], [-2, -8], [-5, -2]]))}" fill="#fff" opacity="0.85"/>`;
   return body + light + edge + ridge + glint;
 }
 
@@ -259,7 +233,7 @@ function sparkles(p: Placement, seedKey: string): string {
 
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
-  const p = placement(ctx.box);
+  const p = placement(ctx.box, UNITS);
   const colour = ctx.kid.colour;
   return `<g>${wall(sk, p)}${banner(sk, p, colour)}${table(sk, p)}${candle(sk, p, ctx.seedKey)}${owl(sk, p, ctx.seedKey)}${hourglassBack(sk, p)}${trickle(p, ctx.seedKey)}` +
     `${gems(sk, p, ctx)}${hourglassFront(createSketch(`${ctx.seedKey}:front`), p)}${sparkles(p, ctx.seedKey)}</g>`;
