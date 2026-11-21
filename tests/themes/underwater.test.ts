@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
 import { THEMES } from '../../src/themes/registry';
-import { footprint, spots, type Spot } from '../../src/themes/underwater';
+import { footprint, spots } from '../../src/themes/underwater';
+import { layout } from './layout';
 import { afterItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const underwater = THEMES.underwater;
@@ -58,18 +59,7 @@ describe('underwater half', () => {
 });
 
 describe('underwater item layout', () => {
-  const GAP = 2; // units of air between two drawn items
-  const apart = (a: Spot, b: Spot) => {
-    const [l1, t1, r1, b1] = footprint(a);
-    const [l2, t2, r2, b2] = footprint(b);
-    return l1 >= r2 + GAP || l2 >= r1 + GAP || t1 >= b2 + GAP || t2 >= b1 + GAP;
-  };
-  const overlapping = (list: Spot[]) => {
-    const bad: string[] = [];
-    list.forEach((a, i) => list.slice(i + 1).forEach((b) => { if (!apart(a, b)) bad.push(`${a.kind}@${a.x},${a.y} ${b.kind}@${b.x},${b.y}`); }));
-    return bad;
-  };
-  const area = (s: Spot) => { const [l, t, r, b] = footprint(s); return (r - l) * (b - t); };
+  const { overlapping, area } = layout(footprint);
 
   it('keeps every pearl shell clearly bigger than a shell, also on a shell spot', () => {
     const small = area(spots(0, 1)[0]);

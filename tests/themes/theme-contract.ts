@@ -34,6 +34,13 @@ export function coordsOutside(svg: string, box: Box): string[] {
   return bad;
 }
 
+/** Markup drawn before the first counted item (scenery behind the items). */
+export function beforeItems(svg: string): string {
+  const open = svg.indexOf('<g class="fb-item');
+  if (open < 0) throw new Error('no item');
+  return svg.slice(0, open);
+}
+
 /** Markup drawn after the last counted item (scenery in front of the items). */
 export function afterItems(svg: string): string {
   const open = svg.lastIndexOf('<g class="fb-item');
