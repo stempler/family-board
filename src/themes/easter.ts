@@ -1,6 +1,8 @@
 import { timing } from '../draw/anim';
 import type { Box } from '../draw/jar';
-import { createSketch, esc, INK, num, type Sketch } from '../draw/sketch';
+import { seasonKid, seasonPlacement } from '../draw/season';
+import { createSketch, INK, num, type Sketch } from '../draw/sketch';
+import { at, placement, type Placement, type Pt, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // A spring meadow, drawn in "meadow units": a woven basket stands in the middle (rim x 70..230 at
@@ -13,9 +15,9 @@ const MID = 150;
 const HALF_W = 150;
 const TOP = 0;
 const UNITS_H = 240;
+/** The scene takes at most 47% of the width it stands in. */
+const UNITS: Units = { mid: MID, top: TOP, w: HALF_W, h: UNITS_H, fill: 0.47 };
 const HORIZON = 150;
-
-type Pt = [number, number];
 
 const SKY = '#d4ecfb';
 const MEADOW = '#9fd26f';
@@ -36,9 +38,6 @@ const WINGS = ['#f7a8c8', '#ffd23f', '#9fd3f2'];
 const EGG_RX = 8;
 const EGG_RY = 11;
 const BUNNY = 0.58; // chocolate bunny scale: 17 x 38 units, a little taller than an egg
-
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
 
 /** Rows of `n` egg slots centred on the basket, `dx` apart. */
 function row(n: number, y: number, dx = 22): Pt[] {
@@ -76,20 +75,6 @@ export function spots(big: number, small: number): Spot[] {
 export function footprint(s: Spot): [number, number, number, number] {
   if (s.kind === 'big') return [s.x - 15 * BUNNY, s.y - 65 * BUNNY, s.x + 15 * BUNNY, s.y];
   return [s.x - EGG_RX, s.y - EGG_RY, s.x + EGG_RX, s.y + EGG_RY];
-}
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): Pt {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
-/** Fits the meadow units into the scene band of `box`, horizontally centred on `cx` within `width`, bottom-aligned. */
-function placement(box: Box, cx: number, width: number): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (width * 0.47) / HALF_W);
-  return { cx, top: top + (height - UNITS_H * s), s };
 }
 
 /** Half the width of an ellipse (rx, ry) at `dy` from its centre, pulled in a little so patterns stay inside the outline. */
@@ -262,7 +247,7 @@ function renderHalf(ctx: HalfContext): string {
   const { box } = ctx;
   const sk = createSketch(ctx.seedKey);
   const late = createSketch(`${ctx.seedKey}:late`);
-  const p = placement(box, box.x + box.w / 2, box.w);
+  const p = placement(box, UNITS);
   const [, top] = at(p, MID, HORIZON);
   const [, bottom] = at(p, MID, 244);
   const back = sun(sk, ...at(p, 34, 28), 15 * p.s) + meadowMound(sk, box.x + 6, box.x + box.w - 6, top, bottom) +
@@ -278,8 +263,6 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
   const sk = createSketch(key);
   const late = createSketch(`${key}:late`);
   const mid = box.x + box.w / 2;
-  const bandL = mid - 40;
-  const bandR = mid + 40;
   const top = box.y + box.h * 0.6;
   const sky = `<rect x="${num(box.x)}" y="${num(box.y)}" width="${num(box.w)}" height="${num(box.h)}" fill="${SKY}"/>`;
   // Flowers only where no basket or chocolate bunny stands: the board edges and either side of the real bunny.
@@ -287,16 +270,9 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
   const back = sun(sk, mid, box.y + box.h * 0.27, Math.min(26, box.h * 0.06)) + meadowWide(sk, box, top) +
     flowers(spots.map(([fx, fy]) => [box.x + fx * box.w, box.y + fy * box.h] as Pt), Math.min(5, box.h * 0.011));
   const baskets = halves.map((ctx) => {
-    // The widest part of this half that keeps clear of the centre band (shared jars live there).
-    const l = ctx.box.x;
-    const r = ctx.box.x + ctx.box.w;
-    const left = [l, Math.min(r, bandL)];
-    const rightPart = [Math.max(l, bandR), r];
-    const [a, b] = left[1] - left[0] >= rightPart[1] - rightPart[0] ? left : rightPart;
-    const cx = (a + b) / 2;
-    const p = placement(box, cx, Math.max(b - a, 0));
+    const { cx, p } = seasonPlacement(box, ctx.box, UNITS);
     const ksk = createSketch(ctx.seedKey);
-    return `<g data-season-kid="${esc(ctx.kid.id)}" data-cx="${num(cx)}">${basket(ksk, p, ctx.kid.colour)}${items(ksk, createSketch(`${ctx.seedKey}:eggs`), p, ctx)}</g>`;
+    return seasonKid(ctx.kid.id, cx, basket(ksk, p, ctx.kid.colour) + items(ksk, createSketch(`${ctx.seedKey}:eggs`), p, ctx));
   }).join('');
   const k = Math.min(1.1, box.h / 400);
   const front = bunny(late, mid, top + 4, k, key) +
