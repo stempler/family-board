@@ -1,6 +1,8 @@
 import { particles, scaledCount, twinkle } from '../draw/anim';
 import type { Box } from '../draw/jar';
+import { seasonKid, seasonPlacement } from '../draw/season';
 import { createSketch, esc, num, type Sketch } from '../draw/sketch';
+import { at, moved, placement, SCENE_BOTTOM, starPoints, type Placement, type Units } from '../draw/units';
 import { item, type HalfContext, type Theme } from './types';
 
 // The tree is drawn in "tree units" taken from mockups/metaphor.html (A):
@@ -11,6 +13,8 @@ const TOP = 12;
 const BASE = 227;
 const HALF_W = 85;
 const UNITS_H = 240; // star tip .. snow / ribbon below the trunk
+/** The tree takes at most 45% of the width it stands in, so the presents and ribbon fit beside it. */
+const UNITS: Units = { mid: MID, top: TOP, w: HALF_W, h: UNITS_H, fill: 0.45 };
 
 const NEEDLES = '#5aa469';
 const TRUNK = '#8b5a2b';
@@ -22,8 +26,6 @@ const BAUBLES = ['#e74c3c', '#3b86d6', '#9b59b6', '#ef7fb0', '#ff9a3c'];
 
 const SMALL_R = 7.5;
 const BIG_R = 10;
-const SCENE_TOP = 0.17; // leave room for the board header
-const SCENE_BOTTOM = 0.79; // leave room for the jar row
 
 const CROWN: [number, number][] = [
   [100, 30], [160, 110], [135, 110], [175, 170], [140, 170], [185, 205],
@@ -71,22 +73,6 @@ function spreadOrder(slots: [number, number][]): [number, number][] {
 
 const SLOTS = spreadOrder(crownSlots());
 
-function starPoints(cx: number, cy: number, r: number): [number, number][] {
-  const pts: [number, number][] = [];
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rr = i % 2 ? r * 0.45 : r;
-    pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]);
-  }
-  return pts;
-}
-
-interface Placement { cx: number; top: number; s: number }
-
-function at(p: Placement, x: number, y: number): [number, number] {
-  return [p.cx + (x - MID) * p.s, p.top + (y - TOP) * p.s];
-}
-
 function bauble(sk: Sketch, x: number, y: number, r: number, fill: string, big: boolean): string {
   const cap = sk.rect(x - r * 0.3, y - r - r * 0.35, r * 0.6, r * 0.45, { fill: '#b8b8b8', strokeWidth: 1.2, roughness: 0.5 });
   const body = sk.circle(x, y, r * 2, { fill, strokeWidth: big ? 2 : 1.6, roughness: 0.7 });
@@ -112,21 +98,10 @@ function tree(sk: Sketch, late: Sketch, p: Placement, ctx: HalfContext): string 
   const [tx, ty] = at(p, 88, 203);
   const trunk = sk.rect(tx, ty, 24 * p.s, (BASE - 203) * p.s, { fill: TRUNK, strokeWidth: 2.5 });
   const crown = sk.polygon(CROWN.map(([x, y]) => at(p, x, y)), { fill: NEEDLES, strokeWidth: 3, roughness: 1.1 });
-  const garlands = GARLANDS.map((d) => {
-    const moved = d.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, (_, x, y) => at(p, +x, +y).map(num).join(' '));
-    return sk.path(moved, { stroke: GOLD, strokeWidth: 2.5 * p.s, roughness: 0.8 });
-  }).join('');
+  const garlands = GARLANDS.map((d) => sk.path(moved(p, d), { stroke: GOLD, strokeWidth: 2.5 * p.s, roughness: 0.8 })).join('');
   const [sx, sy] = at(p, MID, 31);
   const topStar = `<g ${twinkle(ctx.seedKey)}>${late.polygon(starPoints(sx, sy, 19 * p.s), { fill: GOLD, strokeWidth: 2, roughness: 0.6 })}</g>`;
   return trunk + crown + garlands + ornaments(sk, p, ctx) + topStar;
-}
-
-/** Fits the tree into the scene band of `box`, horizontally centred on `cx` within `width`. */
-function placement(box: Box, cx: number, width: number): Placement {
-  const top = box.y + box.h * SCENE_TOP;
-  const height = box.h * (SCENE_BOTTOM - SCENE_TOP);
-  const s = Math.min(height / UNITS_H, (width * 0.45) / HALF_W);
-  return { cx, top: top + (height - UNITS_H * s), s };
 }
 
 function presents(sk: Sketch, p: Placement, colour: string): string {
@@ -144,7 +119,7 @@ function presents(sk: Sketch, p: Placement, colour: string): string {
 function renderHalf(ctx: HalfContext): string {
   const { box } = ctx;
   const sk = createSketch(ctx.seedKey);
-  const p = placement(box, box.x + box.w / 2, box.w);
+  const p = placement(box, UNITS);
   const [gx, gy] = at(p, MID, BASE + 2);
   const ground = sk.ellipse(gx, gy, 220 * p.s, 22 * p.s, { fill: SNOW, strokeWidth: 2, roughness: 1 });
   const late = createSketch(`${ctx.seedKey}:late`);
@@ -181,8 +156,6 @@ function snowman(sk: Sketch, cx: number, bottom: number, size: number): string {
 function renderSeasonScene(halves: HalfContext[], box: Box): string {
   const key = `season:${halves.map((h) => h.seedKey).join('|')}`;
   const sk = createSketch(key);
-  const bandL = box.x + box.w / 2 - 40;
-  const bandR = box.x + box.w / 2 + 40;
   const hillY = box.y + box.h * 0.74;
   const right = box.x + box.w;
   const sky = `<rect x="${num(box.x)}" y="${num(box.y)}" width="${num(box.w)}" height="${num(box.h)}" fill="${SKY}"/>`;
@@ -193,16 +166,9 @@ function renderSeasonScene(halves: HalfContext[], box: Box): string {
     { fill: SNOW, strokeWidth: 2, roughness: 1 },
   );
   const trees = halves.map((ctx) => {
-    // The widest part of this half that keeps clear of the centre band (shared jars live there).
-    const l = ctx.box.x;
-    const r = ctx.box.x + ctx.box.w;
-    const left = [l, Math.min(r, bandL)];
-    const rightPart = [Math.max(l, bandR), r];
-    const [a, b] = left[1] - left[0] >= rightPart[1] - rightPart[0] ? left : rightPart;
-    const cx = (a + b) / 2;
-    const p = placement(box, cx, Math.max(b - a, 0));
+    const { cx, p } = seasonPlacement(box, ctx.box, UNITS);
     const late = createSketch(`${ctx.seedKey}:late`);
-    return `<g data-tree="${esc(ctx.kid.id)}" data-season-kid="${esc(ctx.kid.id)}" data-cx="${num(cx)}">${tree(createSketch(ctx.seedKey), late, p, ctx)}${ribbon(late, p, ctx.kid.colour)}</g>`;
+    return seasonKid(ctx.kid.id, cx, tree(createSketch(ctx.seedKey), late, p, ctx) + ribbon(late, p, ctx.kid.colour), `data-tree="${esc(ctx.kid.id)}" `);
   }).join('');
   const man = snowman(sk, box.x + box.w / 2, box.y + box.h * SCENE_BOTTOM, Math.min(80, box.h * 0.2));
   return `<g>${sky}${hill}${trees}${man}${particles(`${key}:snow`, box, scaledCount(14, box), 'snow')}</g>`;
