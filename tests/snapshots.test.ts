@@ -42,16 +42,19 @@ function board(theme: string | string[], points: number[], date = JUNE, seasons 
   return renderBoard(model, config, { date });
 }
 
+/** One element per line, so a snapshot diff is readable. Only newlines are added; the product's output is unchanged. */
+const lines = (svg: string): string => svg.replaceAll('><', '>\n<');
+
 const file = (name: string) => `./__snapshots__/svg/${name}.svg`;
 
 describe('board snapshots', () => {
   for (const id of Object.keys(THEMES)) {
     describe(id, () => {
       it('two kids at 12 and 37 points', async () => {
-        await expect(board(id, [12, 37])).toMatchFileSnapshot(file(`${id}-12-37`));
+        await expect(lines(board(id, [12, 37]))).toMatchFileSnapshot(file(`${id}-12-37`));
       });
       it('two kids at 0 and 1000 points', async () => {
-        await expect(board(id, [0, 1000])).toMatchFileSnapshot(file(`${id}-0-1000`));
+        await expect(lines(board(id, [0, 1000]))).toMatchFileSnapshot(file(`${id}-0-1000`));
       });
     });
   }
@@ -74,7 +77,7 @@ describe('board snapshots', () => {
   });
   FIVE_KID_BOARDS.forEach((five, n) => {
     it(`five kids: ${five.join(', ')}`, async () => {
-      await expect(board(five, [7, 30, 31, 300, 4321].slice(0, five.length))).toMatchFileSnapshot(file(`five-kids-${n + 1}`));
+      await expect(lines(board(five, [7, 30, 31, 300, 4321].slice(0, five.length)))).toMatchFileSnapshot(file(`five-kids-${n + 1}`));
     });
   });
 
@@ -86,7 +89,7 @@ describe('board snapshots', () => {
   });
   for (const [id, date] of Object.entries(SEASON_DATES)) {
     it(`season scene ${id}`, async () => {
-      await expect(board('bricks', [12, 37], date, true)).toMatchFileSnapshot(file(`season-${id}`));
+      await expect(lines(board('bricks', [12, 37], date, true))).toMatchFileSnapshot(file(`season-${id}`));
     });
   }
 
