@@ -17,7 +17,7 @@ describe('garden half', () => {
     const out = half(7);
     for (const name of ['bed', 'fence', 'can', 'bee']) expect(out).toContain(`data-part="${name}"`);
   });
-  it('flies 2 or 3 bees and sways at most 4 leaves', () => {
+  it('flies 2 or 3 bees and sways at most 4 tufts', () => {
     for (const points of [0, 7, 1000]) {
       const out = half(points);
       const bees = count(out, /fb-anim fb-garden-bee/g);

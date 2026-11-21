@@ -197,9 +197,9 @@ function can(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return `<g data-part="can">${handle}${spout}${rose}${body}${band}</g>`;
 }
 
-/** Tufts of grass at the foot of the fence, each swaying from its root. */
+/** Tufts of grass at the foot of the fence, between the sunflower stems so none hides behind one, each swaying from its root. */
 function tufts(sk: Sketch, p: Placement, ctx: HalfContext): string {
-  return [56, 148, 236].map((x, i) => {
+  return [40, 130, 220].map((x, i) => {
     const d = `M ${x - 6} 172 Q ${x - 8} 162 ${x - 10} 156 Q ${x - 3} 162 ${x - 1} 168 Q ${x} 158 ${x + 1} 152 Q ${x + 3} 160 ${x + 2} 168 Q ${x + 6} 160 ${x + 10} 157 Q ${x + 8} 164 ${x + 6} 172 Z`;
     const blades = sk.path(moved(p, d), { fill: GRASS_DARK, stroke: STEM_DARK, strokeWidth: 1.2, roughness: 0.4 });
     return `<g class="fb-anim fb-garden-sway" style="${timing(`${ctx.seedKey}:sway:${i}`, [3, 4.5])}">${blades}</g>`;
