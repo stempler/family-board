@@ -252,3 +252,7 @@ it. Options, still to decide:
 - browser_mod: navigate back to the board after an idle time.
 - The "Zurück" button card in the task view (as in the dev dashboard), which
   needs a kid to tap it.
+
+## License
+
+[MIT](LICENSE)
