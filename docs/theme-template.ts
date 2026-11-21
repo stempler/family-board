@@ -1,6 +1,19 @@
-// Template for a new theme. Copy to src/themes/<id>.ts, replace every `template` / `TEMPLATE`
-// with the id, and follow the checklist in README.md ("Adding a theme"). This file is not
-// registered, bundled or tested; it is only typechecked, so it stays in sync with the Theme contract.
+// Template for a new theme. Copy to src/themes/<id>.ts and follow the checklist in README.md ("Adding a theme").
+//
+// 1. Placeholder: in the code the id is `template` (so this file typechecks and runs the theme contract);
+//    replace every `template` (the id, the `fb-template-` css/class prefix, the exported const) with your
+//    id. Comments write the placeholder as `<id>`.
+// 2. Imports: they are written for docs/. Once the file is in src/themes/<id>.ts use
+//      import { timing } from '../draw/anim';
+//      import { createSketch, num, type Sketch } from '../draw/sketch';
+//      import { at, placement, type Placement, type Units } from '../draw/units';
+//      import { item, type HalfContext, type Theme } from './types';
+//      // seasonal themes also:
+//      import { seasonKid, seasonPlacement } from '../draw/season';
+// 3. Set `label` (German display name) in the theme object.
+//
+// This file is not registered or bundled; it is typechecked and tests/themes/template.test.ts runs the
+// theme contract on it, so it stays in sync with the Theme contract.
 //
 // The contract (src/themes/types.ts and tests/themes/theme-contract.ts): renderHalf draws one kid's
 // scene inside ctx.box (no jars, no header), wraps every counted item with item(), keeps all
@@ -9,7 +22,6 @@ import { timing } from '../src/draw/anim';
 import { createSketch, num, type Sketch } from '../src/draw/sketch';
 import { at, placement, type Placement, type Units } from '../src/draw/units';
 import { item, type HalfContext, type Theme } from '../src/themes/types';
-// Seasonal themes also: import { seasonKid, seasonPlacement } from '../src/draw/season';
 
 // Draw in your own units (a fixed coordinate system) and let placement() fit them into the scene band.
 const UNITS: Units = { mid: 100, top: 0, w: 200, h: 120, fill: 0.92 };
@@ -21,7 +33,7 @@ const ITEM = '#f2c12e';
 
 function scenery(sk: Sketch, p: Placement, ctx: HalfContext): string {
   const ground = sk.rect(...at(p, 0, GROUND), UNITS.w * p.s, (UNITS.h - GROUND) * p.s, { fill: GRASS, strokeWidth: 2, roughness: 0.8 });
-  // Ambient animation: class "fb-anim fb-template-<name>", timing from a seeded key. Never on a fb-item itself.
+  // Ambient animation: class "fb-anim fb-<id>-<name>", timing from a seeded key. Never on a fb-item itself.
   const [bx, by] = at(p, 170, 40);
   const blob = `<g class="fb-anim fb-template-bob" style="${timing(`${ctx.seedKey}:bob`, [2.5, 3.5])}">${sk.circle(bx, by, 16 * p.s, { fill: ctx.kid.colour })}</g>`;
   return `<g data-part="ground">${ground}</g><g data-part="blob">${blob}</g>`;
@@ -56,6 +68,7 @@ const css = `
 
 export const template: Theme = {
   id: 'template',
+  label: 'Vorlage', // German display name; set your own
   capacity: CAPACITY,
   background: SKY,
   renderHalf,
