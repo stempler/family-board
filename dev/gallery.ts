@@ -18,7 +18,7 @@ function seasonDate(id: string): Date | null {
   return rule ? seasonStart(rule, year) : null;
 }
 
-function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [12, 37]): void {
+function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [12, 37], kidPatch: Record<string, Record<string, unknown>> = {}): void {
   const kids: FakeKid[] = [
     { id: 'k1', name: 'Mia', points: p1, theme, colour: '#d9534f' },
     { id: 'k2', name: 'Ben', points: p2, theme, colour: '#3b7dd8' },
@@ -31,7 +31,7 @@ function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [1
   figure.append(card, caption);
   document.getElementById('gallery')!.append(figure);
 
-  const config: Record<string, unknown> = { kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour })) };
+  const config: Record<string, unknown> = { kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour, ...kidPatch[k.id] })) };
   if (!season) config.seasons = [];
   card.setConfig(config);
   card.now = () => season ?? new Date();
@@ -43,4 +43,10 @@ for (const id of Object.keys(THEMES)) addTile(id, id, null);
 for (const points of [[0, 15], [16, 300]] as [number, number][]) addTile(`chess-points-${points.join('-')}`, 'chess', null, points);
 for (const [id, theme] of Object.entries(THEMES)) {
   if (theme.renderSeasonScene) addTile(`season-${id}`, id, seasonDate(id) ?? new Date(year, 11, 15));
+}
+// Mia's birthday on the first day of the Christmas default season: her half is the birthday picture, Ben's (dino favourite) the Christmas half, no shared tree.
+{
+  const christmas = seasonDate('christmas')!;
+  const md = `${String(christmas.getMonth() + 1).padStart(2, '0')}-${String(christmas.getDate()).padStart(2, '0')}`;
+  addTile('birthday-in-christmas', 'bricks', christmas, [12, 37], { k1: { birthday: md }, k2: { theme: 'dino' } });
 }

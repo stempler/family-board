@@ -33,10 +33,16 @@ try {
       return {
         theme: root?.querySelector('[data-theme]')?.getAttribute('data-theme') ?? null,
         halves: root?.querySelectorAll('[data-kid-half]').length ?? 0,
+        themes: [...(root?.querySelectorAll('[data-theme]') ?? [])].map((g) => g.getAttribute('data-theme')),
+        seasonKids: root?.querySelectorAll('[data-season-kid]').length ?? 0,
       };
     });
-    const expected = name.replace(/^season-/, '').replace(/-points-[\d-]+$/, ''); // extra tiles: <theme>-points-<a>-<b>
+    const expected = name.replace(/^season-/, '').replace(/-points-[\d-]+$/, '').replace(/-in-\w+$/, ''); // extra tiles: <theme>-points-<a>-<b>, <theme>-in-<season>
     if (info.theme !== expected) failures.push(`${name}: first [data-theme] is ${info.theme}, expected ${expected}`);
+    if (name === 'birthday-in-christmas') {
+      if (info.seasonKids > 0) failures.push(`${name}: shared season scene drawn on a birthday`);
+      if (info.themes[1] !== 'christmas') failures.push(`${name}: second half's [data-theme] is ${info.themes[1]}, expected christmas`);
+    }
     if (info.halves === 0) failures.push(`${name}: no data-kid-half`);
     await tile.screenshot({ path: join(out, `gallery-${name}.png`) });
     console.log(`[gallery-shots] ${name}: theme=${info.theme} halves=${info.halves}`);
