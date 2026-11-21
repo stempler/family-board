@@ -259,3 +259,17 @@ The parent's decision: **TaskMate is the main source, the card's `kids[].birthda
   (Fußball) are drawn clearly larger. The football's shot ball no longer starts behind a trophy.
 - Piraten: the starfish and the shell on the beach are removed (they are Sommer's counted items).
 - Geburtstag: a row of ten candles gets more room.
+
+## Third amendment: how the "tens" are drawn (2026-11-21)
+
+The kids' totals move a lot, from a few points to 250 and more, so both ends matter. The parent compared two versions
+of Baustelle side by side and chose this rule (the parent's decision, on Claude's recommendation):
+
+- **The first five tens are large** (at least 4x a small item's area) and stand in one prominent row or group, so a
+  ten is impressive at low totals.
+- **Tens 6 to 30 have one uniform medium size**, as large as the scene allows and at least 2x a small item's area, in
+  tidy rows of five or ten. A ten never shrinks to the size of a single.
+- Because big + small never exceeds the capacity, later tens may take over the spots of the last small items in the
+  small items' fill order. A spot is never needed by both kinds at once, so nothing moves when a point is added.
+- The rule applies to Baustelle, Fußball, St. Martin and Sommer. Unterwasser keeps one size for every ten (its single
+  pearl shell is already clearly bigger than a shell). Piraten, Geburtstag and Garten are unchanged.
