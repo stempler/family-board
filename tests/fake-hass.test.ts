@@ -21,5 +21,15 @@ describe('makeFakeHass', () => {
     expect(model.kids[0].jars).toEqual([{ id: 'j1', name: 'Bausteine-Set', icon: { kind: 'emoji', value: '🧱' }, current: 22, goal: 50 }]);
     expect(model.kids[1].jars).toEqual([]);
     expect(model.sharedJars).toEqual([{ id: 'j2', name: 'Trip', icon: { kind: 'emoji', value: '✈️' }, goal: 40, contributions: { k1: 5, k2: 8 } }]);
+    expect(model.kids.some((k) => 'birthday' in k)).toBe(false);
+  });
+
+  it('puts a birthday into the overview sensor in TaskMate\'s shape', () => {
+    const withBirthday: FakeKid[] = [{ ...kids[0], birthday: { age: 7 } }, { ...kids[1], birthday: {} }];
+    const states = makeFakeHass(withBirthday, jars).states;
+    const children = states['sensor.taskmate_overview'].attributes.children as Record<string, unknown>[];
+    expect(children.map((c) => c.birthday)).toEqual([{ multiplier: 2, age: 7 }, { multiplier: 2 }]);
+    const config = normalizeConfig({ kids: kids.map((k) => ({ id: k.id, theme: k.theme })) });
+    expect(toBoardModel(states, config).kids.map((k) => k.birthday)).toEqual([{ age: 7 }, {}]);
   });
 });

@@ -112,6 +112,23 @@ describe('family-board-card element', () => {
     expect(html()).not.toContain('data-theme="birthday"');
   });
 
+  it('switches to the birthday picture when TaskMate reports the birthday on the same date', async () => {
+    const el = await make({ kids: [{ id: 'k1', theme: 'bricks' }, { id: 'k2', theme: 'dino' }] });
+    const html = () => el.shadowRoot!.innerHTML;
+    el.now = () => new Date(2026, 5, 10, 8, 0);
+    el.hass = { states };
+    await el.updateComplete;
+    expect(html()).not.toContain('data-theme="birthday"');
+    const next = JSON.parse(JSON.stringify(states)) as HassStates;
+    const children = next['sensor.taskmate_overview'].attributes.children as Record<string, unknown>[];
+    children.find((c) => c.id === 'k1')!.birthday = { multiplier: 2, age: 7 };
+    el.now = () => new Date(2026, 5, 10, 8, 1);
+    el.hass = { states: next };
+    await el.updateComplete;
+    expect(html()).toContain('data-theme="birthday"');
+    expect(html().match(/data-part="candle"/g) ?? []).toHaveLength(7);
+  });
+
   it('navigates on a tap of the season scene in a kid half (10 December)', async () => {
     const el = await make();
     el.now = () => new Date(2026, 11, 10);

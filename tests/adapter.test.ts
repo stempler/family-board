@@ -52,6 +52,37 @@ describe('toBoardModel', () => {
   });
 });
 
+describe('TaskMate birthday mode', () => {
+  /** The fixture with `birthday` set on Mia's overview entry (left out when `undefined`). */
+  const withBirthday = (birthday: unknown): HassStates => {
+    const overview = states['sensor.taskmate_overview'];
+    const children = (overview.attributes.children as Record<string, unknown>[]).map((c) =>
+      c.id === 'k1' && birthday !== undefined ? { ...c, birthday } : c);
+    return { ...states, 'sensor.taskmate_overview': { ...overview, attributes: { ...overview.attributes, children } } };
+  };
+  const mia = (birthday: unknown) => toBoardModel(withBirthday(birthday), cfg(['k1', 'k2'])).kids[0];
+
+  it('takes the age on the birthday', () => {
+    expect(mia({ multiplier: 2, age: 7 }).birthday).toEqual({ age: 7 });
+  });
+  it('marks the birthday without an age', () => {
+    expect(mia({ multiplier: 2 }).birthday).toEqual({});
+    expect(mia({ multiplier: 2, chores_off: true }).birthday).toEqual({});
+  });
+  it('leaves the birthday out on other days', () => {
+    expect('birthday' in mia(undefined)).toBe(false);
+    expect('birthday' in toBoardModel(withBirthday({ multiplier: 2, age: 7 }), cfg(['k1', 'k2'])).kids[1]).toBe(false);
+  });
+  it('ignores a birthday that is not an object', () => {
+    for (const b of [null, true, 'x', 7, [1]]) expect('birthday' in mia(b), String(b)).toBe(false);
+  });
+  it('takes the age only as a whole number of at least 1', () => {
+    for (const age of ['7', 7.5, 0, -1, Number.NaN, Number.POSITIVE_INFINITY, null]) {
+      expect(mia({ multiplier: 2, age }).birthday, String(age)).toEqual({});
+    }
+  });
+});
+
 describe('parseIcon', () => {
   const fb = { kind: 'mdi', value: 'mdi:gift' } as const;
   it('parses', () => {

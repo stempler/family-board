@@ -51,6 +51,7 @@ for (const [id, theme] of Object.entries(THEMES)) {
   if (theme.renderSeasonScene) addTile(`season-${id}`, id, seasonDate(id) ?? new Date(year, 11, 15));
 }
 // Mia's 7th birthday on the first day of the Christmas default season: her half is the birthday picture, Ben's (dino favourite) the Christmas half, no shared tree.
+// This tile uses the card config's `birthday` (the fallback path) on purpose; the playground's checkbox shows TaskMate's birthday mode.
 {
   const christmas = seasonDate('christmas')!;
   const md = `${christmas.getFullYear() - 7}-${String(christmas.getMonth() + 1).padStart(2, '0')}-${String(christmas.getDate()).padStart(2, '0')}`;
