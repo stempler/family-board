@@ -496,6 +496,14 @@ describe('birthday', () => {
       expect(candles(out)).toBe(7);
     });
 
+    it('takes the age the kid turns this year from the card birthday when TaskMate reports the day without an age', () => {
+      const c = cfg();
+      c.kids[0].birthday = '2019-12-10';
+      const out = half(two({ date: june10(1) }, c, [kid('k1', 5, { birthday: {} }), kid('k2', 3)]), 'k1');
+      expect(out).toContain('data-theme="birthday"');
+      expect(candles(out)).toBe(7);
+    });
+
     it('prefers TaskMate\'s age over the card birthday', () => {
       const c = cfg();
       c.kids[0].birthday = '2019-12-10';
