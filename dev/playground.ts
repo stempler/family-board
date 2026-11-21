@@ -10,7 +10,7 @@ const kids: FakeKid[] = [
   { id: 'k2', name: 'Ben', points: 30, theme: 'dino', colour: '#3b7dd8' },
 ];
 const jars: FakeJar[] = [
-  { id: 'j1', name: 'Lego Set', icon: '🧱', goal: 50, allocations: { k1: 22 }, shared: false, assignedTo: ['k1'] },
+  { id: 'j1', name: 'Bausteine-Set', icon: '🧱', goal: 50, allocations: { k1: 22 }, shared: false, assignedTo: ['k1'] },
   { id: 'j2', name: 'Familienausflug', icon: '✈️', goal: 40, allocations: { k1: 5, k2: 8 }, shared: true, assignedTo: [] },
 ];
 let date = new Date();

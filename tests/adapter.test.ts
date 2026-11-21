@@ -78,7 +78,7 @@ describe.each(captured)('captured TaskMate data %s', (_file, data) => {
   it('maps jars per kid', () => {
     const mia = m.kids[0].jars;
     expect(mia.map((j) => j.name)).toContain('Kino');
-    const jar = mia.find((j) => j.name === 'LEGO-Set');
+    const jar = mia.find((j) => j.name === 'Bausteine-Set');
     expect([jar?.current, jar?.goal]).toEqual([22, 50]);
     expect(m.kids[1].jars.map((j) => j.name)).toEqual(['Kino']);
   });
