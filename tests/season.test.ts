@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEASONS } from '../src/config';
-import { activeSeason, ageOn, easterOffset, easterSunday, seasonStart, isBirthday } from '../src/season';
+import { activeSeason, ageOn, ageTurning, easterOffset, easterSunday, seasonStart, isBirthday } from '../src/season';
 
 describe('activeSeason', () => {
   it('matches the start of the default season', () => {
@@ -157,5 +157,18 @@ describe('ageOn', () => {
   it('knows no age below 1 or for a birth date in the future', () => {
     expect(ageOn('2026-12-10', new Date(2026, 11, 10))).toBeUndefined();
     expect(ageOn('2027-01-01', new Date(2026, 11, 10))).toBeUndefined();
+  });
+});
+
+describe('ageTurning', () => {
+  it('is the age the kid turns in the year of the date, whatever the day', () => {
+    expect(ageTurning('2019-12-10', new Date(2026, 5, 1))).toBe(7);
+  });
+  it('knows no age without a year', () => {
+    expect(ageTurning('12-10', new Date(2026, 5, 1))).toBeUndefined();
+  });
+  it('knows no age below 1 or for a birth year in the future', () => {
+    expect(ageTurning('2026-12-10', new Date(2026, 5, 1))).toBeUndefined();
+    expect(ageTurning('2027-01-01', new Date(2026, 5, 1))).toBeUndefined();
   });
 });

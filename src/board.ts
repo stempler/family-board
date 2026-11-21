@@ -5,7 +5,7 @@ import { esc, INK, num, PAPER, truncate } from './draw/sketch';
 import { de } from './i18n';
 import { groupItems, newItemRange } from './items';
 import type { BoardModel, Kid } from './model';
-import { activeSeason, ageOn, isBirthday } from './season';
+import { activeSeason, ageOn, ageTurning, isBirthday } from './season';
 import { getTheme, THEMES } from './themes/registry';
 import type { HalfContext, Theme } from './themes/types';
 
@@ -155,7 +155,10 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
     const prev = opts.prevPoints?.[kid.id];
     const { newFrom, newTo } = theme.items ? theme.items(kid.points, prev) : newItemRange(prev, kid.points, theme.capacity);
-    const age = kid.birthday?.age ?? (kc?.birthday !== undefined ? ageOn(kc.birthday, opts.date) : undefined);
+    // TaskMate's age first; on TaskMate's birthday (whatever the card's day) the age the kid turns this year.
+    const cardAge = kc?.birthday === undefined ? undefined
+      : kid.birthday !== undefined ? ageTurning(kc.birthday, opts.date) : ageOn(kc.birthday, opts.date);
+    const age = kid.birthday?.age ?? cardAge;
     const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom, newTo, seedKey: `${kid.id}:scene`, ...(age !== undefined ? { age } : {}) };
     return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });

@@ -89,3 +89,14 @@ export function ageOn(birthday: string, date: Date): number | undefined {
   const age = date.getFullYear() - Number(m[1]) - (reached ? 0 : 1);
   return age >= 1 ? age : undefined;
 }
+
+/**
+ * The age the kid turns in the year of `date` from a "YYYY-MM-DD" birthday, whatever its month and day: what TaskMate
+ * itself computes on the day it reports the birthday. Undefined without a year or below 1.
+ */
+export function ageTurning(birthday: string, date: Date): number | undefined {
+  const m = WITH_YEAR.exec(birthday);
+  if (!m) return undefined;
+  const age = date.getFullYear() - Number(m[1]);
+  return age >= 1 ? age : undefined;
+}

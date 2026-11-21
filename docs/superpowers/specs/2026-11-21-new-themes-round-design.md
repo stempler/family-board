@@ -245,7 +245,8 @@ The parent's decision: **TaskMate is the main source, the card's `kids[].birthda
   badge), and it is the only source of the age on ordinary days (a kid with `birthday` as favourite theme), because
   TaskMate sends the age only on the day.
 - The age on the cake: TaskMate's `age` when TaskMate reports the birthday and gives one; otherwise the age from the
-  card's `birthday` if it has a year; otherwise none (topper).
+  card's `birthday` if it has a year; otherwise none (topper). On TaskMate's day the card's year gives the age the kid
+  turns that year, also when the card's day differs.
 - TaskMate does not expose the date on other days, so the card cannot detect that the two dates differ. If they do,
   the birthday picture shows on both days. *(Stated limitation.)*
 - TaskMate names stay in `src/adapter.ts`: the adapter maps the payload to `Kid.birthday?: { age?: number }`
