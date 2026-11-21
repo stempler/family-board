@@ -3,7 +3,7 @@ import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
 import { THEMES } from '../../src/themes/registry';
 import { footprint, spots } from '../../src/themes/summer';
-import { layout } from './layout';
+import { type Footprint, layout, mixes, movedItems } from './layout';
 import { runSeasonContract, seasonBox, seasonHalves } from './season-contract';
 import { beforeItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
@@ -74,27 +74,62 @@ describe('summer season scene', () => {
 });
 
 describe('summer item layout', () => {
-  const { overlapping, area } = layout(footprint);
+  const { overlapping, area, size, onScenery } = layout(footprint);
 
   it('lays the shells in three rows of ten', () => {
     const shells = spots(0, 30);
     for (const r of [0, 10, 20]) for (const s of shells.slice(r, r + 10)) expect(s.y).toBe(shells[r].y);
     expect(new Set(shells.map((s) => s.y)).size).toBe(3);
   });
-  it('keeps every starfish clearly bigger than a shell, also on a shell spot', () => {
-    const shell = area(spots(0, 1)[0]);
-    for (const s of spots(summer.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * shell);
+  const small = () => area(spots(0, 1)[0]);
+  const stars = () => spots(summer.capacity, 0);
+
+  it('has a spot for as many starfish as the grouping can ask for', () => {
+    expect(stars()).toHaveLength(summer.capacity);
   });
-  it('keeps every own starfish spot clear of every shell spot and of each other', () => {
-    const own = spots(summer.capacity, 0).filter((s) => s.slot < 0);
-    expect(overlapping([...own, ...spots(0, summer.capacity)])).toEqual([]);
+  it('makes the first five starfish large, at least four times a shell\'s area, in one row', () => {
+    const five = stars().slice(0, 5);
+    for (const s of five) expect(area(s)).toBeGreaterThanOrEqual(4 * small());
+    expect(new Set(five.map((s) => s.y)).size).toBe(1);
   });
-  for (const points of [30, 37, 199, 1000]) {
-    it(`draws no two items on top of each other at ${points} points`, () => {
-      const { big, small } = groupItems(points, summer.capacity);
-      const list = spots(big, small);
-      expect(list).toHaveLength(big + small);
-      expect(overlapping(list)).toEqual([]);
-    });
-  }
+  it('keeps every starfish at least twice a shell\'s area', () => {
+    for (const s of stars()) expect(area(s)).toBeGreaterThanOrEqual(2 * small());
+  });
+  it('gives starfish 6 to 30 one medium size, smaller than the first five', () => {
+    const rest = stars().slice(5);
+    for (const s of rest) {
+      expect(size(s).w).toBeCloseTo(size(rest[0]).w, 9);
+      expect(size(s).h).toBeCloseTo(size(rest[0]).h, 9);
+    }
+    expect(area(stars()[0])).toBeGreaterThan(area(rest[0]));
+  });
+  it('lays the medium starfish in a row of five, then in rows of ten', () => {
+    const rows = new Map<number, number>();
+    for (const s of stars().slice(5)) rows.set(s.y, (rows.get(s.y) ?? 0) + 1);
+    expect([...rows.values()]).toEqual([5, 10, 10]);
+  });
+  it('keeps every item on the sand, clear of the bucket, the spade and the castle', () => {
+    const scenery: Record<string, Footprint> = {
+      crossbar: [58, 99, 74, 109], handle: [14, 121, 56, 139], rim: [10, 132, 60, 139], bucket: [12, 136, 58, 176],
+      castle: [228, 126, 308, 176], tower: [258, 108, 278, 176], pole: [266, 78, 290, 108],
+    };
+    for (const { big, small: n } of mixes(summer.capacity)) {
+      const list = spots(big, n);
+      expect(onScenery(list, scenery), `${big} big, ${n} small`).toEqual([]);
+      for (const s of list) {
+        const [l, t, r, b] = footprint(s);
+        expect(l >= 0 && r <= 320 && t >= 104 && b <= 240, `${s.kind} at ${s.x},${s.y}`).toBe(true);
+      }
+    }
+  });
+  it('never moves or resizes an item when one is added', () => {
+    expect(movedItems(spots, footprint, summer.capacity)).toEqual([]);
+  });
+  it('draws no two items on top of each other at any total up to 1000', () => {
+    for (const { big, small: n, points } of mixes(summer.capacity)) {
+      const list = spots(big, n);
+      expect(list, `${points} points`).toHaveLength(big + n);
+      expect(overlapping(list), `${points} points`).toEqual([]);
+    }
+  });
 });

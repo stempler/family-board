@@ -8,8 +8,9 @@ import { item, type HalfContext, type Theme } from './types';
 // A sunny summer beach, drawn in "beach units": a warm sky with a big sun at the top left, a narrow
 // turquoise sea from the horizon (y 64) to the shore (y 100), then warm sand down to the bottom (y 240).
 // A bucket in the kid colour with a spade stands at the left, a sandcastle with a flag in the kid colour
-// at the right. Starfish lie on the sand beside the castle, shells in three rows of ten in front, starting
-// at the bucket. No palm, no ship: that is the pirate beach.
+// at the right. Shells lie in three rows of ten in front, starting at the bucket. Starfish lie on the sand between the
+// bucket and the castle, five large ones in a row in front of a row of five medium ones; further medium ones lie in two
+// rows of ten on the shell rows. No palm, no ship: that is the pirate beach.
 const MID = 160;
 const UNITS_W = 320;
 const UNITS_H = 240;
@@ -37,29 +38,42 @@ const SHELL_LINE = '#94603e';
 
 const SHELL_W = 18; // a snail shell lying on the sand: 18 x 13 units
 const SHELL_H = 13;
-const STAR_R = 15; // a starfish: 30 x 30 units (counted as its full square)
-const SPILL = 0.66; // scale of a starfish lying on a shell spot, so it fits the shell pitch
+const STAR_R = 15; // a starfish at scale 1: 30 x 30 units (counted as its full square)
+const BIG = 31 / 30; // the first five: 31 x 31, a little over four times a shell's area; five fit between bucket and castle
+const MEDIUM = 28 / 30; // the rest: 28 x 28, more than three times a shell's area; ten fit a shell row
 
-/** Own starfish spots beside the castle, the ones closest to it first: 36 apart in a row, 34 between rows. */
-const STARS: Pt[] = [[194, 158], [158, 158], [122, 158], [86, 158], [176, 124], [140, 124], [104, 124]];
+/** The x of `n` spots centred on `cx`, `pitch` apart, right to left (the one nearest the castle first). */
+const across = (n: number, cx: number, pitch: number) => Array.from({ length: n }, (_, i) => cx + pitch * ((n - 1) / 2 - i));
 
-/** Shell spots: three rows of ten, 30 apart, 22 between rows; the row next to the bucket first, left to right. */
-const SHELL_SPOTS: Pt[] = [186, 208, 230].flatMap((y) => Array.from({ length: 10 }, (_, i): Pt => [25 + 30 * i, y]));
+/** Shell rows: three rows of ten, 30 apart, 21 between rows; the row next to the bucket first, left to right. */
+const SHELL_X = Array.from({ length: 10 }, (_, i) => 25 + 30 * i);
+const SHELL_ROWS = [188, 209, 230];
+const SHELL_SPOTS: Pt[] = SHELL_ROWS.flatMap((y) => SHELL_X.map((x): Pt => [x, y]));
 
 const CAPACITY = SHELL_SPOTS.length;
 
-export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number; slot: number } // beach units; k scales the drawing; slot is the shell spot, -1 on an own starfish spot
+/**
+ * Starfish spots [x, y, k], in order: five large ones in a row between the bucket and the castle, then a row of five
+ * medium ones behind them (never needed by a shell), then a row of ten medium ones lying across the middle and the
+ * front shell row, then a row of ten across the back and the middle shell row, each right to left. The n-th starfish
+ * leaves room for at most 30 - n shells, so the shells it covers are the last ones in the shell order: the 11th covers
+ * shells 20 and 30, the 20th shells 11 and 21, the 21st shells 10 and 20, the 30th shells 1 and 11.
+ */
+const STARS: [number, number, number][] = [
+  ...across(5, 144, 31 + 2.2).map((x): [number, number, number] => [x, 158.5, BIG]),
+  ...across(5, 148, 30).map((x): [number, number, number] => [x, 125, MEDIUM]),
+  ...[...SHELL_X].reverse().map((x): [number, number, number] => [x, 225.5, MEDIUM]),
+  ...[...SHELL_X].reverse().map((x): [number, number, number] => [x, 195, MEDIUM]),
+];
 
-/** Where the items go: starfish first on their own spots, then on shell spots (smaller); shells fill the remaining shell spots in order. */
+export interface Spot { kind: 'big' | 'small'; x: number; y: number; k: number; slot: number } // beach units; k scales the drawing; slot is the shell spot, -1 for a starfish
+
+/** Where the items go: starfish on their spots in order, shells on the shell spots in order. No item ever moves when one is added. */
 export function spots(big: number, small: number): Spot[] {
-  const out: Spot[] = [];
-  let slot = 0;
-  for (let i = 0; i < big && slot < SHELL_SPOTS.length; i++) {
-    if (i < STARS.length) out.push({ kind: 'big', x: STARS[i][0], y: STARS[i][1], k: 1, slot: -1 });
-    else out.push({ kind: 'big', x: SHELL_SPOTS[slot][0], y: SHELL_SPOTS[slot][1], k: SPILL, slot: slot++ });
-  }
-  for (let i = 0; i < small && slot < SHELL_SPOTS.length; i++, slot++) out.push({ kind: 'small', x: SHELL_SPOTS[slot][0], y: SHELL_SPOTS[slot][1], k: 1, slot });
-  return out;
+  return [
+    ...STARS.slice(0, big).map(([x, y, k]): Spot => ({ kind: 'big', x, y, k, slot: -1 })),
+    ...SHELL_SPOTS.slice(0, Math.max(0, Math.min(small, CAPACITY - big))).map(([x, y], slot): Spot => ({ kind: 'small', x, y, k: 1, slot })),
+  ];
 }
 
 /** The box a drawn item covers, in beach units: [left, top, right, bottom]. */
