@@ -285,6 +285,15 @@ describe('renderBoard', () => {
     it('marks only the new big item when a merge happens above capacity', () => expect(seasonCount(39, 40)).toBe(1));
     it('marks the new small item above capacity', () => expect(seasonCount(37, 38)).toBe(1));
     it('marks nothing above capacity when points dropped', () => expect(seasonCount(40, 38)).toBe(0));
+
+    // Chess counts its own items: kings on the shelf, then the captured pieces.
+    const chessNew = (prev: number, points: number) => {
+      const cfg = config([{ id: 'k1', theme: 'chess', show_number: true }]);
+      const out = renderBoard(model([kid('k1', points)]), cfg, { date: JUNE, prevPoints: { k1: prev } });
+      return { shelf: (group(out, 'data-part="shelf"').match(/fb-new/g) ?? []).length, captured: (group(out, 'data-part="captured"').match(/fb-new/g) ?? []).length };
+    };
+    it('pops the new captured piece in chess', () => expect(chessNew(18, 19)).toEqual({ shelf: 0, captured: 1 }));
+    it('pops only the new king when a chess game is won', () => expect(chessNew(31, 32)).toEqual({ shelf: 1, captured: 0 }));
   });
 
   it('spans the full width with one kid', () => {

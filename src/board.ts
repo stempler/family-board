@@ -147,7 +147,9 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     const kc = config.kids.find((k) => k.id === kid.id);
     const theme = seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
     const box: Box = { x: i * hw, y: 0, w: hw, h: H };
-    const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), ...newItemRange(opts.prevPoints?.[kid.id], kid.points, theme.capacity), seedKey: `${kid.id}:scene` };
+    const prev = opts.prevPoints?.[kid.id];
+    const { newFrom, newTo } = theme.items ? theme.items(kid.points, prev) : newItemRange(prev, kid.points, theme.capacity);
+    const ctx: HalfContext = { kid, box, groups: groupItems(kid.points, theme.capacity), newFrom, newTo, seedKey: `${kid.id}:scene` };
     return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });
 
