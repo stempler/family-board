@@ -11,6 +11,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const tokenFile = join(root, 'dev/ha/.token');
 const RESOURCE_PATH = '/local/family-board/family-board-card.js';
 const DASHBOARD = 'family-board';
+const cardFile = join(root, 'dist/family-board-card.js');
+
+// The card resource is versioned by a hash of the built card, so fail early, before any network call, without a build.
+if (!existsSync(cardFile)) {
+  console.error('[bootstrap] dist/family-board-card.js is missing. Run `mise run build` (or `mise run ha:up`, which builds first).');
+  process.exit(1);
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (msg) => console.log(`[bootstrap] ${msg}`);
@@ -96,7 +103,7 @@ const ws = await connect(BASE, token);
 try {
   // 4. Lovelace resource. Its URL carries a hash of the built card, so the browser never keeps running an
   // older build from its cache after the card was rebuilt.
-  const build = createHash('sha256').update(readFileSync(join(root, 'dist/family-board-card.js'))).digest('hex').slice(0, 12);
+  const build = createHash('sha256').update(readFileSync(cardFile)).digest('hex').slice(0, 12);
   const resources = await ws.call({ type: 'lovelace/resources' });
   const url = `${RESOURCE_PATH}?v=${build}`;
   const existing = resources.find((r) => r.url.startsWith(RESOURCE_PATH));
