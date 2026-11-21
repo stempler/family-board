@@ -49,7 +49,9 @@ const HUB = '#c9ccd1';
 
 const SCENE_TOP = 0.17; // leave room for the board header
 const SCENE_BOTTOM = 0.79; // leave room for the jar row
-const ROLL = 20; // px the car rolls forward; the keyframes use the same value
+const CAR_X0 = 113; // scene x of the car's leftmost / rightmost point
+const CAR_X1 = 214;
+const CAR_MARGIN = 10; // px of slack so wobble and tyres are fully out of sight
 
 type Pt = [number, number];
 
@@ -215,7 +217,7 @@ const FRONT = 190;
 const AXLE = 248;
 const WHEEL_R = 9;
 
-/** A spoked hub that turns while the car rolls; it shares the roll's timing so both stay in step. */
+/** A spoked hub that turns while the car rolls; it shares the drive's timing so both stay in step. */
 function hub(p: Placement, x: number, t: string): string {
   const [cx, cy] = at(p, x, AXLE);
   const r = 4.5 * p.s;
@@ -225,8 +227,14 @@ function hub(p: Placement, x: number, t: string): string {
 }
 
 /** A generic open-wheel race car in the kid's colour, seen from the side, nose to the right. Not a counted item. */
-function car(sk: Sketch, p: Placement, colour: string, seedKey: string): string {
-  const t = timing(`${seedKey}:roll`, [14, 16]);
+function car(sk: Sketch, p: Placement, colour: string, seedKey: string, box: Box): string {
+  const t = timing(`${seedKey}:drive`, [7, 9]);
+  const rest = at(p, CAR_X0, 0)[0];
+  const restEnd = at(p, CAR_X1, 0)[0];
+  const inPx = -(restEnd - box.x + CAR_MARGIN); // car's right edge ends left of the half
+  const outPx = box.x + box.w - rest + CAR_MARGIN; // car's left edge ends right of the half
+  const style = `${t};--in:${num(inPx)}px;--out:${num(outPx)}px`;
+  const clipId = `fb-racing-clip-${seedKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
   const wing = sk.line(...at(p, 122, 238), ...at(p, 122, 225), { strokeWidth: 2, roughness: 0.3 }) +
     sk.rect(...at(p, 113, 221), 16 * p.s, 5 * p.s, { fill: colour, strokeWidth: 2, roughness: 0.4 });
   const body = sk.polygon([at(p, 120, 249), at(p, 120, 237), at(p, 146, 234), at(p, 154, 226), at(p, 172, 226), at(p, 180, 236), at(p, 214, 241), at(p, 214, 249)], { fill: colour, strokeWidth: 2.4, roughness: 0.6 });
@@ -236,7 +244,8 @@ function car(sk: Sketch, p: Placement, colour: string, seedKey: string): string 
     `<rect x="${num(hx + 1 * p.s)}" y="${num(hy - 2.5 * p.s)}" width="${num(5 * p.s)}" height="${num(3 * p.s)}" rx="${num(1.2 * p.s)}" fill="#4a5a70"/>`;
   const wheels = sk.circle(...at(p, REAR, AXLE), 2 * WHEEL_R * p.s, { fill: TYRE, strokeWidth: 1.8, roughness: 0.5 }) +
     sk.circle(...at(p, FRONT, AXLE), 2 * WHEEL_R * p.s, { fill: TYRE, strokeWidth: 1.8, roughness: 0.5 });
-  return `<g data-part="car"><g class="fb-anim fb-racing-roll" style="${t}">${wing}${helmet}${body}${stripe}${wheels}${hub(p, REAR, t)}${hub(p, FRONT, t)}</g></g>`;
+  const clip = `<clipPath id="${clipId}"><rect x="${num(box.x)}" y="${num(box.y)}" width="${num(box.w)}" height="${num(box.h)}"/></clipPath>`;
+  return `<g data-part="car">${clip}<g clip-path="url(#${clipId})"><g class="fb-anim fb-racing-drive" style="${style}">${wing}${helmet}${body}${stripe}${wheels}${hub(p, REAR, t)}${hub(p, FRONT, t)}</g></g></g>`;
 }
 
 function renderHalf(ctx: HalfContext): string {
@@ -245,7 +254,7 @@ function renderHalf(ctx: HalfContext): string {
   const p = placement(ctx.box);
   const colour = ctx.kid.colour;
   return `<g>${clouds(p)}${track(sk, p)}${shelf(sk, p)}${podium(sk, p)}${items(sk, p, ctx)}` +
-    `${flag(front, p, ctx.seedKey)}${car(front, p, colour, ctx.seedKey)}</g>`;
+    `${flag(front, p, ctx.seedKey)}${car(front, p, colour, ctx.seedKey, ctx.box)}</g>`;
 }
 
 const css = `
@@ -255,16 +264,18 @@ const css = `
     50% { transform: skewY(0deg) scaleX(1); }
     75% { transform: skewY(5deg) scaleX(0.96); }
   }
-  @keyframes fb-racing-roll {
-    0%, 84%, 100% { transform: translateX(0); }
-    89%, 92% { transform: translateX(${ROLL}px); }
+  @keyframes fb-racing-drive {
+    0% { transform: translateX(var(--in)); }
+    15%, 55% { transform: translateX(0); }
+    70%, 100% { transform: translateX(var(--out)); }
   }
   @keyframes fb-racing-spin {
-    0%, 84%, 100% { transform: rotate(0deg); }
-    89%, 92% { transform: rotate(110deg); }
+    0% { transform: rotate(0deg); }
+    15%, 55% { transform: rotate(720deg); }
+    70%, 100% { transform: rotate(2160deg); }
   }
   .fb-racing-flag { animation-name: fb-racing-flag; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 50%; }
-  .fb-racing-roll { animation-name: fb-racing-roll; animation-timing-function: ease-in-out; }
+  .fb-racing-drive { animation-name: fb-racing-drive; animation-timing-function: ease-in-out; }
   .fb-racing-spin { animation-name: fb-racing-spin; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 50%; }
 `;
 
