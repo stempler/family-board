@@ -50,10 +50,9 @@ function normalizeKid(raw: unknown, i: number): KidConfig {
     kid.colour = raw.colour;
   }
   if (raw.tap_path !== undefined) {
-    if (typeof raw.tap_path !== 'string' || !raw.tap_path.startsWith('/')) {
-      throw new Error(`kids[${i}]: tap_path must be a string starting with "/"`);
-    }
-    kid.tap_path = raw.tap_path;
+    const path = typeof raw.tap_path === 'string' ? raw.tap_path.trim() : '';
+    if (!path.startsWith('/')) throw new Error(`kids[${i}]: tap_path must be a string starting with "/"`);
+    kid.tap_path = path;
   }
   return kid;
 }
@@ -73,6 +72,14 @@ function normalizeSeason(raw: unknown, i: number): SeasonRule {
     throw new Error(`seasons[${i}]: from is after to (Easter-relative rules don't wrap the year end)`);
   }
   return { theme: raw.theme.trim(), from, to };
+}
+
+/** Rejects two kid entries with the same id: they would draw the same kid twice. */
+function uniqueIds(kids: KidConfig[]): KidConfig[] {
+  kids.forEach((k, i) => {
+    if (kids.findIndex((o) => o.id === k.id) !== i) throw new Error(`kids[${i}]: duplicate id "${k.id}"`);
+  });
+  return kids;
 }
 
 export function normalizeConfig(raw: unknown): CardConfig {
@@ -96,7 +103,7 @@ export function normalizeConfig(raw: unknown): CardConfig {
     type: typeof raw.type === 'string' ? raw.type : 'custom:family-board-card',
     overview_entity: nonEmptyString(raw.overview_entity) ? raw.overview_entity : 'sensor.taskmate_overview',
     rewards_entity: nonEmptyString(raw.rewards_entity) ? raw.rewards_entity : 'sensor.taskmate_rewards',
-    kids: raw.kids.map(normalizeKid),
+    kids: uniqueIds(raw.kids.map(normalizeKid)),
     seasons,
     reward_icons,
   };

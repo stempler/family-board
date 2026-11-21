@@ -76,10 +76,10 @@ screenshots (`ha-theme-<id>.png`, `ha-season-<id>.png`, ...) to
 
 | Field | Default | Description |
 |---|---|---|
-| `id` | required | TaskMate child id (see below). |
+| `id` | required | TaskMate child id (see below). Each kid may appear only once. |
 | `theme` | required | Favourite theme, any id from [Themes](#themes). Unknown themes fall back to `bricks`. |
 | `colour` | TaskMate child colour | Accent colour for the kid. Without it the child's colour from TaskMate is used, else a built-in palette colour. |
-| `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. |
+| `tap_path` | none | Dashboard path (must start with `/`) opened when the kid is tapped. A kid that is not found in TaskMate is not tappable. |
 | `show_number` | `true` | Show the point total as a small number chip at the right of the header. Set `false` to hide it. |
 
 ```yaml
