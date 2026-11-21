@@ -31,6 +31,11 @@ and compares them with the SVG files in `tests/__snapshots__/svg/`.
 - Rendering is deterministic, so any difference is a visible change to the
   board.
 - A refactor must leave the snapshots untouched.
+- The files hold one SVG element per line (only the test's serialisation; the card's output is a single
+  line). To review a change, open the `.svg` in a browser to see it, or expand the diff in the PR:
+  the files are marked `linguist-generated` in `.gitattributes`, so GitHub collapses them by default, but
+  the diff is still readable once expanded.
+- `tests/__snapshots__/svg/` must contain exactly the files the test writes; a test fails on orphans.
 - For an intended visual change, run `mise run test -- -u`, open the changed
   `.svg` files in a browser and commit them with the change.
 - In CI, missing snapshots fail the run instead of being written.
@@ -172,7 +177,7 @@ reviewing all themes in one go.
 
 ### Adding a theme
 
-1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase) and replace `template`. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation.
+1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase), fix the imports as its header says and replace `template`. Set `label` to the German display name. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation.
 2. Register it in `THEMES` in `src/themes/registry.ts`. That is the only list: the playground, the gallery, the Home Assistant browser check and the snapshot tests read it.
 3. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` (and `runSeasonContract(theme)` for a seasonal theme) plus theme-specific checks. The contract covers the css rules:
    - every `@keyframes` name and class starts with `fb-<id>-`;
@@ -180,10 +185,11 @@ reviewing all themes in one go.
    - animated elements carry `class="fb-anim fb-<id>-..."`, 1 to 30 per half (a season scene at most 60), never together with `fb-item`.
 
    Also: only escaped text (`esc`) and `num` for numbers, everything inside the half, and scenery drawn after the items with its own sketch key (`${seedKey}:<name>`) so adding an item never re-wobbles it. A theme that counts items differently (chess) implements `items(points, prev)`.
-4. Write the snapshots: `mise run test -- -u tests/snapshots.test.ts` (and check that no other snapshot changed).
-5. Add a row to the theme table above.
-6. Look at it: `mise run dev` (playground, `/gallery.html`), `mise run gallery:shots`, `mise run ha:screenshot`. The gallery and the browser check pick the theme up by themselves.
-7. Seasonal theme only: add a rule to `DEFAULT_SEASONS` in `src/config.ts` (the snapshot test, the gallery and the playground take the season date from it) and mark each kid's object with `seasonKid()`.
+4. Seasonal theme only: add a rule to `DEFAULT_SEASONS` in `src/config.ts` (the snapshot test, the gallery and the playground take the season date from it), mark each kid's object with `seasonKid()` and update the `seasons` row of the [configuration table](#card-configuration), which lists the default rules by hand. Do this before writing the snapshots, so the season scene snapshot is written too.
+5. Add the theme to a list in `FIVE_KID_BOARDS` in `tests/snapshots.test.ts` (a guard test fails until you do). A board holds at most five kids; when the lists are full, start a new list, which gets its own `five-kids-<n>.svg`. Existing lists are never reshuffled.
+6. Write the snapshots: `mise run test -- -u tests/snapshots.test.ts` (and check that no other snapshot changed).
+7. Add a row to the theme table above, with the same name as `label`.
+8. Look at it: `mise run dev` (playground, `/gallery.html`), `mise run gallery:shots`, `mise run ha:screenshot`. The gallery and the browser check pick the theme up by themselves.
 
 ## Updating TaskMate
 
