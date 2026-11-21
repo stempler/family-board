@@ -168,7 +168,7 @@ try {
             {
               type: 'custom:family-board-card',
               kids: [
-                { id: mia, theme: 'lego', tap_path: `/${DASHBOARD}/aufgaben` },
+                { id: mia, theme: 'bricks', tap_path: `/${DASHBOARD}/aufgaben` },
                 { id: ben, theme: 'dino', tap_path: `/${DASHBOARD}/aufgaben` },
               ],
             },

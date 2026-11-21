@@ -3,17 +3,17 @@ import { christmas } from './christmas';
 import { dino } from './dino';
 import { easter } from './easter';
 import { halloween } from './halloween';
-import { lego } from './lego';
+import { bricks } from './bricks';
 import { racing } from './racing';
-import { rescue } from './rescue';
+import { dog } from './dog';
 import { space } from './space';
 import type { Theme } from './types';
 import { wizard } from './wizard';
 
-export const THEMES: Record<string, Theme> = { christmas, lego, dino, wizard, racing, space, rescue, chess, halloween, easter };
+export const THEMES: Record<string, Theme> = { christmas, bricks, dino, wizard, racing, space, dog, chess, halloween, easter };
 
 export function getTheme(id: string): Theme {
-  return Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES.lego;
+  return Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES.bricks;
 }
 
 /** Every registered theme's animation css, joined. */

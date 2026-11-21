@@ -5,7 +5,7 @@ import { makeFakeHass, type FakeJar, type FakeKid } from '../dev/fake-hass';
 
 describe('makeFakeHass', () => {
   const kids: FakeKid[] = [
-    { id: 'k1', name: 'Mia', points: 12, theme: 'lego', colour: '#ff0000' },
+    { id: 'k1', name: 'Mia', points: 12, theme: 'bricks', colour: '#ff0000' },
     { id: 'k2', name: 'Ben', points: 40, theme: 'dino', colour: '#00ff00' },
   ];
   const jars: FakeJar[] = [

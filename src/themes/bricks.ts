@@ -114,7 +114,7 @@ function minifig(sk: Sketch, p: Placement, colour: string, seedKey: string): str
   const face = `<circle cx="${num(ex - 2.4 * k)}" cy="${num(ey)}" r="${num(k)}" fill="${INK}"/><circle cx="${num(ex + 2.4 * k)}" cy="${num(ey)}" r="${num(k)}" fill="${INK}"/>` +
     sk.path(`M ${num(ex - 3 * k)} ${num(ey + 3 * k)} Q ${num(ex)} ${num(ey + 6 * k)} ${num(ex + 3 * k)} ${num(ey + 3 * k)}`, { strokeWidth: 1.2, roughness: 0.3 });
   // The raised arm and hand wave together, pivoting at the shoulder (bottom left of the group); the torso hides the joint.
-  const wave = `<g class="fb-anim fb-lego-wave" style="${timing(`${seedKey}:wave`, [9, 11])}">${armR}${hand}</g>`;
+  const wave = `<g class="fb-anim fb-bricks-wave" style="${timing(`${seedKey}:wave`, [9, 11])}">${armR}${hand}</g>`;
   return legs + armL + wave + torso + head + face;
 }
 
@@ -126,7 +126,7 @@ function renderHalf(ctx: HalfContext): string {
 
 // At rest for 80 % of the cycle, then three swings of ±20° around the shoulder, then back to rest.
 const css = `
-  @keyframes fb-lego-wave {
+  @keyframes fb-bricks-wave {
     0%, 80%, 100% { transform: rotate(0deg); }
     83% { transform: rotate(-20deg); }
     86.5% { transform: rotate(20deg); }
@@ -134,11 +134,11 @@ const css = `
     93.5% { transform: rotate(20deg); }
     97% { transform: rotate(0deg); }
   }
-  .fb-lego-wave { animation-name: fb-lego-wave; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 100%; }
+  .fb-bricks-wave { animation-name: fb-bricks-wave; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 0% 100%; }
 `;
 
-export const lego: Theme = {
-  id: 'lego',
+export const bricks: Theme = {
+  id: 'bricks',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,

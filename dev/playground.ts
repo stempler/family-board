@@ -5,7 +5,7 @@ import { THEMES } from '../src/themes/registry';
 import { makeFakeHass, type FakeJar, type FakeKid } from './fake-hass';
 
 const kids: FakeKid[] = [
-  { id: 'k1', name: 'Mia', points: 12, theme: 'lego', colour: '#d9534f' },
+  { id: 'k1', name: 'Mia', points: 12, theme: 'bricks', colour: '#d9534f' },
   { id: 'k2', name: 'Ben', points: 30, theme: 'dino', colour: '#3b7dd8' },
 ];
 const jars: FakeJar[] = [

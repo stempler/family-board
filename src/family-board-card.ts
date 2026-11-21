@@ -25,7 +25,7 @@ function registerFont(): void {
   }
 }
 
-const STUB_THEMES = ['lego', 'dino'];
+const STUB_THEMES = ['bricks', 'dino'];
 
 function errorSvg(): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450"><text x="400" y="225" font-size="24" text-anchor="middle" fill="${INK}">${esc(de.renderError)}</text></svg>`;
@@ -70,7 +70,7 @@ export class FamilyBoardCard extends LitElement {
 
   static getStubConfig(hass?: Hass): Record<string, unknown> {
     const ids = hass ? childIds(hass.states, 'sensor.taskmate_overview') : [];
-    if (ids.length === 0) return { kids: [{ id: 'kind-1', theme: 'lego' }] };
+    if (ids.length === 0) return { kids: [{ id: 'kind-1', theme: 'bricks' }] };
     return { kids: ids.map((id, i) => ({ id, theme: STUB_THEMES[i % STUB_THEMES.length] })) };
   }
 
