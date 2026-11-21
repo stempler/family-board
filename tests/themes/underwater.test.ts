@@ -61,15 +61,44 @@ describe('underwater half', () => {
 describe('underwater item layout', () => {
   const { overlapping, area } = layout(footprint);
 
-  it('keeps every pearl shell clearly bigger than a shell, also on a shell spot', () => {
+  it('has a spot for as many pearl shells as the grouping can ask for', () => {
+    expect(spots(underwater.capacity, 0)).toHaveLength(underwater.capacity);
+  });
+  it('keeps every pearl shell at least twice a shell\'s area, also on a shell row', () => {
     const small = area(spots(0, 1)[0]);
-    for (const s of spots(underwater.capacity, 0)) expect(area(s)).toBeGreaterThan(1.5 * small);
+    for (const s of spots(underwater.capacity, 0)) expect(area(s)).toBeGreaterThanOrEqual(2 * small);
   });
-  it('keeps every pearl shell spot clear of every shell spot and of each other', () => {
-    const own = spots(underwater.capacity, 0).filter((s) => s.slot < 0);
-    expect(overlapping([...own, ...spots(0, underwater.capacity)])).toEqual([]);
+  it('lays the pearl shells in a row of five at the back, then in rows of ten', () => {
+    const rows = new Map<number, number>();
+    for (const s of spots(underwater.capacity, 0)) rows.set(s.y, (rows.get(s.y) ?? 0) + 1);
+    expect([...rows.values()]).toEqual([5, 10, 10, 5]);
   });
-  for (const points of [30, 37, 199, 1000]) {
+  it('keeps every item on the sea floor, inside the sea units', () => {
+    for (const s of [...spots(underwater.capacity, 0), ...spots(0, underwater.capacity)]) {
+      const [l, t, r, b] = footprint(s);
+      expect(l >= 0 && r <= 320 && t >= 142 && b <= 240, `${s.kind} at ${s.x},${s.y}`).toBe(true);
+    }
+  });
+  it('never moves an item when one is added', () => {
+    for (let points = 1; points <= 1000; points++) {
+      const a = groupItems(points - 1, underwater.capacity);
+      const b = groupItems(points, underwater.capacity);
+      if (a.unit !== b.unit) continue;
+      const [before, after] = [spots(a.big, a.small), spots(b.big, b.small)];
+      const at = (list: typeof before, kind: string) => list.filter((s) => s.kind === kind).map((s) => `${s.x},${s.y}`);
+      for (const kind of ['big', 'small']) {
+        const [x, y] = [at(before, kind), at(after, kind)];
+        const n = Math.min(x.length, y.length);
+        expect(y.slice(0, n), `${kind} at ${points} points`).toEqual(x.slice(0, n));
+      }
+    }
+  });
+  it('keeps every big item clear of every small item it can stand beside, and of each other', () => {
+    for (let big = 0; big <= underwater.capacity; big++) {
+      expect(overlapping(spots(big, underwater.capacity - big)), `${big} big`).toEqual([]);
+    }
+  });
+  for (const points of [30, 37, 120, 199, 250, 300, 1000]) {
     it(`draws no two items on top of each other at ${points} points`, () => {
       const { big, small } = groupItems(points, underwater.capacity);
       const list = spots(big, small);
