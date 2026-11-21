@@ -195,3 +195,38 @@ parents' batch review; fixes from that review are a follow-up. The pull request 
 Geometry, colours, capacities (the largest that keeps every item fully visible and apart, as before), the exact
 animations within the budget, the big items of `martin` and `summer`, the form of the playground's birthday control,
 and the names of the two birthday snapshot files.
+
+## Amendment after the first look (2026-11-21)
+
+The parent looked at the gallery and asked for a different birthday picture and one fix. This section overrides
+section 3 where they differ.
+
+### Geburtstag: candles are the age, balloons are the points
+
+- **Candles show the kid's age** (the parent's decision). They are not counted items any more. They stand on the
+  cake symmetrically about its centre line: up to 10 in one centred row, 11 to 20 in two centred rows. More than 20
+  are drawn as 20. *(Claude's call for the rows and the cap.)*
+- **The age needs the birth year**, and TaskMate does not have it. `kids[].birthday` therefore takes two forms:
+  `"YYYY-MM-DD"` (age known) or `"MM-DD"` (as before, no age). *(Claude's call.)*
+  - `YYYY-MM-DD` must be a real calendar day in that year (`2019-02-29` is an error). Errors as before:
+    `kids[i]: birthday must be formatted YYYY-MM-DD or MM-DD` and `kids[i]: birthday is not a calendar day`.
+  - The age is the number of completed years on the board's date, so on the birthday it is the new age. The 29
+    February rule applies to the age too: on 28 February of a non-leap year the kid already has the new age.
+  - Without a year, or when the age would be below 1, the cake has no candles and carries a topper instead (a
+    cherry, a star or similar). A wrong number of candles is worse than none.
+  - The age is known on every day, so a kid who picks `birthday` as a favourite also sees their current age.
+- **Balloons are the points** (the parent's suggestion): a balloon is the small item, in tidy countable groups left
+  and right of the cake, each on its string. A present stays the big item and should be clearly bigger than a
+  balloon. *(Presents as the big item: Claude's call.)*
+- **The cake is smaller** (the parent's suggestion), to make room for the balloons.
+- **A greeting** is written in the picture, on a banner across the top of the scene in place of the bunting. Kids see
+  German only, so the text is "Alles Gute zum Geburtstag!" and, where a half is too narrow for it, "Alles Gute!".
+  Both live in `src/i18n.ts`. *(The parent asked for "Happy birthday"; the German wording is Claude's call.)*
+- Animation: candle flames (at most 8) and the banner or its pennants. Balloons are counted items and so do not
+  move.
+
+### Christmas season scene: the right tree floats
+
+In the shared Christmas scene the snow hill dips on the right, so the right tree's trunk ends above the ground line.
+The ground is moved up so that every tree's trunk and ribbon stand in the snow, for two and for five kids. This is
+an intended change to an existing theme: `season-christmas.svg` changes, and no other existing snapshot does.
