@@ -257,6 +257,7 @@ const css = `
 
 export const racing: Theme = {
   id: 'racing',
+  label: 'Rennstrecke',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,

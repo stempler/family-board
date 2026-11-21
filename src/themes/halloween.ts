@@ -270,6 +270,7 @@ const css = `
 
 export const halloween: Theme = {
   id: 'halloween',
+  label: 'Halloween',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,

@@ -114,6 +114,7 @@ const css = `
 
 export const bricks: Theme = {
   id: 'bricks',
+  label: 'Bausteine',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,

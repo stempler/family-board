@@ -246,6 +246,7 @@ const css = `
 
 export const space: Theme = {
   id: 'space',
+  label: 'Weltraum',
   capacity: CAPACITY,
   background: DUSK,
   renderHalf,

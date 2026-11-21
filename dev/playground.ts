@@ -59,7 +59,7 @@ function renderControls(): void {
     ['auto', 'nach Datum', null],
     ['', 'keine', today],
     ...DEFAULT_SEASONS.filter((r) => THEMES[r.theme]?.renderSeasonScene)
-      .map((r): [string, string, Date | null] => [r.theme, r.theme, seasonStart(r, year)]),
+      .map((r): [string, string, Date | null] => [r.theme, THEMES[r.theme].label ?? r.theme, seasonStart(r, year)]),
   ];
   for (const [value, label] of seasonOptions) seasonSelect.append(el('option', { value, textContent: label }));
   seasonSelect.addEventListener('change', () => {
@@ -77,7 +77,7 @@ function renderControls(): void {
     const name = el('input', { type: 'text', value: k.name });
     name.addEventListener('input', () => { k.name = name.value; push(); });
     const theme = el('select');
-    for (const id of Object.keys(THEMES)) theme.append(el('option', { value: id, textContent: id, selected: id === k.theme }));
+    for (const [id, t] of Object.entries(THEMES)) theme.append(el('option', { value: id, textContent: t.label ?? id, selected: id === k.theme }));
     theme.addEventListener('change', () => { k.theme = theme.value; applyConfig(); push(); });
     controls.append(el('fieldset', {}, el('legend', { textContent: k.id }),
       el('label', {}, 'Name: ', name), el('label', {}, 'Theme: ', theme), slider('Punkte', k.points, 200, (v) => { k.points = v; })));

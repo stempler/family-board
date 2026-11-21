@@ -261,6 +261,7 @@ const css = `
 
 export const wizard: Theme = {
   id: 'wizard',
+  label: 'Zauberschule',
   capacity: CAPACITY,
   background: WALL,
   renderHalf,

@@ -215,6 +215,7 @@ const css = `
 
 export const dog: Theme = {
   id: 'dog',
+  label: 'Hund',
   capacity: CAPACITY,
   background: SKY,
   renderHalf,
