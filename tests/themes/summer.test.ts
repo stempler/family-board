@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
 import { THEMES } from '../../src/themes/registry';
-import { footprint, spots, type Spot } from '../../src/themes/summer';
+import { footprint, spots } from '../../src/themes/summer';
+import { layout } from './layout';
 import { runSeasonContract, seasonBox, seasonHalves } from './season-contract';
-import { afterItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
+import { beforeItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const summer = THEMES.summer;
 
@@ -45,7 +46,7 @@ describe('summer half', () => {
     expect(count(half(30), /data-item="small"/g)).toBe(30);
   });
   it('keeps the scenery wobble when an item is added', () => {
-    expect(afterItems(half(8))).toBe(afterItems(half(7)));
+    expect(beforeItems(half(8))).toBe(beforeItems(half(7)));
   });
   it('uses the kid colour on the bucket', () => {
     const out = half(0);
@@ -73,18 +74,7 @@ describe('summer season scene', () => {
 });
 
 describe('summer item layout', () => {
-  const GAP = 2; // units of air between two drawn items
-  const apart = (a: Spot, b: Spot) => {
-    const [l1, t1, r1, b1] = footprint(a);
-    const [l2, t2, r2, b2] = footprint(b);
-    return l1 >= r2 + GAP || l2 >= r1 + GAP || t1 >= b2 + GAP || t2 >= b1 + GAP;
-  };
-  const overlapping = (list: Spot[]) => {
-    const bad: string[] = [];
-    list.forEach((a, i) => list.slice(i + 1).forEach((b) => { if (!apart(a, b)) bad.push(`${a.kind}@${a.x},${a.y} ${b.kind}@${b.x},${b.y}`); }));
-    return bad;
-  };
-  const area = (s: Spot) => { const [l, t, r, b] = footprint(s); return (r - l) * (b - t); };
+  const { overlapping, area } = layout(footprint);
 
   it('lays the shells in three rows of ten', () => {
     const shells = spots(0, 30);
