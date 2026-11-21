@@ -15,13 +15,20 @@ const jars: FakeJar[] = [
 ];
 let date = new Date();
 let seasonsOff = false;
+/** Kids who have their birthday on the playground date. */
+const birthdayKids = new Set<string>();
 let jarCounter = jars.length;
 
 const card = document.querySelector('family-board-card') as FamilyBoardCard;
 const controls = document.getElementById('controls')!;
 
 function applyConfig(): void {
-  card.setConfig({ kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour })), ...(seasonsOff ? { seasons: [] } : {}) });
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const birthday = `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  card.setConfig({
+    kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour, ...(birthdayKids.has(k.id) ? { birthday } : {}) })),
+    ...(seasonsOff ? { seasons: [] } : {}),
+  });
 }
 
 function push(): void {
@@ -79,8 +86,10 @@ function renderControls(): void {
     const theme = el('select');
     for (const [id, t] of Object.entries(THEMES)) theme.append(el('option', { value: id, textContent: t.label ?? id, selected: id === k.theme }));
     theme.addEventListener('change', () => { k.theme = theme.value; applyConfig(); push(); });
+    const birthday = el('input', { type: 'checkbox', checked: birthdayKids.has(k.id) });
+    birthday.addEventListener('change', () => { if (birthday.checked) birthdayKids.add(k.id); else birthdayKids.delete(k.id); applyConfig(); push(); });
     controls.append(el('fieldset', {}, el('legend', { textContent: k.id }),
-      el('label', {}, 'Name: ', name), el('label', {}, 'Theme: ', theme), slider('Punkte', k.points, 200, (v) => { k.points = v; })));
+      el('label', {}, 'Name: ', name), el('label', {}, 'Theme: ', theme), el('label', {}, birthday, ' hat heute Geburtstag'), slider('Punkte', k.points, 200, (v) => { k.points = v; })));
   }
 
   for (const shared of [false, true]) {

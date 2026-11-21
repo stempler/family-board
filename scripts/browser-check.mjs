@@ -9,6 +9,8 @@
 //   ha-board-season.png with a christmas season covering today; then a tap on a tree must navigate too
 //   ha-theme-<id>.png   both kids on each favourite theme (no season scene), seasons off
 //   ha-season-<id>.png  each registered season theme (FamilyBoardCard.seasonThemeIds) as a season covering today
+//   ha-birthday.png        Mia's birthday today, seasons off: birthday half beside Ben's own theme
+//   ha-birthday-season.png Mia's birthday inside a christmas season: birthday half, christmas half, no shared scene
 // The dashboard config is restored at the end. Note: every run gives Mia one more point.
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -201,6 +203,34 @@ try {
     check(shown.themes.join() === id, `season ${id}: scene theme is ${id}`);
     check(anims >= 1 && marked === 2, `season ${id}: animated, one object per kid`);
   }
+
+  // Birthday: Mia's half becomes the birthday picture, on its own and inside a season.
+  const withBirthday = (patch) => {
+    const config = withCard(patch);
+    const kids = config.views[0].cards[0].kids;
+    const i = kids.findIndex((k) => k.id === mia.id);
+    kids[i] = { ...kids[i], birthday: mmdd(today) };
+    return config;
+  };
+  await ws.call({ type: 'lovelace/config/save', url_path: DASHBOARD, config: withBirthday({ seasons: [] }) });
+  await openBoard(page);
+  const birthday = await inspect(page);
+  await page.screenshot({ path: join(out, 'ha-birthday.png') });
+  const benTheme = original.views[0].cards[0].kids.find((k) => k.id !== mia.id)?.theme;
+  log(`birthday: [data-theme] ${birthday.themes.join()}`);
+  check(birthday.themes.length === 2 && birthday.themes[0] === 'birthday' && birthday.themes[1] === benTheme, `birthday: Mia's half is birthday, Ben's is ${benTheme}`);
+  await ws.call({
+    type: 'lovelace/config/save',
+    url_path: DASHBOARD,
+    config: withBirthday({ seasons: [{ theme: 'christmas', from: mmdd(from), to: mmdd(to) }] }),
+  });
+  await openBoard(page);
+  const birthdaySeason = await inspect(page);
+  await page.screenshot({ path: join(out, 'ha-birthday-season.png') });
+  const sharedScene = await page.locator('family-board-card [data-season-kid]').count();
+  log(`birthday in season: [data-theme] ${birthdaySeason.themes.join()}, kid objects ${sharedScene}`);
+  check(birthdaySeason.themes.join() === 'birthday,christmas', 'birthday in season: themes are birthday and christmas');
+  check(sharedScene === 0, 'birthday in season: no shared season scene');
 } catch (err) {
   await page.screenshot({ path: join(out, 'ha-error.png') }).catch(() => {});
   log(`failed at ${page.url()}; console errors:\n  ${consoleErrors.join('\n  ')}`);
