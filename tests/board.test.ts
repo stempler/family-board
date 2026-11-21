@@ -483,14 +483,38 @@ describe('birthday', () => {
     expect(half(two({ date: DECEMBER }, c), 'k1')).toContain('data-tappable="true"');
   });
 
-  it('stays within the animation budget on every season day', () => {
-    for (const t of Object.values(THEMES).filter((x) => x.renderSeasonScene)) {
-      const rule = DEFAULT_SEASONS.find((r) => r.theme === t.id)!;
-      const date = seasonStart(rule, 2026);
-      const c = cfg();
-      c.kids[0].birthday = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const out = two({ date }, c, [kid('k1', 1000), kid('k2', 1000)]);
-      expect((out.match(/class="fb-anim/g) ?? []).length, t.id).toBeLessThanOrEqual(60);
-    }
+  /** Month and day of `date` as a `birthday` value. */
+  const mmdd = (date: Date) => `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const animated = (svg: string) => (svg.match(/class="fb-anim/g) ?? []).length;
+  const LIT_CAKE = 30; // enough candles that every flickering flame is lit
+
+  it('lights every flickering flame and the balloon at the worst case', () => {
+    expect(animated(half(two({ date: DECEMBER }, cfg(), [kid('k1', LIT_CAKE), kid('k2', 3)]), 'k1'))).toBe(9);
   });
+
+  for (const t of Object.values(THEMES).filter((x) => x.renderSeasonScene)) {
+    const date = seasonStart(DEFAULT_SEASONS.find((r) => r.theme === t.id)!, 2026);
+
+    it(`stays within the animation budget with a lit birthday cake in the ${t.id} season`, () => {
+      const c = cfg();
+      c.kids[0].birthday = mmdd(date);
+      for (const points of [0, 30, 37, 1000]) {
+        const out = two({ date }, c, [kid('k1', LIT_CAKE), kid('k2', points)]);
+        expect(half(out, 'k1')).toContain('data-theme="birthday"');
+        expect(animated(out), `${t.id} at ${points}`).toBeLessThanOrEqual(60);
+      }
+    });
+
+    it(`stays within the animation budget with five kids and a lit birthday cake in the ${t.id} season`, () => {
+      const ids = ['k1', 'k2', 'k3', 'k4', 'k5'];
+      const c = config(ids.map((id, i) => ({ id, theme: 'bricks', show_number: false, ...(i === 0 ? { birthday: mmdd(date) } : {}) })));
+      for (const points of [0, 30, 37, 1000]) {
+        const out = renderBoard(model(ids.map((id, i) => kid(id, i === 0 ? LIT_CAKE : points))), c, { date });
+        expect(half(out, 'k1')).toContain('data-theme="birthday"');
+        expect(half(out, 'k2')).toContain(`data-theme="${t.id}"`);
+        expect(animated(out), `${t.id} at ${points}`).toBeLessThanOrEqual(60);
+      }
+    });
+  }
+
 });
