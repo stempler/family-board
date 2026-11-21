@@ -1,12 +1,16 @@
 import { timing } from '../draw/anim';
-import { createSketch, num, type Sketch } from '../draw/sketch';
-import { at, moved, placement, type Placement, type Pt, type Units } from '../draw/units';
+import { createSketch, esc, INK, num, type Sketch } from '../draw/sketch';
+import { at, moved, placement, SCENE_TOP, type Placement, type Pt, type Units } from '../draw/units';
+import { de } from '../i18n';
 import { item, type HalfContext, type Theme } from './types';
 
-// A birthday table, drawn in "party units": bunting hangs across the top, a balloon on a string floats
-// beside a big three-tier cake with icing in the kid colour. Candles stand in tidy rows on the tiers:
-// 5 on the top tier, then 10 and 15 on the lower ones, in groups of five. Wrapped presents with a bow
-// stack up on the table beside the cake and stand in a row on the floor in front of it.
+// A birthday table, drawn in "party units": a banner with the greeting hangs across the top, a small
+// two-tier cake with icing in the kid colour stands in the middle of the table. The candles on the cake
+// show the kid's age (not counted items): up to 10 in one row on the top tier, 11 to 20 in two rows, the
+// second on the ledge of the lower tier; without a known age a cherry sits on top instead. The points are
+// balloons, each on its string, in columns of five left and right of the cake; presents (the big items)
+// stand in a row on the floor in front of the table and then stack up on the table from below, taking the
+// place of the balloons.
 const MID = 170;
 const UNITS_W = 340;
 const UNITS_H = 270;
@@ -23,76 +27,128 @@ const SPONGE = '#f8deb3';
 const SPONGE_DARK = '#e4bf86';
 const FLAME = '#ffad33';
 const FLAME_CORE = '#fff1a1';
-const BALLOON = '#f2c14e';
 const STRING = '#8a7a6a';
-const PENNANTS = ['#f2c14e', '#6fb7e0', '#8cc66b', '#f49ac1'];
+const BANNER = '#fff4c7';
+const CHERRY = '#d7263d';
+const CREAM = '#fffaf2';
 const CANDLES = ['#f49ac1', '#6fb7e0', '#8cc66b', '#f2c14e', '#b59ae0'];
+const BALLOONS = ['#e84d5b', '#f2c14e', '#6fb7e0', '#8cc66b', '#b59ae0', '#f49ac1', '#f2a35a'];
 const WRAPS: [string, string][] = [['#6fb7e0', '#ffffff'], ['#f49ac1', '#f2c14e'], ['#8cc66b', '#ffffff'], ['#b59ae0', '#f2c14e'], ['#f2a35a', '#ffffff']];
 
 const TABLE_TOP = 214; // the table board's top
 const PLATE_TOP = 211;
 const FLOOR_Y = 260;
 
-/** The cake's tiers, top first: left, right, top edge and bottom edge in units. */
-const TIERS: [number, number, number, number][] = [
-  [137, 203, 104, 138],
-  [111, 229, 138, 174],
-  [85, 255, 174, PLATE_TOP],
-];
+/** A cake tier: left, right, the centre of its top ellipse, its bottom edge and the top ellipse's half-height, in units. */
+interface Tier { l: number; r: number; t: number; b: number; ry: number }
+const TOP_TIER: Tier = { l: 124, r: 216, t: 146, b: 178, ry: 6 };
+const LOW_TIER: Tier = { l: 106, r: 234, t: 176, b: PLATE_TOP - 3, ry: 9 };
 
-const CANDLE_W = 7; // a candle with its flame: 7 x 24 units, standing on its base
-const CANDLE_H = 24;
-const PRESENT_W = 26; // a present with its bow: 26 x 25 units
-const PRESENT_H = 25;
+const CANDLE_H = 24; // a candle with its flame, standing on its base
+const MAX_CANDLES = 20;
+const ROW = 10; // candles in one row
 const LIT = 8; // only the first candles' flames flicker
 
-/** `n` candles on a tier whose top edge is at `base`, 10 apart in groups of five (18 between groups), centred on the cake. */
-const candleRow = (n: number, base: number): Pt[] => {
-  const xs = Array.from({ length: n }, (_, i) => 10 * i + 8 * Math.floor(i / 5));
-  const half = xs[n - 1] / 2;
-  return xs.map((x): Pt => [MID - half + x, base - CANDLE_H / 2]);
-};
+const BALLOON_W = 16; // a balloon with its string: 16 x 26 units
+const BALLOON_H = 26;
+const PRESENT = 26; // a present: a 26 x 26 box with a lid, a ribbon and a flat bow
+const PITCH = 28; // the grid of balloon and stacked present spots beside the cake
 
-/** Candle spots (footprint centres), top tier first, left to right in each row. */
-const CANDLE_SPOTS: Pt[] = [...candleRow(5, TIERS[0][2]), ...candleRow(10, TIERS[1][2]), ...candleRow(15, TIERS[2][2])];
+/** The grid beside the cake, three columns either side, five rows from the table up; columns inner ones first, alternating sides. */
+const COLUMNS = [78, 262, 50, 290, 22, 318];
+const ROWS = Array.from({ length: 5 }, (_, i) => TABLE_TOP - PRESENT / 2 - PITCH * i); // bottom row first
 
-const CAPACITY = CANDLE_SPOTS.length;
+/** Balloon spots: column by column (five each, top down), inner columns first. */
+const BALLOON_CELLS: { x: number; y: number; slot: number }[] = COLUMNS.flatMap((x, c) =>
+  [...ROWS].reverse().map((y, r) => ({ x, y, slot: c * ROWS.length + r })));
 
-/** One row of presents on the table, two either side of the cake, inner ones first; rows are 27 apart. */
-const tableRow = (y: number): Pt[] => [[56, y], [284, y], [26, y], [314, y]];
+/** Presents stacked on the table: the bottom row first (inner columns first), then the rows above; they take balloon cells. */
+const STACK_CELLS = ROWS.flatMap((y) => COLUMNS.map((x) => BALLOON_CELLS.find((c) => c.x === x && c.y === y)!));
+
 /** The row of presents on the floor in front of the table, 30 apart, centre outwards. */
-const FLOOR_ROW: Pt[] = Array.from({ length: 11 }, (_, i): Pt => [20 + 30 * i, FLOOR_Y + 9 - PRESENT_H / 2])
+const FLOOR_ROW: Pt[] = Array.from({ length: 11 }, (_, i): Pt => [20 + 30 * i, FLOOR_Y + 9 - PRESENT / 2])
   .sort((a, b) => Math.abs(a[0] - MID) - Math.abs(b[0] - MID) || a[0] - b[0]);
 
+const CAPACITY = BALLOON_CELLS.length;
+
+export interface Spot { kind: 'big' | 'small'; x: number; y: number; slot: number } // party units, centre of the footprint; slot is the grid cell, -1 on the floor
+
 /**
- * Present spots (footprint centres): the two lowest table rows, the floor row, then three more table rows
- * stacked on top. 31 spots: more than the 30 presents the grouping can ask for, so none ever lands on the cake.
+ * Where the items go: presents on the floor first, then stacked on the table from below; balloons fill the
+ * grid cells the presents left free, column by column. 41 present spots, more than the 30 the grouping can ask for.
  */
-const PRESENT_SPOTS: Pt[] = [
-  ...tableRow(TABLE_TOP - PRESENT_H / 2), ...tableRow(TABLE_TOP - PRESENT_H / 2 - 27),
-  ...FLOOR_ROW,
-  ...[2, 3, 4].flatMap((r) => tableRow(TABLE_TOP - PRESENT_H / 2 - 27 * r)),
-];
-
-export interface Spot { kind: 'big' | 'small'; x: number; y: number } // party units, centre of the footprint
-
-/** Where the items go: presents first on their own spots beside the cake, then candles on the tiers in order. */
 export function spots(big: number, small: number): Spot[] {
   const out: Spot[] = [];
-  for (let i = 0; i < big && i < PRESENT_SPOTS.length; i++) out.push({ kind: 'big', x: PRESENT_SPOTS[i][0], y: PRESENT_SPOTS[i][1] });
-  for (let i = 0; i < small && i < CANDLE_SPOTS.length; i++) out.push({ kind: 'small', x: CANDLE_SPOTS[i][0], y: CANDLE_SPOTS[i][1] });
+  const taken = new Set<number>();
+  for (let i = 0; i < big && i < FLOOR_ROW.length + STACK_CELLS.length; i++) {
+    if (i < FLOOR_ROW.length) out.push({ kind: 'big', x: FLOOR_ROW[i][0], y: FLOOR_ROW[i][1], slot: -1 });
+    else {
+      const c = STACK_CELLS[i - FLOOR_ROW.length];
+      taken.add(c.slot);
+      out.push({ kind: 'big', x: c.x, y: c.y, slot: c.slot });
+    }
+  }
+  const free = BALLOON_CELLS.filter((c) => !taken.has(c.slot));
+  for (let i = 0; i < small && i < free.length; i++) out.push({ kind: 'small', x: free[i].x, y: free[i].y, slot: free[i].slot });
   return out;
 }
 
 /** The box a drawn item covers, in party units: [left, top, right, bottom]. */
 export function footprint(s: Spot): [number, number, number, number] {
-  const [w, h] = s.kind === 'big' ? [PRESENT_W, PRESENT_H] : [CANDLE_W, CANDLE_H];
+  const [w, h] = s.kind === 'big' ? [PRESENT, PRESENT] : [BALLOON_W, BALLOON_H];
   return [s.x - w / 2, s.y - h / 2, s.x + w / 2, s.y + h / 2];
 }
 
-/** A striped candle whose footprint is centred on (x, y), with its flame on top; the flame flickers when `flicker` is a seed key. */
-function candle(sk: Sketch, p: Placement, x: number, y: number, colour: string, flicker?: string): string {
-  const base = y + CANDLE_H / 2;
+/** A balloon whose footprint is centred on (x, y): a round body with a knot and a shine, its string dangling below. */
+function balloon(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
+  const top = y - BALLOON_H / 2;
+  const body = sk.ellipse(...at(p, x, top + 8.5), BALLOON_W * p.s, 17 * p.s, { fill: colour, strokeWidth: 1.6, roughness: 0.4 });
+  const knot = sk.polygon([at(p, x, top + 16.5), at(p, x - 2, top + 19), at(p, x + 2, top + 19)], { fill: colour, strokeWidth: 1, roughness: 0.2 });
+  const string = sk.path(moved(p, `M ${x} ${top + 19} Q ${x + 2.5} ${top + 22.5} ${x} ${top + BALLOON_H}`), { stroke: STRING, strokeWidth: 1.1, roughness: 0.3 });
+  const shine = sk.path(moved(p, `M ${x - 4.5} ${top + 7} Q ${x - 4} ${top + 3.5} ${x - 1} ${top + 2.5}`), { stroke: '#ffffff', strokeWidth: 1.8 * p.s, roughness: 0.2 });
+  return `<g data-part="balloon">${string}${knot}${body}${shine}</g>`;
+}
+
+/** A wrapped present whose footprint is centred on (x, y): a box with a lid, a ribbon down the front and a flat bow on the lid. */
+function present(sk: Sketch, p: Placement, x: number, y: number, [wrap, ribbon]: [string, string]): string {
+  const h = PRESENT / 2;
+  const box = sk.rect(...at(p, x - h + 1, y - h + 5), (PRESENT - 2) * p.s, (PRESENT - 5) * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
+  const lid = sk.rect(...at(p, x - h, y - h), PRESENT * p.s, 6 * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
+  const band = sk.rect(...at(p, x - 2, y - h), 4 * p.s, PRESENT * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
+  const loops = [-1, 1].map((d) => sk.path(moved(p, `M ${x} ${y - h + 3} C ${x + d * 8} ${y - h - 0.5} ${x + d * 9} ${y - h + 6.5} ${x} ${y - h + 3} Z`), { fill: ribbon, strokeWidth: 1.1, roughness: 0.3 })).join('');
+  const knot = sk.circle(...at(p, x, y - h + 3), 3.4 * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
+  return `<g data-part="present">${box}${lid}${band}${loops}${knot}</g>`;
+}
+
+function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
+  let presents = 0;
+  return spots(ctx.groups.big, ctx.groups.small).map((s, i) => {
+    if (s.kind === 'big') return item('big', i, ctx, present(sk, p, s.x, s.y, WRAPS[presents++ % WRAPS.length]));
+    const [col, row] = [Math.floor(s.slot / ROWS.length), s.slot % ROWS.length];
+    return item('small', i, ctx, balloon(sk, p, s.x, s.y, BALLOONS[(col * 3 + row) % BALLOONS.length]));
+  }).join('');
+}
+
+/** The candles for `age`, each with its row and the units point its base stands on; symmetric about the cake's centre line in each row. */
+function candleSpots(age: number | undefined): { row: number; x: number; base: number }[] {
+  const n = Math.min(Math.max(0, Math.floor(age ?? 0)), MAX_CANDLES);
+  if (n === 0) return [];
+  const rows = n <= ROW ? [n] : [Math.ceil(n / 2), Math.floor(n / 2)];
+  return rows.flatMap((k, row) => {
+    // Top tier: on its top, a little in front of the centre. Lower tier: on the front of its ledge, following the curve.
+    const [room, gap] = row === 0 ? [82, 12] : [104, 13];
+    const step = k > 1 ? Math.min(gap, room / (k - 1)) : 0;
+    return Array.from({ length: k }, (_, i) => {
+      const dx = (i - (k - 1) / 2) * step;
+      const half = (LOW_TIER.r - LOW_TIER.l) / 2;
+      const base = row === 0 ? TOP_TIER.t + 1 : LOW_TIER.t + (LOW_TIER.ry - 2.5) * Math.sqrt(1 - (dx / half) ** 2);
+      return { row, x: MID + dx, base };
+    });
+  });
+}
+
+/** A striped candle standing on (x, base) in units, with its flame on top; the flame flickers when `flicker` is a seed key. */
+function candle(sk: Sketch, p: Placement, x: number, base: number, row: number, colour: string, flicker?: string): string {
   const body = sk.rect(...at(p, x - 3, base - 15), 6 * p.s, 15 * p.s, { fill: colour, strokeWidth: 1.2, roughness: 0.3 });
   const stripes = [5, 10].map((dy) => {
     const [x0, y0] = at(p, x - 3, base - dy + 2);
@@ -101,32 +157,25 @@ function candle(sk: Sketch, p: Placement, x: number, y: number, colour: string, 
   }).join('');
   const [wx, wy0] = at(p, x, base - 15);
   const [, wy1] = at(p, x, base - 17);
-  const wick = `<line x1="${num(wx)}" y1="${num(wy0)}" x2="${num(wx)}" y2="${num(wy1)}" stroke="#3a2f28" stroke-width="${num(Math.max(0.6, 0.9 * p.s))}"/>`;
-  const outer = sk.path(moved(p, `M ${x} ${base - 16} Q ${x - 3.5} ${base - 18} ${x} ${base - 24} Q ${x + 3.5} ${base - 18} ${x} ${base - 16} Z`), { fill: FLAME, stroke: 'none', roughness: 0.2 });
+  const wick = `<line x1="${num(wx)}" y1="${num(wy0)}" x2="${num(wx)}" y2="${num(wy1)}" stroke="${INK}" stroke-width="${num(Math.max(0.6, 0.9 * p.s))}"/>`;
+  const outer = sk.path(moved(p, `M ${x} ${base - 16} Q ${x - 3.5} ${base - 18} ${x} ${base - CANDLE_H} Q ${x + 3.5} ${base - 18} ${x} ${base - 16} Z`), { fill: FLAME, stroke: 'none', roughness: 0.2 });
   const core = sk.path(moved(p, `M ${x} ${base - 16.5} Q ${x - 1.6} ${base - 18} ${x} ${base - 21} Q ${x + 1.6} ${base - 18} ${x} ${base - 16.5} Z`), { fill: FLAME_CORE, stroke: 'none', roughness: 0.1 });
   const flame = flicker ? `<g class="fb-anim fb-birthday-flame" style="${timing(flicker, [2, 2.8])}">${outer}${core}</g>` : `<g>${outer}${core}</g>`;
-  return `<g data-part="candle">${body}${stripes}${wick}</g>${flame}`;
+  return `<g data-part="candle" data-row="${row}" data-cx="${num(wx)}">${body}${stripes}${wick}</g>${flame}`;
 }
 
-/** A wrapped present whose footprint is centred on (x, y): a box with a lid, a ribbon and a bow on top. */
-function present(sk: Sketch, p: Placement, x: number, y: number, [wrap, ribbon]: [string, string]): string {
-  const b = y + PRESENT_H / 2; // the bottom of the box
-  const box = sk.rect(...at(p, x - 12, b - 15), 24 * p.s, 15 * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
-  const lid = sk.rect(...at(p, x - 13, b - 18), 26 * p.s, 4 * p.s, { fill: wrap, strokeWidth: 1.6, roughness: 0.4 });
-  const band = sk.rect(...at(p, x - 2, b - 18), 4 * p.s, 18 * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
-  const loops = sk.path(moved(p, `M ${x} ${b - 18} C ${x - 9} ${b - 26} ${x - 11} ${b - 18} ${x} ${b - 18} Z`), { fill: ribbon, strokeWidth: 1.2, roughness: 0.3 }) +
-    sk.path(moved(p, `M ${x} ${b - 18} C ${x + 9} ${b - 26} ${x + 11} ${b - 18} ${x} ${b - 18} Z`), { fill: ribbon, strokeWidth: 1.2, roughness: 0.3 });
-  const knot = sk.circle(...at(p, x, b - 18.5), 3.6 * p.s, { fill: ribbon, strokeWidth: 1, roughness: 0.2 });
-  return box + lid + band + loops + knot;
-}
-
-function items(sk: Sketch, p: Placement, ctx: HalfContext): string {
-  let candles = 0;
-  return spots(ctx.groups.big, ctx.groups.small).map((s, i) => {
-    if (s.kind === 'big') return item('big', i, ctx, present(sk, p, s.x, s.y, WRAPS[i % WRAPS.length]));
-    const n = candles++;
-    return item('small', i, ctx, candle(sk, p, s.x, s.y, CANDLES[n % CANDLES.length], n < LIT ? `${ctx.seedKey}:flame:${n}` : undefined));
-  }).join('');
+/** The candles for the kid's age, the top row first; without an age, a cherry on a dollop of cream instead. */
+function candles(sk: Sketch, p: Placement, ctx: HalfContext): string {
+  const list = candleSpots(ctx.age);
+  if (list.length === 0) {
+    const cream = sk.ellipse(...at(p, MID, TOP_TIER.t - 1), 22 * p.s, 9 * p.s, { fill: CREAM, strokeWidth: 1.4, roughness: 0.4 });
+    const stem = sk.path(moved(p, `M ${MID} ${TOP_TIER.t - 10} Q ${MID + 1} ${TOP_TIER.t - 17} ${MID + 6} ${TOP_TIER.t - 21}`), { stroke: '#4f8f3a', strokeWidth: 1.6, roughness: 0.3 });
+    const cherry = sk.circle(...at(p, MID, TOP_TIER.t - 7), 13 * p.s, { fill: CHERRY, strokeWidth: 1.6, roughness: 0.4 });
+    const [hx, hy] = at(p, MID - 2.5, TOP_TIER.t - 9.5);
+    const shine = `<circle cx="${num(hx)}" cy="${num(hy)}" r="${num(1.8 * p.s)}" fill="#ffffff" opacity="0.8"/>`;
+    return `<g data-part="topper">${cream}${stem}${cherry}${shine}</g>`;
+  }
+  return list.map((c, i) => candle(sk, p, c.x, c.base, c.row, CANDLES[i % CANDLES.length], i < LIT ? `${ctx.seedKey}:flame:${i}` : undefined)).join('');
 }
 
 /** The floor strip below the table, across the whole half. */
@@ -139,25 +188,35 @@ function floor(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return `<g data-part="floor">${fill}${line}</g>`;
 }
 
-/** A line of pennants across the top of the scene, sagging in the middle; every fifth pennant is in the kid colour. */
-function bunting(sk: Sketch, p: Placement, ctx: HalfContext): string {
-  const sag = (x: number) => { const t = (x - 4) / 332; return 6 + 40 * t * (1 - t); };
-  const rope = sk.path(moved(p, 'M 4 6 Q 170 26 336 6'), { stroke: STRING, strokeWidth: 1.4, roughness: 0.4 });
-  const flags = Array.from({ length: 12 }, (_, i) => {
-    const cx = 19 + 27.5 * i;
-    const colour = i % 5 === 2 ? ctx.kid.colour : PENNANTS[i % PENNANTS.length];
-    return sk.polygon([at(p, cx - 10, sag(cx - 10)), at(p, cx + 10, sag(cx + 10)), at(p, cx, sag(cx) + 17)], { fill: colour, strokeWidth: 1.4, roughness: 0.4 });
-  }).join('');
-  return `<g data-part="bunting">${rope}${flags}</g>`;
-}
+const GLYPH_W = 0.55; // average glyph width in em, on the wide side
+const MIN_TEXT = 13; // the smallest size the long greeting is written in; below it the short one is used
 
-/** One balloon floating beside the cake; its string runs down behind the cake to the table. It sways on its string. */
-function balloon(sk: Sketch, p: Placement, ctx: HalfContext): string {
-  const string = sk.path(moved(p, `M 236 83 Q 230 120 240 150 Q 248 180 240 ${TABLE_TOP}`), { stroke: STRING, strokeWidth: 1.3, roughness: 0.4 });
-  const body = sk.ellipse(...at(p, 236, 60), 30 * p.s, 38 * p.s, { fill: BALLOON, strokeWidth: 1.8, roughness: 0.5 });
-  const knot = sk.polygon([at(p, 236, 78), at(p, 232, 84), at(p, 240, 84)], { fill: BALLOON, strokeWidth: 1.2, roughness: 0.3 });
-  const shine = sk.path(moved(p, 'M 228 52 Q 229 46 234 44'), { stroke: '#ffffff', strokeWidth: 2.4 * p.s, roughness: 0.2 });
-  return `<g data-part="balloon"><g class="fb-anim fb-birthday-sway" style="${timing(`${ctx.seedKey}:sway`, [4, 5.5])}">${string}${knot}${body}${shine}</g></g>`;
+/**
+ * The banner across the top of the scene band, as wide as the scene: a light band with the greeting and a
+ * swallowtail end in the kid colour on either side; the ends wave. The long greeting when it fits at a readable
+ * size, else the short one.
+ */
+function banner(sk: Sketch, p: Placement, ctx: HalfContext): string {
+  const { box } = ctx;
+  const w = Math.min(UNITS_W * p.s, box.w - 8);
+  const x0 = p.cx - w / 2;
+  const top = box.y + box.h * SCENE_TOP + 2;
+  const h = Math.min(34, Math.max(22, w * 0.1));
+  const tail = h * 0.55;
+  const [bl, br] = [x0 + tail, x0 + w - tail];
+  const ends = ([-1, 1] as const).map((d) => {
+    const [outer, inner] = d < 0 ? [x0, bl + 4] : [x0 + w, br - 4];
+    const [y1, y2] = [top + h * 0.3, top + h * 1.1];
+    const shape = sk.polygon([[inner, y1], [outer, y1], [outer - d * tail * 0.45, (y1 + y2) / 2], [outer, y2], [inner, y2]], { fill: ctx.kid.colour, strokeWidth: 1.6, roughness: 0.4 });
+    return `<g class="fb-anim fb-birthday-tail fb-birthday-tail-${d < 0 ? 'l' : 'r'}" style="${timing(`${ctx.seedKey}:tail:${d}`, [3, 4.2])}">${shape}</g>`;
+  }).join('');
+  const band = sk.rect(bl, top, br - bl, h, { fill: BANNER, strokeWidth: 1.8, roughness: 0.5 });
+  const avail = br - bl - h * 0.6;
+  const fit = (text: string) => Math.min(h * 0.62, avail / (Array.from(text).length * GLYPH_W));
+  const text = fit(de.birthdayGreeting) >= MIN_TEXT ? de.birthdayGreeting : de.birthdayGreetingShort;
+  const size = fit(text);
+  const label = `<text x="${num(p.cx)}" y="${num(top + h / 2 + size * 0.35)}" font-size="${num(size)}" text-anchor="middle" fill="${INK}">${esc(text)}</text>`;
+  return `<g data-part="banner">${ends}${band}${label}</g>`;
 }
 
 /** The table: a board with a hanging cloth and two legs. */
@@ -170,29 +229,32 @@ function table(sk: Sketch, p: Placement): string {
   return `<g data-part="table">${legs}${cloth}${fold}</g>`;
 }
 
-/** The cake on its plate: three sponge tiers, each with dripping icing in the kid colour. */
+/** One cake tier: a sponge body, icing in the kid colour on top with drips down the front. */
+function tier(sk: Sketch, p: Placement, { l, r, t, b, ry }: Tier, colour: string): string {
+  const sponge = sk.rect(...at(p, l, t), (r - l) * p.s, (b - t) * p.s, { fill: SPONGE, strokeWidth: 2, roughness: 0.5 });
+  const [x0, y0] = at(p, l + 3, b - 8);
+  const [x1] = at(p, r - 3, b - 8);
+  const cream = `<line x1="${num(x0)}" y1="${num(y0)}" x2="${num(x1)}" y2="${num(y0)}" stroke="${SPONGE_DARK}" stroke-width="${num(2 * p.s)}" stroke-dasharray="${num(3 * p.s)} ${num(4 * p.s)}" stroke-linecap="round"/>`;
+  const n = Math.max(3, Math.round((r - l) / 14));
+  const step = (r - l) / n;
+  let d = `M ${l} ${t} L ${r} ${t} L ${r} ${t + ry}`;
+  for (let i = n; i > 0; i--) d += ` Q ${num(l + (i - 0.5) * step)} ${t + ry + (i % 2 ? 10 : 6)} ${num(l + (i - 1) * step)} ${t + ry}`;
+  const drips = sk.path(moved(p, `${d} Z`), { fill: colour, strokeWidth: 1.6, roughness: 0.4 });
+  const top = sk.ellipse(...at(p, (l + r) / 2, t), (r - l) * p.s, 2 * ry * p.s, { fill: colour, strokeWidth: 1.6, roughness: 0.4 });
+  return sponge + cream + drips + top;
+}
+
+/** The small cake on its plate: two tiers, centred on the table. */
 function cake(sk: Sketch, p: Placement, ctx: HalfContext): string {
-  const plate = sk.ellipse(...at(p, MID, PLATE_TOP + 2), 196 * p.s, 9 * p.s, { fill: PLATE, strokeWidth: 1.6, roughness: 0.4 });
-  const tiers = [...TIERS].reverse().map(([l, r, t, b]) => {
-    const sponge = sk.rect(...at(p, l, t), (r - l) * p.s, (b - t) * p.s, { fill: SPONGE, strokeWidth: 2, roughness: 0.5 });
-    const [x0, y0] = at(p, l + 3, b - 9);
-    const [x1] = at(p, r - 3, b - 9);
-    const cream = `<line x1="${num(x0)}" y1="${num(y0)}" x2="${num(x1)}" y2="${num(y0)}" stroke="${SPONGE_DARK}" stroke-width="${num(2 * p.s)}" stroke-dasharray="${num(3 * p.s)} ${num(4 * p.s)}" stroke-linecap="round"/>`;
-    const n = Math.max(3, Math.round((r - l) / 14));
-    const step = (r - l) / n;
-    let d = `M ${l} ${t} L ${r} ${t} L ${r} ${t + 7}`;
-    for (let i = n; i > 0; i--) d += ` Q ${num(l + (i - 0.5) * step)} ${t + (i % 2 ? 17 : 12)} ${num(l + (i - 1) * step)} ${t + 7}`;
-    const icing = sk.path(moved(p, `${d} Z`), { fill: ctx.kid.colour, strokeWidth: 1.6, roughness: 0.4 });
-    return sponge + cream + icing;
-  }).join('');
-  return `<g data-part="cake">${plate}${tiers}</g>`;
+  const plate = sk.ellipse(...at(p, MID, PLATE_TOP + 2), 150 * p.s, 9 * p.s, { fill: PLATE, strokeWidth: 1.6, roughness: 0.4 });
+  return `<g data-part="cake" data-cx="${num(p.cx)}">${plate}${tier(sk, p, LOW_TIER, ctx.kid.colour)}${tier(sk, p, TOP_TIER, ctx.kid.colour)}</g>`;
 }
 
 function renderHalf(ctx: HalfContext): string {
   const sk = createSketch(ctx.seedKey);
   const p = placement(ctx.box, UNITS);
   // Items come last with their own sketch, so adding an item never re-wobbles the scenery.
-  return `<g>${floor(sk, p, ctx)}${bunting(sk, p, ctx)}${balloon(sk, p, ctx)}${table(sk, p)}${cake(sk, p, ctx)}` +
+  return `<g>${floor(sk, p, ctx)}${table(sk, p)}${cake(sk, p, ctx)}${candles(createSketch(`${ctx.seedKey}:candles`), p, ctx)}${banner(sk, p, ctx)}` +
     `${items(createSketch(`${ctx.seedKey}:items`), p, ctx)}</g>`;
 }
 
@@ -203,12 +265,14 @@ const css = `
     55% { transform: scale(1.1, 0.88); opacity: 1; }
     80% { transform: scale(0.92, 1.08); opacity: 0.85; }
   }
-  @keyframes fb-birthday-sway {
-    0%, 100% { transform: rotate(-3deg); }
-    50% { transform: rotate(3deg); }
+  @keyframes fb-birthday-wave {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
   }
   .fb-birthday-flame { animation-name: fb-birthday-flame; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 100%; }
-  .fb-birthday-sway { animation-name: fb-birthday-sway; animation-timing-function: ease-in-out; transform-box: fill-box; transform-origin: 50% 100%; }
+  .fb-birthday-tail { animation-name: fb-birthday-wave; animation-timing-function: ease-in-out; transform-box: fill-box; }
+  .fb-birthday-tail-l { transform-origin: 100% 0%; }
+  .fb-birthday-tail-r { transform-origin: 0% 0%; }
 `;
 
 export const birthday: Theme = {

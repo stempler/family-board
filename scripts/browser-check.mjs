@@ -204,12 +204,14 @@ try {
     check(anims >= 1 && marked === 2, `season ${id}: animated, one object per kid`);
   }
 
-  // Birthday: Mia's half becomes the birthday picture, on its own and inside a season.
+  // Birthday: Mia's half becomes the birthday picture, on its own and inside a season. She turns 6 today
+  // (8 on 29 February, so her birth year is a leap year too), and her cake carries that many candles.
+  const miaAge = mmdd(today) === '02-29' ? 8 : 6;
   const withBirthday = (patch) => {
     const config = withCard(patch);
     const kids = config.views[0].cards[0].kids;
     const i = kids.findIndex((k) => k.id === mia.id);
-    kids[i] = { ...kids[i], birthday: mmdd(today) };
+    kids[i] = { ...kids[i], birthday: `${today.getFullYear() - miaAge}-${mmdd(today)}` };
     return config;
   };
   await ws.call({ type: 'lovelace/config/save', url_path: DASHBOARD, config: withBirthday({ seasons: [] }) });
@@ -217,8 +219,10 @@ try {
   const birthday = await inspect(page);
   await page.screenshot({ path: join(out, 'ha-birthday.png') });
   const benTheme = original.views[0].cards[0].kids.find((k) => k.id !== mia.id)?.theme;
-  log(`birthday: [data-theme] ${birthday.themes.join()}`);
+  const candles = await page.locator(`family-board-card [data-kid-half="${mia.id}"] [data-part="candle"]`).count();
+  log(`birthday: [data-theme] ${birthday.themes.join()}, candles ${candles}`);
   check(birthday.themes.length === 2 && birthday.themes[0] === 'birthday' && birthday.themes[1] === benTheme, `birthday: Mia's half is birthday, Ben's is ${benTheme}`);
+  check(candles === miaAge, `birthday: Mia's cake has ${miaAge} candles (found ${candles})`);
   await ws.call({
     type: 'lovelace/config/save',
     url_path: DASHBOARD,

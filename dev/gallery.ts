@@ -38,15 +38,21 @@ function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [1
   card.hass = makeFakeHass(kids, jars);
 }
 
-for (const id of Object.keys(THEMES)) addTile(id, id, null);
+/** A `YYYY-MM-DD` birthday that makes a kid `age` years old on `date` (born on 1 January). */
+const bornAgo = (age: number, date: Date) => `${date.getFullYear() - age}-01-01`;
+
+// The plain birthday tile shows candles: Mia is 7 and Ben 10 on the tile's date.
+for (const id of Object.keys(THEMES)) {
+  addTile(id, id, null, undefined, id === 'birthday' ? { k1: { birthday: bornAgo(7, new Date()) }, k2: { birthday: bornAgo(10, new Date()) } } : {});
+}
 // Chess shows games won and pieces captured; more point values show the start, a full row, a won game and trophies.
 for (const points of [[0, 15], [16, 300]] as [number, number][]) addTile(`chess-points-${points.join('-')}`, 'chess', null, points);
 for (const [id, theme] of Object.entries(THEMES)) {
   if (theme.renderSeasonScene) addTile(`season-${id}`, id, seasonDate(id) ?? new Date(year, 11, 15));
 }
-// Mia's birthday on the first day of the Christmas default season: her half is the birthday picture, Ben's (dino favourite) the Christmas half, no shared tree.
+// Mia's 7th birthday on the first day of the Christmas default season: her half is the birthday picture, Ben's (dino favourite) the Christmas half, no shared tree.
 {
   const christmas = seasonDate('christmas')!;
-  const md = `${String(christmas.getMonth() + 1).padStart(2, '0')}-${String(christmas.getDate()).padStart(2, '0')}`;
+  const md = `${christmas.getFullYear() - 7}-${String(christmas.getMonth() + 1).padStart(2, '0')}-${String(christmas.getDate()).padStart(2, '0')}`;
   addTile('birthday-in-christmas', 'bricks', christmas, [12, 37], { k1: { birthday: md }, k2: { theme: 'dino' } });
 }
