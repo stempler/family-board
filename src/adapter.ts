@@ -1,4 +1,4 @@
-import type { CardConfig } from './config';
+import { DEFAULT_ENTITIES, type CardConfig } from './config';
 import type { BoardModel, IconRef, Jar, Kid, SharedJar } from './model';
 
 export type HassStates = Record<string, { state: string; attributes: Record<string, unknown> }>;
@@ -42,14 +42,28 @@ export function childIds(states: HassStates, overviewEntity: string): string[] {
   return recs(states[overviewEntity]?.attributes?.children).map((c) => str(c.id)).filter((id) => id !== '');
 }
 
+/**
+ * The entity to read for one of the two TaskMate sensors. Home Assistant may put a prefix
+ * (e.g. the area) into the ids: `sensor.wohnzimmer_taskmate_overview`. When the configured
+ * entity is the default name and does not exist, the one sensor ending in that name is used.
+ * An entity the config names explicitly is never replaced, and several candidates are not
+ * guessed between.
+ */
+export function resolveEntity(states: HassStates, configured: string, kind: keyof typeof DEFAULT_ENTITIES): string {
+  if (configured in states || configured !== DEFAULT_ENTITIES[kind]) return configured;
+  const suffix = `_taskmate_${kind}`;
+  const candidates = Object.keys(states).filter((id) => id.startsWith('sensor.') && id.endsWith(suffix));
+  return candidates.length === 1 ? candidates[0] : configured;
+}
+
 export function toBoardModel(states: HassStates, config: CardConfig): BoardModel {
-  const overview = states[config.overview_entity];
+  const overview = states[resolveEntity(states, config.overview_entity, 'overview')];
   const children = overview?.attributes?.children;
   if (!overview || overview.state === 'unavailable' || overview.state === 'unknown' || !Array.isArray(children)) {
     return { status: 'missing', kids: [], sharedJars: [] };
   }
   const childList = recs(children);
-  const rewards = recs(states[config.rewards_entity]?.attributes?.rewards).filter((r) => r.is_available !== false);
+  const rewards = recs(states[resolveEntity(states, config.rewards_entity, 'rewards')]?.attributes?.rewards).filter((r) => r.is_available !== false);
   const kidIds = new Set(config.kids.map((k) => k.id));
 
   const kids: Kid[] = config.kids.map((kc, i) => {

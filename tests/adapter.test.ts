@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 import { normalizeConfig } from '../src/config';
-import { parseIcon, toBoardModel, type HassStates } from '../src/adapter';
+import { parseIcon, resolveEntity, toBoardModel, type HassStates } from '../src/adapter';
 import fixture from './fixtures/docs-sample.json';
 
 const states = fixture as unknown as HassStates;
@@ -85,5 +85,44 @@ describe.each(captured)('captured TaskMate data %s', (_file, data) => {
   it('maps the shared jar', () => {
     expect(m.sharedJars.map((j) => j.name)).toEqual(['Pizza-Abend']);
     expect(Object.values(m.sharedJars[0].contributions).reduce((a, b) => a + b, 0)).toBe(13);
+  });
+});
+
+/** The fixture as Home Assistant names the sensors when it puts a prefix (e.g. the area) into the ids. */
+function prefixed(prefix: string): HassStates {
+  return {
+    [`sensor.${prefix}_taskmate_overview`]: states['sensor.taskmate_overview'],
+    [`sensor.${prefix}_taskmate_rewards`]: states['sensor.taskmate_rewards'],
+  };
+}
+
+describe('resolveEntity', () => {
+  it('keeps an entity that exists', () => {
+    expect(resolveEntity(states, 'sensor.taskmate_overview', 'overview')).toBe('sensor.taskmate_overview');
+  });
+  it('finds the prefixed sensor when the default name does not exist', () => {
+    const s = prefixed('wohnzimmer');
+    expect(resolveEntity(s, 'sensor.taskmate_overview', 'overview')).toBe('sensor.wohnzimmer_taskmate_overview');
+    expect(resolveEntity(s, 'sensor.taskmate_rewards', 'rewards')).toBe('sensor.wohnzimmer_taskmate_rewards');
+  });
+  it('does not guess between several candidates', () => {
+    const s = { ...prefixed('wohnzimmer'), ...prefixed('kueche') };
+    expect(resolveEntity(s, 'sensor.taskmate_overview', 'overview')).toBe('sensor.taskmate_overview');
+  });
+  it('does not replace an entity the config names explicitly', () => {
+    expect(resolveEntity(prefixed('wohnzimmer'), 'sensor.other', 'overview')).toBe('sensor.other');
+  });
+  it('ignores entities that only contain the name', () => {
+    const s = { 'sensor.taskmate_overview_2': states['sensor.taskmate_overview'], 'sensor.mytaskmate_overview': states['sensor.taskmate_overview'] };
+    expect(resolveEntity(s, 'sensor.taskmate_overview', 'overview')).toBe('sensor.taskmate_overview');
+  });
+});
+
+describe('toBoardModel with prefixed sensors', () => {
+  it('shows the board with the default config', () => {
+    const m = toBoardModel(prefixed('wohnzimmer'), cfg(['k1', 'k2']));
+    expect(m.status).toBe('ok');
+    expect(m.kids.map((k) => k.name)).toEqual(['Mia', 'Ben']);
+    expect(m.kids[0].jars.map((j) => j.id)).toEqual(['r1', 'r2']);
   });
 });

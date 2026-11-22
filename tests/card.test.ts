@@ -123,6 +123,18 @@ describe('family-board-card element', () => {
     expect(FamilyBoardCard.getStubConfig({ states })).toEqual({ kids: [{ id: 'k1', theme: 'bricks' }, { id: 'k2', theme: 'dino' }] });
   });
 
+  it('builds the stub config from prefixed TaskMate sensors and names them', () => {
+    const prefixed = {
+      'sensor.wohnzimmer_taskmate_overview': states['sensor.taskmate_overview'],
+      'sensor.wohnzimmer_taskmate_rewards': states['sensor.taskmate_rewards'],
+    };
+    expect(FamilyBoardCard.getStubConfig({ states: prefixed })).toEqual({
+      overview_entity: 'sensor.wohnzimmer_taskmate_overview',
+      rewards_entity: 'sensor.wohnzimmer_taskmate_rewards',
+      kids: [{ id: 'k1', theme: 'bricks' }, { id: 'k2', theme: 'dino' }],
+    });
+  });
+
   it('has a valid placeholder stub config without hass', async () => {
     const stub = FamilyBoardCard.getStubConfig();
     expect(stub).toEqual({ kids: [{ id: 'kind-1', theme: 'bricks' }] });

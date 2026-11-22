@@ -1,9 +1,9 @@
 import { LitElement, css, html, unsafeCSS, type TemplateResult } from 'lit';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import patrickHand from '@fontsource/patrick-hand/files/patrick-hand-latin-400-normal.woff2?inline';
-import { childIds, toBoardModel, type HassStates } from './adapter';
+import { childIds, resolveEntity, toBoardModel, type HassStates } from './adapter';
 import { renderBoard } from './board';
-import { normalizeConfig, type CardConfig } from './config';
+import { DEFAULT_ENTITIES, normalizeConfig, type CardConfig } from './config';
 import { animCss } from './draw/anim';
 import { esc, INK, PAPER } from './draw/sketch';
 import { de } from './i18n';
@@ -74,9 +74,17 @@ export class FamilyBoardCard extends LitElement {
   }
 
   static getStubConfig(hass?: Hass): Record<string, unknown> {
-    const ids = hass ? childIds(hass.states, 'sensor.taskmate_overview') : [];
+    const states = hass?.states ?? {};
+    const overview = resolveEntity(states, DEFAULT_ENTITIES.overview, 'overview');
+    const rewards = resolveEntity(states, DEFAULT_ENTITIES.rewards, 'rewards');
+    const ids = childIds(states, overview);
     if (ids.length === 0) return { kids: [{ id: 'kind-1', theme: 'bricks' }] };
-    return { kids: ids.map((id, i) => ({ id, theme: STUB_THEMES[i % STUB_THEMES.length] })) };
+    return {
+      // Sensors found under a prefixed name are written into the config, so it shows what is read.
+      ...(overview !== DEFAULT_ENTITIES.overview ? { overview_entity: overview } : {}),
+      ...(rewards !== DEFAULT_ENTITIES.rewards ? { rewards_entity: rewards } : {}),
+      kids: ids.map((id, i) => ({ id, theme: STUB_THEMES[i % STUB_THEMES.length] })),
+    };
   }
 
   declare _svg: string;
