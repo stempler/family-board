@@ -82,6 +82,12 @@ function uniqueIds(kids: KidConfig[]): KidConfig[] {
   return kids;
 }
 
+/** The names TaskMate gives its sensors when Home Assistant adds no prefix. */
+export const DEFAULT_ENTITIES = {
+  overview: 'sensor.taskmate_overview',
+  rewards: 'sensor.taskmate_rewards',
+} as const;
+
 export function normalizeConfig(raw: unknown): CardConfig {
   if (!isRecord(raw)) throw new Error('Invalid configuration');
   if (!Array.isArray(raw.kids) || raw.kids.length === 0) {
@@ -101,8 +107,8 @@ export function normalizeConfig(raw: unknown): CardConfig {
   }
   return {
     type: typeof raw.type === 'string' ? raw.type : 'custom:family-board-card',
-    overview_entity: nonEmptyString(raw.overview_entity) ? raw.overview_entity : 'sensor.taskmate_overview',
-    rewards_entity: nonEmptyString(raw.rewards_entity) ? raw.rewards_entity : 'sensor.taskmate_rewards',
+    overview_entity: nonEmptyString(raw.overview_entity) ? raw.overview_entity : DEFAULT_ENTITIES.overview,
+    rewards_entity: nonEmptyString(raw.rewards_entity) ? raw.rewards_entity : DEFAULT_ENTITIES.rewards,
     kids: uniqueIds(raw.kids.map(normalizeKid)),
     seasons,
     reward_icons,

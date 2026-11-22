@@ -38,8 +38,8 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 | Field | Default | Description |
 |---|---|---|
 | `type` | `custom:family-board-card` | Card type. |
-| `overview_entity` | `sensor.taskmate_overview` | TaskMate overview sensor. |
-| `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). |
+| `overview_entity` | `sensor.taskmate_overview` | TaskMate overview sensor. See "Sensor names" below. |
+| `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). See "Sensor names" below. |
 | `kids` | required, non-empty | One entry per kid, see below. |
 | `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`) shows one shared scene across the board; any other theme is used for every kid's half. |
 | `reward_icons` | `{}` | Map of reward id or name to an emoji or `mdi:...` icon. Default: TaskMate's own MDI icon. |
@@ -80,6 +80,13 @@ The child id is TaskMate's internal id, not the name: Developer Tools → States
 `sensor.taskmate_overview` → attribute `children`, field `id` of each entry.
 Adding the card in the dashboard editor pre-fills the ids of all TaskMate
 children.
+
+Sensor names: Home Assistant may put a prefix such as the area into the ids,
+e.g. `sensor.wohnzimmer_taskmate_overview`. When `overview_entity` or
+`rewards_entity` is not set and the default name does not exist, the card uses
+the one sensor whose id ends in `_taskmate_overview` (or `_taskmate_rewards`),
+and the dashboard editor writes that name into the new card's config. With
+several such sensors (more than one TaskMate), set both fields by hand.
 
 Installed through HACS, the card resource is `/hacsfiles/family-board/family-board-card.js`
 (type: JavaScript module); see [Install](#install). The local dev setup uses
