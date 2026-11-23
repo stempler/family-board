@@ -3,6 +3,7 @@ import type { FamilyBoardCard } from '../src/family-board-card';
 import { DEFAULT_SEASONS } from '../src/config';
 import { seasonStart } from '../src/season';
 import { THEMES } from '../src/themes/registry';
+import type { AreaSize } from '../src/board';
 import { makeFakeHass, type FakeJar, type FakeKid } from './fake-hass';
 
 const jars: FakeJar[] = [
@@ -26,8 +27,24 @@ function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [1
     const patched = kidPatch[k.id]?.theme;
     return typeof patched === 'string' ? { ...k, theme: patched } : k;
   });
+  addCardTile(name, kids, season, kidPatch);
+}
+
+/** A tile whose card fills `size`, as a card in a panel view of that shape would; the tile is as wide as `size`, so the shot has the screen's shape. */
+function addShapeTile(name: string, size: AreaSize, themes: string[], season: Date | null = null): void {
+  const names = ['Mia', 'Ben', 'Lea', 'Tom', 'Zoe'];
+  const colours = ['#d9534f', '#3b7dd8', '#4caf50', '#f0a030', '#9b59b6'];
+  const kids: FakeKid[] = themes.map((theme, i) => ({ id: `k${i + 1}`, name: names[i], points: [12, 37, 120, 5, 64][i], theme, colour: colours[i] }));
+  addCardTile(name, kids, season, {}, size);
+}
+
+function addCardTile(name: string, kids: FakeKid[], season: Date | null, kidPatch: Record<string, Record<string, unknown>> = {}, size?: AreaSize): void {
   const figure = document.createElement('figure');
   figure.dataset.galleryTile = name;
+  if (size) {
+    figure.style.width = `${size.w}px`;
+    figure.style.gridColumn = '1 / -1';
+  }
   const card = document.createElement('family-board-card') as FamilyBoardCard;
   const caption = document.createElement('figcaption');
   caption.textContent = name;
@@ -36,6 +53,10 @@ function addTile(name: string, theme: string, season: Date | null, [p1, p2] = [1
 
   const config: Record<string, unknown> = { kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour, ...kidPatch[k.id] })) };
   if (!season) config.seasons = [];
+  if (size) {
+    config.fill = true;
+    card.measure = () => size;
+  }
   card.setConfig(config);
   card.now = () => season ?? new Date();
   card.hass = makeFakeHass(kids, jars);
@@ -60,3 +81,12 @@ for (const [id, theme] of Object.entries(THEMES)) {
   const md = `${christmas.getFullYear() - 7}-${String(christmas.getMonth() + 1).padStart(2, '0')}-${String(christmas.getDate()).padStart(2, '0')}`;
   addTile('birthday-in-christmas', 'bricks', christmas, [12, 37], { k1: { birthday: md }, k2: { theme: 'dino' } });
 }
+// The garden with many points: the first big flowers and sunflowers, and the most small ones with 1000 points.
+for (const points of [[199, 300], [1000, 112]] as [number, number][]) addTile(`garden-points-${points.join('-')}`, 'garden', null, points);
+// The card filling a screen of a given shape (two kids: pirates and garden, the themes with a ground colour). 16:10 is 720x450 and 21:9 1050x450;
+// five kids on 4:3 are too narrow for halves, so the picture gets taller (800x600), also with a season scene.
+addShapeTile('shape-16-10', { w: 720, h: 450 }, ['pirates', 'garden']);
+addShapeTile('shape-4-3', { w: 600, h: 450 }, ['pirates', 'garden']);
+addShapeTile('shape-21-9', { w: 1050, h: 450 }, ['pirates', 'garden']);
+addShapeTile('shape-4-3-five-kids', { w: 800, h: 600 }, ['pirates', 'garden', 'underwater', 'dino', 'construction']);
+addShapeTile('shape-4-3-five-kids-christmas', { w: 800, h: 600 }, ['pirates', 'garden', 'underwater', 'dino', 'construction'], seasonDate('christmas'));

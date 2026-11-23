@@ -126,6 +126,29 @@ try {
   check(board.icons.every((i) => i.drawn), 'every ha-icon drew its path');
   check(board.fontOk, "handwriting font 'Patrick Hand' is loaded");
 
+  // The dev dashboard is a panel view, so the card's `fill: auto` fills the screen: the card ends at the viewport's bottom edge and the page does not scroll.
+  for (const [width, height] of [[1280, 720], [1280, 800], [1024, 768]]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(500); // the resize handler measures again; wait for the redraw
+    const fit = await page.evaluate(() => {
+      const findDeep = (node, sel) => {
+        const hit = node.querySelector?.(sel);
+        if (hit) return hit;
+        for (const el of node.querySelectorAll?.('*') ?? []) {
+          const inner = el.shadowRoot && findDeep(el.shadowRoot, sel);
+          if (inner) return inner;
+        }
+        return null;
+      };
+      const rect = findDeep(document, 'family-board-card').getBoundingClientRect();
+      return { bottom: rect.bottom, innerHeight, scrollHeight: document.scrollingElement.scrollHeight };
+    });
+    check(Math.abs(fit.bottom - fit.innerHeight) <= 1, `${width}x${height}: card bottom ${fit.bottom} is within 1px of the viewport bottom ${fit.innerHeight}`);
+    check(fit.scrollHeight <= fit.innerHeight, `${width}x${height}: page does not scroll (scrollHeight ${fit.scrollHeight}, innerHeight ${fit.innerHeight})`);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(500);
+
   // Tap Mia's half (left half, in the scene, away from header and jars).
   await tapBoard(page, 200, 200);
   await page.waitForURL((u) => u.pathname === TASKS, { timeout: 10_000 }).catch(() => {});

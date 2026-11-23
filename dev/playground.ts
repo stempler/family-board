@@ -15,18 +15,46 @@ const jars: FakeJar[] = [
 ];
 let date = new Date();
 let seasonsOff = false;
+/** Screen shapes of the "Form" picker as width:height; `null` is "wie bisher" (the card does not fill). */
+const SHAPES: [string, string, [number, number] | null][] = [
+  ['', 'wie bisher', null],
+  ['16:9', '16:9', [16, 9]],
+  ['16:10', '16:10', [16, 10]],
+  ['4:3', '4:3', [4, 3]],
+  ['21:9', '21:9', [21, 9]],
+  ['9:16', 'Hochformat (9:16)', [9, 16]],
+];
+let shape: [number, number] | null = null;
 /** Kids who have their birthday on the playground date. */
 const birthdayKids = new Set<string>();
 let jarCounter = jars.length;
 
 const card = document.querySelector('family-board-card') as FamilyBoardCard;
 const controls = document.getElementById('controls')!;
+const stage = document.getElementById('stage')!;
 
 function applyConfig(): void {
   card.setConfig({
     kids: kids.map((k) => ({ id: k.id, theme: k.theme, colour: k.colour })),
     ...(seasonsOff ? { seasons: [] } : {}),
+    ...(shape ? { fill: true } : {}),
   });
+  applyShape();
+}
+
+/** Measures the largest box of the chosen shape that fits the stage, or nothing for "wie bisher". */
+function applyShape(): void {
+  if (!shape) {
+    delete card.measure;
+  } else {
+    const [sw, sh] = shape;
+    card.measure = () => {
+      const free = { w: stage.clientWidth - 24, h: window.innerHeight - 24 }; // the stage has 12px padding
+      const scale = Math.min(free.w / sw, free.h / sh);
+      return { w: sw * scale, h: sh * scale };
+    };
+  }
+  card.refit();
 }
 
 function push(): void {
@@ -78,6 +106,16 @@ function renderControls(): void {
   });
   seasonSelect.value = seasonsOff ? '' : seasonOptions.find(([v, , d]) => v !== '' && d && d.toDateString() === date.toDateString())?.[0] ?? 'auto';
   controls.append(el('fieldset', {}, el('legend', { textContent: 'Datum' }), dateInput, el('label', {}, 'Saison: ', seasonSelect)));
+
+  const shapeSelect = el('select');
+  for (const [value, label] of SHAPES) shapeSelect.append(el('option', { value, textContent: label }));
+  shapeSelect.value = shape ? `${shape[0]}:${shape[1]}` : '';
+  shapeSelect.addEventListener('change', () => {
+    shape = SHAPES.find(([value]) => value === shapeSelect.value)![2];
+    applyConfig();
+    push();
+  });
+  controls.append(el('fieldset', {}, el('legend', { textContent: 'Bildschirm' }), el('label', {}, 'Form: ', shapeSelect)));
 
   for (const k of kids) {
     const name = el('input', { type: 'text', value: k.name });
