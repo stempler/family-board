@@ -91,7 +91,7 @@ async function openBoard(page, load = true) {
   await page.waitForTimeout(1500); // ha-icon loads its paths asynchronously; let the drop animation settle
 }
 
-/** Tap a point given in board units (viewBox 800x450) of the card. */
+/** Tap a point given as a fraction of the board's 800x450 picture; with fill the picture's width varies, the tap is proportional. */
 async function tapBoard(page, x, y) {
   const box = await page.locator('family-board-card svg').first().boundingBox();
   await page.mouse.click(box.x + (x / 800) * box.width, box.y + (y / 450) * box.height);
@@ -140,7 +140,7 @@ try {
         }
         return null;
       };
-      const rect = findDeep(document, 'family-board-card').getBoundingClientRect();
+      const rect = findDeep(document, 'family-board-card').shadowRoot.querySelector('ha-card').getBoundingClientRect(); // the element the card measures itself
       return { bottom: rect.bottom, innerHeight, scrollHeight: document.scrollingElement.scrollHeight };
     });
     check(Math.abs(fit.bottom - fit.innerHeight) <= 1, `${width}x${height}: card bottom ${fit.bottom} is within 1px of the viewport bottom ${fit.innerHeight}`);
