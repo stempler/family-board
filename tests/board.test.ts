@@ -206,6 +206,33 @@ describe('renderBoard', () => {
       });
     });
 
+    it('keeps the chip at full size for 5 kids with 4-digit points, beside a smaller avatar', () => {
+      const ids = ['a', 'b', 'c', 'd', 'e'];
+      const cfg = config(ids.map((id) => ({ id, theme: 'bricks', show_number: true })));
+      const out = renderBoard(model(ids.map((id, i) => kid(id, 1234 + i, { avatarImage: '/local/a.png' }))), cfg, { date: JUNE });
+      ids.forEach((id, i) => {
+        const half = group(out, `data-kid-half="${id}"`);
+        expect(pointsGroup(half, id)).toMatch(/<text[^>]*font-size="18"/);
+        // Narrow halves get a 36 avatar, centred where the 44 one sits.
+        expect(half).toContain(`<image href="/local/a.png" x="${i * 160 + 14}" y="18" width="36" height="36"`);
+        expect(nameOf(half).x).toBe(i * 160 + 14 + 36 + 10);
+      });
+    });
+
+    it('steps the chip down two sizes for 5 kids with 5-digit points', () => {
+      const ids = ['a', 'b', 'c', 'd', 'e'];
+      const cfg = config(ids.map((id) => ({ id, theme: 'bricks', show_number: true })));
+      const out = renderBoard(model(ids.map((id) => kid(id, 12345))), cfg, { date: JUNE });
+      expect(pointsGroup(group(out, 'data-kid-half="a"'), 'a')).toMatch(/<text[^>]*font-size="14"/);
+    });
+
+    it('keeps the 44 avatar from four kids down', () => {
+      const ids = ['a', 'b', 'c', 'd'];
+      const cfg = config(ids.map((id) => ({ id, theme: 'bricks', show_number: true })));
+      const out = renderBoard(model(ids.map((id) => kid(id, 5, { avatarImage: '/local/a.png' }))), cfg, { date: JUNE });
+      expect(group(out, 'data-kid-half="a"')).toContain('<image href="/local/a.png" x="14" y="14" width="44" height="44"');
+    });
+
     it('picks white or ink text by the luminance of a hex kid colour', () => {
       const cfg = config([{ id: 'k1', theme: 'bricks', show_number: true }, { id: 'k2', theme: 'bricks', show_number: true }]);
       const out = renderBoard(model([kid('k1', 12, { colour: '#1a237e' }), kid('k2', 12, { colour: '#ffd54f' })]), cfg, { date: JUNE });
