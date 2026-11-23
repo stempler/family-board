@@ -100,9 +100,11 @@ Installed through HACS, the card resource is `/hacsfiles/family-board/family-boa
 ### Filling the screen
 
 A card that fills the screen draws its picture in the shape of the screen: the scene keeps its height and the
-picture gets wider or narrower, so 16:10 and 21:9 screens have no empty bars (the width stays between 160 per kid,
-at least 400, and 1600). When the halves would get too narrow, for example five kids on a 4:3 screen, the picture
-gets taller instead, with more ground below the scene for the jars. Six themes (`pirates`, `underwater`, `birthday`,
+picture gets wider or narrower, so 16:10 and 21:9 screens have no empty bars (the width stays, in picture units at a
+scene height of 450, between 160 per kid, at least 400, and 1600). When the halves would get too narrow, for example
+five kids on a 4:3 screen, the picture gets taller instead, with more ground below the scene for the jars; during a
+season the shared scene is drawn at the taller height instead of getting more ground. `fill: true` inside a stack or
+grid pushes the cards below it off the screen, which is why `auto` only fills as the panel view's own card. Six themes (`pirates`, `underwater`, `birthday`,
 `construction`, `garden`, `summer`) continue their ground colour behind the jars. In the playground the "Bildschirm"
 picker ("Form") tries the shapes (16:9, 16:10, 4:3, 21:9, Hochformat) and the gallery has `shape-...` tiles for them.
 
@@ -180,17 +182,17 @@ reviewing all themes in one go.
 
 ### Adding a theme
 
-1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase), fix the imports as its header says and replace `template`. Set `label` to the German display name. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation. If the scene ends in one flat colour at its bottom edge (sand, grass, soil), set `ground` on the theme to that colour: the board paints the jar section in it, so there is no cut between the scene and the jars. Keep the ink colour (`#3a2f28`) at least 3:1 against it, as the jar outlines are drawn in it. Without `ground` the jar section stays paper-coloured.
+1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase), fix the imports as its header says and replace `template`. Set `label` to the German display name. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation. If the scene ends in one flat colour at its bottom edge (sand, grass, soil), set `ground` on the theme to that colour: the board paints the jar section in it, so there is no cut between the scene and the jars. Keep the ink colour (`#3a2f28`) at least 3:1 against it, as the jar outlines are drawn in it. Without `ground` the jar section keeps the theme's `background`.
 2. Register it in `THEMES` in `src/themes/registry.ts` (append at the end). The playground, the gallery, the Home Assistant browser check and the snapshot tests read it. The only other list is the test in `tests/themes/christmas.test.ts` that names every registered id in order: append your id there too.
 3. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` (and `runSeasonContract(theme)` for a seasonal theme) plus theme-specific checks. The contract covers the css rules:
    - every `@keyframes` name and class starts with `fb-<id>-`;
    - rules set only `animation-name`, `animation-timing-function`, `transform-origin` and `transform-box`; duration, delay and iteration come from the shared `.fb-anim` rule through `--t` and `--d`;
-   - animated elements carry `class="fb-anim fb-<id>-..."`, 1 to 30 per half (a season scene at most 60), never together with `fb-item`.
+   - animated elements carry `class="fb-anim fb-<id>-..."`, 1 to 30 per half at the default width (a season scene at most 60); the whole board stays at or below 60 at any shape, never together with `fb-item`.
 
    Also: only escaped text (`esc`) and `num` for numbers, everything inside the half, and scenery drawn after the items with its own sketch key (`${seedKey}:<name>`) so adding an item never re-wobbles it. A theme that counts items differently (chess) implements `items(points, prev)`.
 
    Layout: export the theme's item `spots(big, small)` and `footprint(spot)` (the box a drawn item covers, in your units) and test with the helpers in `tests/themes/layout.ts` that no two items overlap (at capacity and at a few larger counts such as 37, 199 and 1000) and that every big item, wherever it stands, is clearly bigger than a small one (area above 1.5x). `tests/themes/pirates.test.ts` is an example.
-4. Seasonal theme only: add a rule to `DEFAULT_SEASONS` in `src/config.ts` (the snapshot test, the gallery and the playground take the season date from it), mark each kid's object with `seasonKid()` and update the `seasons` row of the [configuration table](#card-configuration), which lists the default rules by hand. Do this before writing the snapshots, so the season scene snapshot is written too.
+4. Seasonal theme only: add a rule to `DEFAULT_SEASONS` in `src/config.ts` (the snapshot test, the gallery and the playground take the season date from it), mark each kid's object with `seasonKid()` and update the `seasons` row of the [configuration table](#card-configuration), which lists the default rules by hand. The season scene's box can be taller than 450 (when the picture grows taller for many kids on a narrow screen): paint the background over the whole box and position from `box.h`. Do this before writing the snapshots, so the season scene snapshot is written too.
 5. Add the theme to a list in `FIVE_KID_BOARDS` in `tests/snapshots.test.ts` (a guard test fails until you do). A board holds at most five kids; when the lists are full, start a new list, which gets its own `five-kids-<n>.svg`. Existing lists are never reshuffled.
 6. Write the snapshots: `mise run test -- -u tests/snapshots.test.ts` (and check that no other snapshot changed).
 7. Add a row to the theme table above, with the same name as `label`.
