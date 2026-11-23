@@ -9,11 +9,25 @@ import { activeSeason, ageOn, ageTurning, isBirthday } from './season';
 import { getTheme, THEMES } from './themes/registry';
 import type { HalfContext, Theme } from './themes/types';
 
-export interface RenderOptions { date: Date; prevPoints?: Record<string, number> } // prevPoints: kidId -> previous points, drives fb-new
+export interface AreaSize { w: number; h: number }
+export interface RenderOptions { date: Date; prevPoints?: Record<string, number>; size?: AreaSize } // prevPoints: kidId -> previous points, drives fb-new; size: the free area the board should fill
 
-const W = 800;
-const H = 450;
-const BOARD: Box = { x: 0, y: 0, w: W, h: H };
+export const SCENE_H = 450; // the fixed scene height; the board's width (and, when narrow, its height) follows the free area
+const DEFAULT_W = 800;
+const MIN_KID_W = 160;
+const MIN_W = 400;
+const MAX_W = 1600;
+
+/** The picture size for a free area: scene height 450, width from the area's shape within [max(160 x kids, 400), 1600]; narrower areas get a taller picture. */
+export function boardSize(size: AreaSize | undefined, kids: number): { w: number; h: number } {
+  if (!size || !Number.isFinite(size.w) || !Number.isFinite(size.h) || size.w <= 0 || size.h <= 0) return { w: DEFAULT_W, h: SCENE_H };
+  const w = Math.round(SCENE_H * size.w / size.h);
+  if (w > MAX_W) return { w: MAX_W, h: SCENE_H };
+  const minW = Math.max(MIN_KID_W * kids, MIN_W);
+  if (w < minW) return { w: minW, h: Math.round(minW * size.h / size.w) };
+  return { w, h: SCENE_H };
+}
+
 const FONT = `'Patrick Hand', 'Comic Sans MS', cursive`;
 
 const MARGIN = 14;
@@ -32,14 +46,14 @@ const GLYPH_W = 0.55; // average glyph width in em, on the wide side
 // Jar row in the bottom ~21% of the board, below every theme's scene band (ends at 0.79h).
 const JAR_W = 40;
 const JAR_H = 74;
-const JAR_Y = 366;
+const JAR_Y = 366; // for a scene height of 450; a taller picture centres the row in the extra height
 const GAP = 12;
 const SHARED_GAP = 34; // clear space around the shared jars so they don't read as part of a kid's row
 
 interface Half { kid: Kid; box: Box; theme: Theme; showNumber: boolean; ctx: HalfContext }
 
-function svg(body: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="${esc(FONT)}"><rect x="0" y="0" width="${W}" height="${H}" fill="${PAPER}"/>${body}</svg>`;
+function svg(w: number, h: number, body: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" font-family="${esc(FONT)}"><rect x="0" y="0" width="${w}" height="${h}" fill="${PAPER}"/>${body}</svg>`;
 }
 
 function text(x: number, y: number, size: number, content: string, anchor = 'middle', extra = '', fill = INK): string {
@@ -105,20 +119,20 @@ function header(half: Half, index: number): string {
 }
 
 /** How many shared jars fit across the board. */
-function sharedFit(total: number): number {
-  return Math.min(total, Math.max(0, Math.floor((W - 2 * MARGIN + GAP) / (JAR_W + GAP))));
+function sharedFit(total: number, w: number): number {
+  return Math.min(total, Math.max(0, Math.floor((w - 2 * MARGIN + GAP) / (JAR_W + GAP))));
 }
 
 /** Horizontal span [left, right] of the shared jar row, centred on the board. */
-function sharedSpan(total: number): [number, number] | null {
-  const count = sharedFit(total);
+function sharedSpan(total: number, w: number): [number, number] | null {
+  const count = sharedFit(total, w);
   if (count === 0) return null;
   const width = count * JAR_W + (count - 1) * GAP;
-  return [(W - width) / 2, (W + width) / 2];
+  return [(w - width) / 2, (w + width) / 2];
 }
 
 /** Kid jars left-aligned in the widest part of the half that keeps clear of the shared jars; as many as fit. */
-function jarRow(half: Half, shared: [number, number] | null): string {
+function jarRow(half: Half, shared: [number, number] | null, jarY: number): string {
   const { kid, box } = half;
   const a = box.x + MARGIN;
   const b = box.x + box.w - MARGIN;
@@ -126,7 +140,7 @@ function jarRow(half: Half, shared: [number, number] | null): string {
   const [left, right] = segments.reduce((best, s) => (s[1] - s[0] > best[1] - best[0] ? s : best));
   const fit = Math.max(0, Math.floor((right - left + GAP) / (JAR_W + GAP)));
   return kid.jars.slice(0, fit).map((jar, i) =>
-    drawJar(jar, { x: left + i * (JAR_W + GAP), y: JAR_Y, w: JAR_W, h: JAR_H }, kid.colour, `${kid.id}:jar:${jar.id}`),
+    drawJar(jar, { x: left + i * (JAR_W + GAP), y: jarY, w: JAR_W, h: JAR_H }, kid.colour, `${kid.id}:jar:${jar.id}`),
   ).join('');
 }
 
@@ -135,8 +149,10 @@ function scene(theme: Theme, body: string): string {
 }
 
 export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderOptions): string {
-  if (model.status === 'missing') return svg(text(W / 2, H / 2, 24, de.missing));
-  if (model.kids.length === 0) return svg(text(W / 2, H / 2, 24, de.noKids));
+  const { w: W, h: H } = boardSize(opts.size, model.kids.length);
+  const BOARD: Box = { x: 0, y: 0, w: W, h: SCENE_H };
+  if (model.status === 'missing') return svg(W, H, text(W / 2, H / 2, 24, de.missing));
+  if (model.kids.length === 0) return svg(W, H, text(W / 2, H / 2, 24, de.noKids));
 
   const season = activeSeason(opts.date, config.seasons, Object.keys(THEMES));
   const seasonTheme = season ? getTheme(season.theme) : null;
@@ -152,7 +168,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
   const halves: Half[] = model.kids.map((kid, i) => {
     const kc = config.kids.find((k) => k.id === kid.id);
     const theme = birthdayIds.has(kid.id) ? THEMES.birthday : seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
-    const box: Box = { x: i * hw, y: 0, w: hw, h: H };
+    const box: Box = { x: i * hw, y: 0, w: hw, h: SCENE_H };
     const prev = opts.prevPoints?.[kid.id];
     const { newFrom, newTo } = theme.items ? theme.items(kid.points, prev) : newItemRange(prev, kid.points, theme.capacity);
     // TaskMate's age first; on TaskMate's birthday (whatever the card's day) the age the kid turns this year.
@@ -163,11 +179,14 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });
 
-  const span = sharedSpan(model.sharedJars.length);
+  const span = sharedSpan(model.sharedJars.length, W);
+  const jarY = JAR_Y + (H - SCENE_H) / 2;
   const colours = Object.fromEntries(model.kids.map((k) => [k.id, k.colour]));
 
   let body = '';
   if (seasonal) {
+    // A picture taller than the scene: the season's background fills the band below it.
+    if (H > SCENE_H) body += `<rect x="0" y="${SCENE_H}" width="${W}" height="${H - SCENE_H}" fill="${esc(seasonal.background)}"/>`;
     body += scene(seasonal, seasonal.renderSeasonScene!(halves.filter((h) => h.kid.found).map((h) => h.ctx), BOARD));
   }
   body += halves.map((half, i) => {
@@ -175,19 +194,19 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     let inner = '';
     // Season mode: the shared scene sits below every half, so each half gets a transparent hit target above it.
     inner += seasonal
-      ? `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${H}" fill="transparent" pointer-events="all"/>`
-      : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${H}" fill="${esc(theme.background)}"/>`;
+      ? `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(H)}" fill="transparent" pointer-events="all"/>`
+      : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(H)}" fill="${esc(theme.background)}"/>`;
     if (!kid.found) inner += text(box.x + box.w / 2, H / 2, 22, de.kidNotFound);
     else if (!seasonal) inner += scene(theme, theme.renderHalf(half.ctx));
-    inner += header(half, i) + jarRow(half, span);
+    inner += header(half, i) + jarRow(half, span, jarY);
     const tappable = kid.found && !!config.kids.find((k) => k.id === kid.id)?.tap_path;
     if (tappable) inner += text(box.x + box.w - MARGIN, HINT_Y, 11, de.tapHint, 'end', ' opacity="0.6"');
     return `<g data-kid-half="${esc(kid.id)}"${tappable ? ' data-tappable="true"' : ''}>${inner}</g>`;
   }).join('');
   if (span) {
-    body += model.sharedJars.slice(0, sharedFit(model.sharedJars.length)).map((jar, i) =>
-      drawSharedJar(jar, { x: span[0] + i * (JAR_W + GAP), y: JAR_Y, w: JAR_W, h: JAR_H }, colours, `shared:${jar.id}`),
+    body += model.sharedJars.slice(0, sharedFit(model.sharedJars.length, W)).map((jar, i) =>
+      drawSharedJar(jar, { x: span[0] + i * (JAR_W + GAP), y: jarY, w: JAR_W, h: JAR_H }, colours, `shared:${jar.id}`),
     ).join('');
   }
-  return svg(body);
+  return svg(W, H, body);
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { renderBoard } from '../src/board';
+import { boardSize, renderBoard } from '../src/board';
+import { drawJar, drawSharedJar } from '../src/draw/jar';
 import { DEFAULT_SEASONS, type CardConfig, type KidConfig } from '../src/config';
 import { de } from '../src/i18n';
 import { groupItems } from '../src/items';
@@ -610,4 +611,86 @@ describe('birthday', () => {
     });
   }
 
+});
+
+describe('boardSize', () => {
+  it.each([
+    [undefined, 2, 800, 450],
+    [{ w: 1600, h: 900 }, 2, 800, 450],
+    [{ w: 2304, h: 1440 }, 2, 720, 450], // 16:10
+    [{ w: 1024, h: 768 }, 2, 600, 450], // 4:3
+    [{ w: 2100, h: 900 }, 2, 1050, 450], // 21:9
+    [{ w: 4000, h: 900 }, 2, 1600, 450], // capped
+    [{ w: 1024, h: 768 }, 5, 800, 600], // fallback: 5 x 160, taller
+    [{ w: 900, h: 1600 }, 2, 400, 711], // portrait, floor 400
+    [{ w: 1024, h: 768 }, 0, 600, 450],
+    [{ w: 0, h: 768 }, 2, 800, 450],
+    [{ w: NaN, h: 768 }, 2, 800, 450],
+  ])('%o with %i kids -> %i x %i', (size, kids, w, h) => {
+    expect(boardSize(size, kids)).toEqual({ w, h });
+  });
+});
+
+describe('renderBoard with a size', () => {
+  const WIDE = { w: 2304, h: 1440 }; // 16:10
+  const SQUARE = { w: 1024, h: 768 }; // 4:3
+  const jar = { id: 'j1', name: 'J', icon: { kind: 'emoji' as const, value: '🎁' }, goal: 10, current: 3 };
+  const five = config(['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, theme: 'bricks', show_number: true })));
+  const fiveKids = () => ['a', 'b', 'c', 'd', 'e'].map((id) => kid(id, 4, { jars: [jar as never] }));
+
+  it('uses the shape of the free area for the viewBox and the halves', () => {
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: JUNE, size: WIDE });
+    expect(out).toContain('viewBox="0 0 720 450"');
+    for (const id of ['k1', 'k2']) expect(group(out, `data-kid-half="${id}"`)).toContain('width="360" height="450" fill=');
+  });
+
+  it('is identical to the default without a size', () => {
+    const m = model([kid('k1', 5), kid('k2', 3)]);
+    expect(renderBoard(m, twoKids, { date: JUNE, size: undefined })).toBe(renderBoard(m, twoKids, { date: JUNE }));
+  });
+
+  it('centres the jar row in a taller picture', () => {
+    const out = renderBoard(model(fiveKids()), five, { date: JUNE, size: SQUARE });
+    expect(out).toContain('viewBox="0 0 800 600"');
+    ['a', 'b', 'c', 'd', 'e'].forEach((id, i) => {
+      const box = { x: i * 160 + 14, y: 441, w: 40, h: 74 };
+      expect(group(out, `data-kid-half="${id}"`)).toContain(drawJar(jar as never, box, '#d9534f', `${id}:jar:j1`));
+      expect(group(out, `data-kid-half="${id}"`)).toContain('width="160" height="600" fill=');
+    });
+    const withShared = renderBoard(model(fiveKids(), [{ id: 's0', name: 'S', icon: jar.icon, goal: 10, contributions: {} } as never]), five, { date: JUNE, size: SQUARE });
+    expect(withShared).toContain(drawSharedJar({ id: 's0', name: 'S', icon: jar.icon, goal: 10, contributions: {} } as never, { x: 380, y: 441, w: 40, h: 74 }, Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((id) => [id, '#d9534f'])), 'shared:s0'));
+  });
+
+  it.each([720, 1050])('keeps the shared row centred at %i wide', (w) => {
+    const shared = Array.from({ length: 3 }, (_, i) => ({ id: `s${i}`, name: 'S', icon: jar.icon, goal: 10, contributions: {} }));
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)], shared as never), twoKids, { date: JUNE, size: { w: w * 2, h: 900 } });
+    const colours = { k1: '#d9534f', k2: '#d9534f' };
+    const at = (i: number, x: number) => drawSharedJar(shared[i] as never, { x, y: 366, w: 40, h: 74 }, colours, `shared:s${i}`);
+    const rowW = 3 * 40 + 2 * 12;
+    const leftMargin = (w - rowW) / 2;
+    const lastX = leftMargin + rowW - 40;
+    const rightMargin = w - (lastX + 40);
+    expect(leftMargin).toBe(rightMargin);
+    expect(out).toContain(at(0, leftMargin));
+    expect(out).toContain(at(2, lastX));
+  });
+
+  it('centres the messages for a missing model and for no kids', () => {
+    const missing = renderBoard({ status: 'missing', kids: [], sharedJars: [] }, twoKids, { date: JUNE, size: WIDE });
+    expect(missing).toContain('viewBox="0 0 720 450"');
+    expect(missing).toContain('<text x="360" y="225"');
+    expect(renderBoard(model([]), twoKids, { date: JUNE, size: WIDE })).toContain('<text x="360" y="225"');
+  });
+
+  it('paints the season background below the scene when the picture is taller', () => {
+    const out = renderBoard(model(fiveKids()), five, { date: DECEMBER, size: SQUARE });
+    const band = `<rect x="0" y="450" width="800" height="150" fill="${THEMES.christmas.background}"/>`;
+    expect(out).toContain(band);
+    expect(out.indexOf(band)).toBeLessThan(out.indexOf('data-kid-half='));
+  });
+
+  it('gives the season scene the picture width', () => {
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: DECEMBER, size: WIDE });
+    expect(group(out, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="720" height="450" fill="');
+  });
 });
