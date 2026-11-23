@@ -42,6 +42,7 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 | `rewards_entity` | `sensor.taskmate_rewards` | TaskMate rewards sensor (savings jars). See "Sensor names" below. |
 | `kids` | required, non-empty | One entry per kid, see below. |
 | `seasons` | christmas `12-01`..`12-26`, halloween `10-24`..`10-31`, easter `easter-7`..`easter+1`, martin `11-01`..`11-11`, summer `07-15`..`08-31` | Seasonal theme overrides; the first matching rule wins. `from`/`to` are `MM-DD` or `easter`, `easter-N`, `easter+N` (days relative to Easter Sunday, N from 0 to 60), inclusive. Forms may be mixed. Rules with only `MM-DD` ends may wrap the year end; rules with an Easter-relative end do not, and one whose `from` is after its `to` wherever Easter falls is a config error. `seasons: []` turns seasons off. A theme with its own seasonal scene (`christmas`, `halloween`, `easter`, `martin`, `summer`) shows one shared scene across the board; any other theme is used for every kid's half. |
+| `fill` | `auto` | `auto`: the card fills the screen when it is a panel view's own card (a dashboard view of type panel), otherwise it keeps its own size. `true` or `false` force it on or off; with `true` the card measures from its top edge to the bottom of the window. See [Filling the screen](#filling-the-screen). |
 | `reward_icons` | `{}` | Map of reward id or name to an emoji or `mdi:...` icon. Default: TaskMate's own MDI icon. |
 
 `kids[]` entries:
@@ -95,6 +96,15 @@ several such sensors (more than one TaskMate), set both fields by hand.
 Installed through HACS, the card resource is `/hacsfiles/family-board/family-board-card.js`
 (type: JavaScript module); see [Install](#install). The local dev setup uses
 `/local/family-board/family-board-card.js`.
+
+### Filling the screen
+
+A card that fills the screen draws its picture in the shape of the screen: the scene keeps its height and the
+picture gets wider or narrower, so 16:10 and 21:9 screens have no empty bars (the width stays between 160 per kid,
+at least 400, and 1600). When the halves would get too narrow, for example five kids on a 4:3 screen, the picture
+gets taller instead, with more ground below the scene for the jars. Six themes (`pirates`, `underwater`, `birthday`,
+`construction`, `garden`, `summer`) continue their ground colour behind the jars. In the playground the "Bildschirm"
+picker ("Form") tries the shapes (16:9, 16:10, 4:3, 21:9, Hochformat) and the gallery has `shape-...` tiles for them.
 
 ## Themes
 
@@ -170,7 +180,7 @@ reviewing all themes in one go.
 
 ### Adding a theme
 
-1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase), fix the imports as its header says and replace `template`. Set `label` to the German display name. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation.
+1. Copy [`docs/theme-template.ts`](docs/theme-template.ts) to `src/themes/<id>.ts` (id: English, lowercase), fix the imports as its header says and replace `template`. Set `label` to the German display name. It uses the shared helpers (`src/draw/units.ts`, and `src/draw/season.ts` for season scenes), the `item()` wrapper, `ctx.groups` and a tiny animation. If the scene ends in one flat colour at its bottom edge (sand, grass, soil), set `ground` on the theme to that colour: the board paints the jar section in it, so there is no cut between the scene and the jars. Keep the ink colour (`#3a2f28`) at least 3:1 against it, as the jar outlines are drawn in it. Without `ground` the jar section stays paper-coloured.
 2. Register it in `THEMES` in `src/themes/registry.ts` (append at the end). The playground, the gallery, the Home Assistant browser check and the snapshot tests read it. The only other list is the test in `tests/themes/christmas.test.ts` that names every registered id in order: append your id there too.
 3. Add `tests/themes/<id>.test.ts` calling `runThemeContract(theme)` (and `runSeasonContract(theme)` for a seasonal theme) plus theme-specific checks. The contract covers the css rules:
    - every `@keyframes` name and class starts with `fb-<id>-`;
