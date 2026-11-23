@@ -684,11 +684,43 @@ describe('renderBoard with a size', () => {
     expect(renderBoard(model([]), twoKids, { date: JUNE, size: WIDE })).toContain('<text x="360" y="225"');
   });
 
-  it('paints the season background below the scene when the picture is taller', () => {
-    const out = renderBoard(model(fiveKids()), five, { date: DECEMBER, size: SQUARE });
-    const band = `<rect x="0" y="450" width="800" height="150" fill="${THEMES.christmas.background}"/>`;
-    expect(out).toContain(band);
-    expect(out.indexOf(band)).toBeLessThan(out.indexOf('data-kid-half='));
+  describe('season scene in a taller picture', () => {
+    const sceneBottom = SCENE_BOTTOM * 600;
+    const seasonJarY = sceneBottom + ((1 - SCENE_BOTTOM) * 600 - 74) / 2;
+
+    it('draws the scene at the full picture height, without a band', () => {
+      const out = renderBoard(model(fiveKids()), five, { date: DECEMBER, size: SQUARE });
+      expect(out).toContain('viewBox="0 0 800 600"');
+      expect(out).not.toContain('y="450"');
+      expect(group(out, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="800" height="600" fill="');
+    });
+
+    it('centres every jar in the scene bottom band', () => {
+      const shared = { id: 's0', name: 'S', icon: jar.icon, goal: 10, contributions: {} } as never;
+      const out = renderBoard(model(fiveKids()), five, { date: DECEMBER, size: SQUARE });
+      ['a', 'b', 'c', 'd', 'e'].forEach((id, i) => {
+        const box = { x: i * 160 + 14, y: seasonJarY, w: 40, h: 74 };
+        expect(group(out, `data-kid-half="${id}"`)).toContain(drawJar(jar as never, box, '#d9534f', `${id}:jar:j1`));
+      });
+      const colours = Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map((id) => [id, '#d9534f']));
+      const withShared = renderBoard(model(fiveKids(), [shared]), five, { date: DECEMBER, size: SQUARE });
+      expect(withShared).toContain(drawSharedJar(shared, { x: 380, y: seasonJarY, w: 40, h: 74 }, colours, 'shared:s0'));
+    });
+
+    it('starts the summer ground at the scene bottom of the taller picture', () => {
+      const out = renderBoard(model(fiveKids()), five, { date: new Date(2026, 7, 1), size: SQUARE });
+      expect(out.match(/data-ground/g)).toHaveLength(1);
+      expect(out).toContain(`<rect data-ground x="0" y="${sceneBottom - 1}" width="800" height="${600 - sceneBottom + 1}" fill="${THEMES.summer.ground}"/>`);
+      expect(sceneBottom - 1).toBe(473);
+    });
+
+    it('keeps jar y 366 and the 450 box at the default size and at 16:10', () => {
+      const kids = [kid('k1', 4, { jars: [jar as never] }), kid('k2', 4)];
+      const out = renderBoard(model(kids), twoKids, { date: DECEMBER, size: WIDE });
+      expect(out).toContain('viewBox="0 0 720 450"');
+      expect(group(out, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="720" height="450" fill="');
+      expect(out).toContain(drawJar(jar as never, { x: 14, y: 366, w: 40, h: 74 }, '#d9534f', 'k1:jar:j1'));
+    });
   });
 
   it('gives the season scene the picture width', () => {
@@ -709,15 +741,15 @@ describe('ground colour behind the jars', () => {
   it('continues the ground below the scene in each half, between scene and jars', () => {
     const out = renderBoard(model([kid('k1', 5, { jars: [{ id: 'j', name: 'J', icon: { kind: 'emoji', value: '🎁' }, goal: 10, current: 3 } as never] }), kid('k2', 3)]), pirates, { date: JUNE });
     const top = SCENE_BOTTOM * 450;
-    expect(top).toBe(355.5);
+    expect(top - 1).toBe(354.5);
     [0, 400].forEach((x, i) => {
       const half = group(out, `data-kid-half="k${i + 1}"`);
-      const rect = groundRect(x, 355.5, 400, 94.5);
+      const rect = groundRect(x, 354.5, 400, 95.5);
       expect(half).toContain(rect);
       expect(half.indexOf(rect)).toBeGreaterThan(half.indexOf('data-theme="pirates"'));
     });
     const half = group(out, 'data-kid-half="k1"');
-    expect(half.indexOf(groundRect(0, 355.5, 400, 94.5))).toBeLessThan(half.indexOf('data-jar'));
+    expect(half.indexOf(groundRect(0, 354.5, 400, 95.5))).toBeLessThan(half.indexOf('data-jar'));
   });
 
   it('reaches the bottom of a taller picture', () => {
@@ -730,13 +762,13 @@ describe('ground colour behind the jars', () => {
 
   it('draws the ground for a kid that was not found', () => {
     const out = renderBoard(model([kid('k1', 5, { found: false }), kid('k2', 3)]), pirates, { date: JUNE });
-    expect(group(out, 'data-kid-half="k1"')).toContain(groundRect(0, 355.5, 400, 94.5));
+    expect(group(out, 'data-kid-half="k1"')).toContain(groundRect(0, 354.5, 400, 95.5));
   });
 
   it('draws one ground across the board in season mode', () => {
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: new Date(2026, 7, 1) });
     expect(out.match(/data-ground/g)).toHaveLength(1);
-    expect(out).toContain(`<rect data-ground x="0" y="355.5" width="800" height="94.5" fill="${THEMES.summer.ground}"/>`);
+    expect(out).toContain(`<rect data-ground x="0" y="354.5" width="800" height="95.5" fill="${THEMES.summer.ground}"/>`);
   });
 
   it('draws no ground for a theme without one', () => {
