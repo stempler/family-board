@@ -23,7 +23,8 @@ notes on HACS, pinned TaskMate, the non-admin kids user and the tablet kiosk
 
 The card is installed through [HACS](https://hacs.xyz) as a custom repository:
 
-1. HACS → three-dot menu → Custom repositories → add
+1. Open HACS: Settings → Marketplace (before Home Assistant 2026.11: HACS in
+   the sidebar). There: three-dot menu → Custom repositories → add
    `https://github.com/stempler/family-board` with type Dashboard.
 2. Search for "Family Board Card" in HACS and download it. This needs at least
    one release (see [Release](#release)).
@@ -32,6 +33,8 @@ The card is installed through [HACS](https://hacs.xyz) as a custom repository:
    as a JavaScript module by hand.
 4. Add the card to a dashboard (see [Card configuration](#card-configuration)).
 5. Updates: HACS shows new releases. Update there, then reload the tablet.
+
+For the screen the board runs on, see [Setting up the display](#setting-up-the-display).
 
 ## Card configuration
 
@@ -84,7 +87,17 @@ reward_icons:
 The child id is TaskMate's internal id, not the name: Developer Tools → States →
 `sensor.taskmate_overview` → attribute `children`, field `id` of each entry.
 Adding the card in the dashboard editor pre-fills the ids of all TaskMate
-children.
+children. To list them by hand, paste this into Developer Tools → Template
+(with your sensor's name, see below); it prints one `name: id` line per child:
+
+```jinja
+{% for c in state_attr('sensor.taskmate_overview', 'children') %}
+{{ c.name }}: {{ c.id }}
+{% endfor %}
+```
+
+For `tap_path`, the dashboards TaskMate creates at installation work as
+targets: open the one for a kid and copy the path from the browser's address.
 
 Sensor names: Home Assistant may put a prefix such as the area into the ids,
 e.g. `sensor.wohnzimmer_taskmate_overview`. When `overview_entity` or
@@ -197,6 +210,34 @@ reviewing all themes in one go.
 6. Write the snapshots: `mise run test -- -u tests/snapshots.test.ts` (and check that no other snapshot changed).
 7. Add a row to the theme table above, with the same name as `label`.
 8. Look at it: `mise run dev` (playground, `/gallery.html`), `mise run gallery:shots`, `mise run ha:screenshot`. The gallery and the browser check pick the theme up by themselves.
+
+## Setting up the display
+
+What it takes to run the board on a tablet or an old laptop:
+
+- **Its own view.** Put the card alone into a view of type Panel (single
+  card), so it fills the screen (see [Filling the screen](#filling-the-screen)).
+- **A non-admin user.** Create a Home Assistant user without administrator
+  rights for the device (Settings → People → Users), log the device in with it
+  and make the board that user's default dashboard.
+- **No top bar and sidebar.** Home Assistant cannot hide them itself. Install
+  [Kiosk Mode](https://github.com/NemesisRE/kiosk-mode) through HACS and add
+  this at the top of the dashboard's raw configuration (above `views:`):
+
+  ```yaml
+  kiosk_mode:
+    non_admin_settings:
+      kiosk: true
+  ```
+
+  Only non-admin users lose the bars, so an administrator can still edit the
+  dashboard. The setting applies to the dashboard it is written in. Adding
+  `?disable_km` to the address switches it off for one page load.
+- **A kiosk browser.** On a tablet, a kiosk browser in landscape and full
+  screen. On a laptop, log a dedicated user in automatically and start
+  `firefox --kiosk <board address>` at login (Ctrl+Q closes it). Let the
+  screen switch off after a while if you like, but turn off suspend and the
+  lock screen, so a key press brings the board straight back.
 
 ## Tablet: back to the picture (open item)
 
