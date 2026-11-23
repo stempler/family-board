@@ -414,6 +414,39 @@ describe('renderBoard', () => {
   });
 });
 
+describe('every theme at the narrowest and widest board', () => {
+  const animated = (svg: string) => (svg.match(/class="fb-anim/g) ?? []).length;
+  const shapes = [
+    { name: 'widest (1600 wide)', size: { w: 4000, h: 900 }, ids: ['k1'] },
+    { name: 'narrowest for five kids (800x600)', size: { w: 1024, h: 768 }, ids: ['k1', 'k2', 'k3', 'k4', 'k5'] },
+  ];
+  const check = (out: string) => {
+    expect(out).not.toContain('NaN');
+    expect(animated(out)).toBeLessThanOrEqual(60);
+  };
+
+  for (const id of Object.keys(THEMES)) {
+    for (const s of shapes) {
+      it(`${id} as a half theme, ${s.name}`, () => {
+        const cfg: CardConfig = { ...config(s.ids.map((k) => ({ id: k, theme: id, show_number: true }))), seasons: [] };
+        check(renderBoard(model(s.ids.map((k) => kid(k, 37))), cfg, { date: JUNE, size: s.size }));
+      });
+    }
+  }
+
+  for (const t of Object.values(THEMES).filter((x) => x.renderSeasonScene)) {
+    const date = seasonStart(DEFAULT_SEASONS.find((r) => r.theme === t.id)!, 2026);
+    for (const s of shapes) {
+      it(`${t.id} season scene, ${s.name}`, () => {
+        const cfg = config(s.ids.map((k) => ({ id: k, theme: 'bricks', show_number: true })));
+        const out = renderBoard(model(s.ids.map((k) => kid(k, 37))), cfg, { date, size: s.size });
+        expect(out).toContain(`data-theme="${t.id}"`);
+        check(out);
+      });
+    }
+  }
+});
+
 describe('birthday', () => {
   const cfg = (extra: Partial<CardConfig> = {}, k2Birthday?: string): CardConfig => ({
     ...config([
@@ -646,11 +679,6 @@ describe('renderBoard with a size', () => {
     for (const id of ['k1', 'k2']) expect(group(out, `data-kid-half="${id}"`)).toContain('width="360" height="450" fill=');
   });
 
-  it('is identical to the default without a size', () => {
-    const m = model([kid('k1', 5), kid('k2', 3)]);
-    expect(renderBoard(m, twoKids, { date: JUNE, size: undefined })).toBe(renderBoard(m, twoKids, { date: JUNE }));
-  });
-
   it('centres the jar row in a taller picture', () => {
     const out = renderBoard(model(fiveKids()), five, { date: JUNE, size: SQUARE });
     expect(out).toContain('viewBox="0 0 800 600"');
@@ -716,17 +744,18 @@ describe('renderBoard with a size', () => {
 
     it('keeps jar y 366 and the 450 box at the default size and at 16:10', () => {
       const kids = [kid('k1', 4, { jars: [jar as never] }), kid('k2', 4)];
+      const jarAt = drawJar(jar as never, { x: 14, y: 366, w: 40, h: 74 }, '#d9534f', 'k1:jar:j1');
+      const dflt = renderBoard(model(kids), twoKids, { date: DECEMBER });
+      expect(dflt).toContain('viewBox="0 0 800 450"');
+      expect(group(dflt, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="800" height="450" fill="');
+      expect(dflt).toContain(jarAt);
       const out = renderBoard(model(kids), twoKids, { date: DECEMBER, size: WIDE });
       expect(out).toContain('viewBox="0 0 720 450"');
       expect(group(out, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="720" height="450" fill="');
-      expect(out).toContain(drawJar(jar as never, { x: 14, y: 366, w: 40, h: 74 }, '#d9534f', 'k1:jar:j1'));
+      expect(out).toContain(jarAt);
     });
   });
 
-  it('gives the season scene the picture width', () => {
-    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: DECEMBER, size: WIDE });
-    expect(group(out, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="720" height="450" fill="');
-  });
 });
 
 describe('ground colour behind the jars', () => {
@@ -757,7 +786,14 @@ describe('ground colour behind the jars', () => {
     const out = renderBoard(model(['a', 'b', 'c', 'd', 'e'].map((id) => kid(id, 4))), five, { date: JUNE, size: { w: 1024, h: 768 } });
     const rects = [...out.matchAll(/<rect data-ground x="[-\d.]+" y="([-\d.]+)" width="[-\d.]+" height="([-\d.]+)"/g)];
     expect(rects).toHaveLength(5);
-    for (const m of rects) expect(Number(m[1]) + Number(m[2])).toBe(600);
+    for (const m of rects) {
+      expect(m[1]).toBe('354.5');
+      expect(Number(m[1]) + Number(m[2])).toBe(600);
+    }
+    const jar = { id: 'j1', name: 'J', icon: { kind: 'emoji' as const, value: '🎁' }, goal: 10, current: 3 };
+    const jars = ['a', 'b', 'c', 'd', 'e'].map((id) => kid(id, 4, { jars: [jar as never] }));
+    const withJars = renderBoard(model(jars), five, { date: JUNE, size: { w: 1024, h: 768 } });
+    expect(group(withJars, 'data-kid-half="a"')).toContain(drawJar(jar as never, { x: 14, y: 441, w: 40, h: 74 }, '#d9534f', 'a:jar:j1'));
   });
 
   it('draws the ground for a kid that was not found', () => {

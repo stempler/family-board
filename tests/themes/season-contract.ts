@@ -36,6 +36,17 @@ export function runSeasonContract(theme: Theme): void {
       expect(out).not.toContain('NaN');
       expect(coordsOutside(out, seasonBox)).toEqual([]);
     });
+    it('stays inside a taller box and paints a background over all of it', () => {
+      const tall = { x: 0, y: 0, w: 800, h: 600 };
+      const halves = [
+        contractCtx(theme, 12, 12, { x: 0, y: 0, w: 400, h: 600 }, 'k1'),
+        contractCtx(theme, 7, 7, { x: 400, y: 0, w: 400, h: 600 }, 'k2'),
+      ];
+      const big = theme.renderSeasonScene!(halves, tall);
+      expect(big).not.toContain('NaN');
+      expect(coordsOutside(big, tall)).toEqual([]);
+      expect(big).toMatch(/<rect x="0" y="0" width="800" height="600" fill="/);
+    });
     it('uses the kid colour', () => {
       expect(out).toContain('#d9534f');
     });
