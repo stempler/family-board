@@ -191,7 +191,7 @@
 </g>
 </g>
 </g>
-<rect data-ground x="0" y="355.5" width="160" height="94.5" fill="#f3d99b"/>
+<rect data-ground x="0" y="354.5" width="160" height="95.5" fill="#f3d99b"/>
 <text x="36" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🦄</text>
 <text x="68" y="47" font-size="22.61" text-anchor="start" fill="#3a2f28">Mia</text>
 <g data-points="k1">
@@ -583,7 +583,7 @@
 </g>
 </g>
 </g>
-<rect data-ground x="160" y="355.5" width="160" height="94.5" fill="#f1dca6"/>
+<rect data-ground x="160" y="354.5" width="160" height="95.5" fill="#f1dca6"/>
 <text x="196" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🦖</text>
 <text x="228" y="47" font-size="16.61" text-anchor="start" fill="#3a2f28">Ben</text>
 <g data-points="k2">
@@ -2338,7 +2338,7 @@
 </g>
 </g>
 </g>
-<rect data-ground x="640" y="355.5" width="160" height="94.5" fill="#e2b98a"/>
+<rect data-ground x="640" y="354.5" width="160" height="95.5" fill="#e2b98a"/>
 <text x="676" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🌻</text>
 <text x="708" y="47" font-size="14" text-anchor="start" fill="#3a2f28">Max…</text>
 <g data-points="k5">
