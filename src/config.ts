@@ -9,7 +9,7 @@ export interface CardConfig {
   kids: KidConfig[];
   seasons: SeasonRule[];
   reward_icons: Record<string, string>; // reward id or name -> emoji or "mdi:..."
-  fill: 'auto' | boolean; // stretch the board to the free screen area: auto = only on a wall-panel dashboard
+  fill: 'auto' | boolean; // stretch the board to the free screen area: auto = only as a panel view's own card
 }
 
 export const DEFAULT_SEASONS: SeasonRule[] = [
