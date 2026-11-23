@@ -7,6 +7,7 @@
 #      docker compose exec homeassistant bash -c "wget -O - https://get.hacs.xyz | bash -"
 #    (equivalently, run the script on the host inside ./config so HACS lands in config/custom_components/hacs)
 #    Restart Home Assistant, then add the HACS integration under Settings > Devices & services.
+#    Since Home Assistant 2026.11 HACS is found under Settings > Marketplace (before: in the sidebar).
 #
 # 2. Install TaskMate through HACS, pinned to the version in taskmate.version (repo root):
 #    HACS > TaskMate > Redownload > pick that exact version. Then disable auto-update for it
@@ -21,6 +22,7 @@
 #
 # 5. Tablet kiosk: use a kiosk browser (or the HA companion app with its kiosk setting) in landscape,
 #    fullscreen, with the screen always on (disable sleep/screen timeout, keep charging).
+#    The top bar and sidebar need the Kiosk Mode plugin: see README, "Setting up the display".
 #
 # 6. Open item: nothing returns the tablet from the TaskMate task view to the picture yet (TaskMate's
 #    kiosk card only goes back to its own face picker when idle). Options (see README, "Tablet: back
