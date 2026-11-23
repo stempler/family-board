@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Box } from '../../src/draw/jar';
 import { groupItems } from '../../src/items';
-import { footprint, spots } from '../../src/themes/garden';
+import { SCENE_BOTTOM, SCENE_TOP } from '../../src/draw/units';
+import { BED_BOTTOM, footprint, spots } from '../../src/themes/garden';
 import { THEMES } from '../../src/themes/registry';
-import { layout } from './layout';
-import { afterItems, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
+import { layout, mixes } from './layout';
+import { afterItems, contractBox, contractCtx, coordsOutside, runThemeContract } from './theme-contract';
 
 const garden = THEMES.garden;
 
@@ -55,6 +56,36 @@ describe('garden half', () => {
   it('fits a narrow half', () => {
     const narrow: Box = { x: 160, y: 0, w: 160, h: 450 };
     expect(coordsOutside(garden.renderHalf(contractCtx(garden, 4321, undefined, narrow)), narrow)).toEqual([]);
+  });
+});
+
+describe('garden bed and lawn', () => {
+  // The contract half is limited by its height: 260 units fill the scene band and end at its bottom.
+  const s = (contractBox.h * (SCENE_BOTTOM - SCENE_TOP)) / 260;
+  const y = (units: number) => contractBox.h * SCENE_BOTTOM - (260 - units) * s;
+  const bed = (svg: string) => svg.slice(svg.indexOf('data-part="bed"'), svg.indexOf('<g class="fb-item'));
+
+  it('shows grass behind the jars', () => {
+    expect(garden.ground).toBe(/<g data-part="lawn"><rect [^>]*fill="(#[0-9a-f]{6})"/.exec(half(7))![1]);
+  });
+  it('ends the bed above the bottom of the scene, so a strip of lawn shows below it', () => {
+    expect(BED_BOTTOM).toBeLessThanOrEqual(260 - 6);
+    const ds = [...bed(half(7)).matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]);
+    expect(ds.length).toBeGreaterThan(0);
+    const ys = ds.flatMap((d) => [...d.matchAll(/-?[\d.]+ (-?[\d.]+)/g)].map((m) => parseFloat(m[1])));
+    expect(Math.max(...ys)).toBeLessThanOrEqual(y(BED_BOTTOM) + 1.5); // the sketched line wobbles a little
+  });
+  it('keeps every soil clod above the end of the bed', () => {
+    const clods = [...bed(half(7)).matchAll(/<ellipse cx="[\d.]+" cy="([\d.]+)" rx="[\d.]+" ry="([\d.]+)"/g)];
+    expect(clods.length).toBeGreaterThan(0);
+    for (const m of clods) {
+      expect(parseFloat(m[1]) + parseFloat(m[2])).toBeLessThan(y(BED_BOTTOM));
+    }
+  });
+  it('plants every item inside the bed', () => {
+    for (const { big, small } of mixes(garden.capacity)) {
+      for (const sp of spots(big, small)) expect(footprint(sp)[3]).toBeLessThanOrEqual(BED_BOTTOM);
+    }
   });
 });
 
