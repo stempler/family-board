@@ -702,7 +702,7 @@ describe('ground colour behind the jars', () => {
     `<rect data-ground x="${x}" y="${y}" width="${w}" height="${h}" fill="${THEMES.pirates.ground}"/>`;
 
   it('lists the themes with a ground colour', () => {
-    expect(Object.values(THEMES).filter((t) => t.ground).map((t) => t.id).sort()).toEqual(['birthday', 'construction', 'pirates', 'summer', 'underwater']);
+    expect(Object.values(THEMES).filter((t) => t.ground).map((t) => t.id).sort()).toEqual(['birthday', 'construction', 'garden', 'pirates', 'summer', 'underwater']);
   });
 
   it('continues the ground below the scene in each half, between scene and jars', () => {

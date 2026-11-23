@@ -4,16 +4,19 @@ import { at, moved, placement, type Placement, type Pt, type Units } from '../dr
 import { item, type HalfContext, type Theme } from './types';
 
 // A garden, drawn in "garden units": a wooden picket fence on a lawn under a sunny sky, a flower bed
-// in front of it from y 174 down. Small flowers in many colours grow in the bed in three staggered rows
-// of ten; tall sunflowers stand in a row at the fence behind the bed (more of them than fit there grow in
-// the bed, on a short stem). A watering can in the kid colour stands at the right end of the fence, a few
-// tufts of grass sway at its foot and bees fly little loops above the flowers.
+// in front of it from y 174 to y 252, a strip of lawn below it that runs on behind the jars. Small flowers
+// in many colours grow in the bed in three staggered rows of ten; tall sunflowers stand in a row at the
+// fence behind the bed (more of them than fit there grow in the bed, on a short stem). A watering can in
+// the kid colour stands at the right end of the fence, a few tufts of grass sway at its foot and bees fly
+// little loops above the flowers.
 const MID = 160;
 const UNITS_W = 320;
 const UNITS_H = 260;
 const UNITS: Units = { mid: MID, top: 0, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 const LAWN_TOP = 150;
 const BED_TOP = 174;
+/** Where the flower bed ends, in garden units: the lawn shows below it down to the scene's bottom (y 260). */
+export const BED_BOTTOM = 252;
 const FENCE_TOP = 84;
 const FENCE_BASE = 156;
 
@@ -49,7 +52,8 @@ const BED_SUN_H = 25;
 const TALL: number[] = Array.from({ length: 10 }, (_, i) => 25 + 30 * i);
 
 /** Flower spots in the bed: three rows of ten, 30 apart, the front row first; the middle row is staggered by half a step. */
-const BED: Pt[] = ([[242, 18], [215, 33], [188, 18]] as Pt[]).flatMap(([y, x0]) => Array.from({ length: 10 }, (_, i): Pt => [x0 + 30 * i, y]));
+const ROWS: number[] = [238, 211, 184]; // 27 apart, so a bed sunflower clears the one in the row behind
+const BED: Pt[] = ([[ROWS[0], 18], [ROWS[1], 33], [ROWS[2], 18]] as Pt[]).flatMap(([y, x0]) => Array.from({ length: 10 }, (_, i): Pt => [x0 + 30 * i, y]));
 
 const CAPACITY = BED.length;
 
@@ -176,10 +180,12 @@ function fence(sk: Sketch, p: Placement, ctx: HalfContext): string {
   return `<g data-part="fence">${rails}${pickets}</g>`;
 }
 
-/** The flower bed: dark soil from the lawn to the bottom of the scene, with a raised edge along its back. */
+/** The flower bed: dark soil with rounded corners from the lawn down to BED_BOTTOM, a strip of lawn showing below it. */
 function bed(sk: Sketch, p: Placement): string {
-  const soil = sk.path(moved(p, `M 2 ${BED_TOP + 4} Q 2 ${BED_TOP} 8 ${BED_TOP} L 312 ${BED_TOP} Q 318 ${BED_TOP} 318 ${BED_TOP + 4} L 318 ${UNITS_H} L 2 ${UNITS_H} Z`), { fill: SOIL, stroke: SOIL_DARK, strokeWidth: 1.8, roughness: 0.6 });
-  const clods = ([[30, 256], [96, 230], [150, 256], [208, 202], [262, 230], [300, 256], [70, 202]] as Pt[]).map(([x, y]) => {
+  const [t, b] = [BED_TOP, BED_BOTTOM];
+  const soil = sk.path(moved(p, `M 2 ${t + 4} Q 2 ${t} 8 ${t} L 312 ${t} Q 318 ${t} 318 ${t + 4} L 318 ${b - 4} Q 318 ${b} 312 ${b} L 8 ${b} Q 2 ${b} 2 ${b - 4} Z`), { fill: SOIL, stroke: SOIL_DARK, strokeWidth: 1.8, roughness: 0.6 });
+  const [front, middle, back] = ROWS.map((y) => y + 11); // at the foot of each row
+  const clods = ([[30, front], [96, middle], [150, front], [208, back], [262, middle], [300, front], [70, back]] as Pt[]).map(([x, y]) => {
     const [cx, cy] = at(p, x, y);
     return `<ellipse cx="${num(cx)}" cy="${num(cy)}" rx="${num(3.5 * p.s)}" ry="${num(1.5 * p.s)}" fill="${SOIL_DARK}" opacity="0.6"/>`;
   }).join('');
@@ -252,6 +258,7 @@ export const garden: Theme = {
   label: 'Garten',
   capacity: CAPACITY,
   background: SKY,
+  ground: GRASS,
   renderHalf,
   css,
 };
