@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { groupItems } from '../../src/items';
-import { footprint, spots, type Spot } from '../../src/themes/easter';
+import { BASKET_BOTTOM, basketSides, footprint, spots, type Spot } from '../../src/themes/easter';
 import { THEMES } from '../../src/themes/registry';
 import { runSeasonContract, seasonBox, seasonHalves } from './season-contract';
 import { afterItems, contractCtx, runThemeContract } from './theme-contract';
@@ -87,6 +87,19 @@ describe('easter item layout', () => {
     const all = [...spots(easter.capacity, 0), ...spots(0, easter.capacity)];
     expect(all).toHaveLength(2 * easter.capacity);
     expect(overlapping(all)).toEqual([]);
+  });
+  it('keeps every chocolate bunny clear of the basket: beside it or in front of it below its bottom edge', () => {
+    const onBasket = spots(easter.capacity, 0).filter((s) => {
+      const [l, t, r, b] = footprint(s);
+      if (t >= BASKET_BOTTOM + GAP) return false; // stands in front, below the basket
+      // Beside the basket: clear of its sloping side at every height the bunny shares with it.
+      for (let y = Math.max(t, 142); y <= Math.min(b, BASKET_BOTTOM); y += 2) {
+        const [left, right] = basketSides(y);
+        if (r > left - GAP && l < right + GAP) return true;
+      }
+      return false;
+    });
+    expect(onBasket.map((s) => `${s.x},${s.y}`)).toEqual([]);
   });
   for (const points of [20, 37, 199, 349, 1000]) {
     it(`draws every item at ${points} points`, () => {
