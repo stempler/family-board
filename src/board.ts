@@ -33,15 +33,18 @@ const FONT = `'Patrick Hand', 'Comic Sans MS', cursive`;
 
 const MARGIN = 14;
 const AVATAR = 44;
+const NARROW_AVATAR = 36; // in halves narrower than NARROW_HALF, so a 4-digit chip keeps its full size
+const NARROW_HALF = 200;
 const AVATAR_Y = 14;
 const NAME_Y = 47;
 const HINT_Y = 68;
 const NAME_SIZE = 30;
 const MIN_NAME_SIZE = 12;
 const NUMBER_SIZE = 18; // chip text size; the chip (about 23 high) matches the height of the name's letters
-const CHIP_SIZES = [NUMBER_SIZE, 14, 11]; // tried in turn when the half is narrow
+const TIGHT_GAP = 8;
+// Chip text size and its gap to the name, tried in turn when the half is narrow: first tighter, then smaller.
+const CHIPS: [size: number, gap: number][] = [[NUMBER_SIZE, 20], [NUMBER_SIZE, TIGHT_GAP], [16, TIGHT_GAP], [14, TIGHT_GAP], [11, TIGHT_GAP]];
 const MIN_CHARS = 4; // 3 glyphs plus the ellipsis
-const NAME_GAP = 20; // space between the name and the chip
 const GLYPH_W = 0.55; // average glyph width in em, on the wide side
 
 // Jar row in the bottom ~21% of the board, below every theme's scene band (ends at 0.79h).
@@ -61,14 +64,16 @@ function text(x: number, y: number, size: number, content: string, anchor = 'mid
   return `<text x="${num(x)}" y="${num(y)}" font-size="${num(size)}" text-anchor="${anchor}" fill="${fill}"${extra}>${esc(content)}</text>`;
 }
 
-function avatar(kid: Kid, x: number, index: number): string {
+/** The avatar, `size` wide, centred vertically where the full-size one sits. */
+function avatar(kid: Kid, x: number, index: number, size: number): string {
+  const y = AVATAR_Y + (AVATAR - size) / 2;
   if (kid.avatarImage) {
     const id = `fb-avatar-${index}`;
-    const r = AVATAR / 2;
-    return `<clipPath id="${id}"><circle cx="${num(x + r)}" cy="${num(AVATAR_Y + r)}" r="${num(r)}"/></clipPath>` +
-      `<image href="${esc(kid.avatarImage)}" x="${num(x)}" y="${AVATAR_Y}" width="${AVATAR}" height="${AVATAR}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`;
+    const r = size / 2;
+    return `<clipPath id="${id}"><circle cx="${num(x + r)}" cy="${num(y + r)}" r="${num(r)}"/></clipPath>` +
+      `<image href="${esc(kid.avatarImage)}" x="${num(x)}" y="${num(y)}" width="${num(size)}" height="${num(size)}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`;
   }
-  return renderIcon(kid.avatar, x, AVATAR_Y, AVATAR);
+  return renderIcon(kid.avatar, x, y, size);
 }
 
 /** Relative luminance of a #rgb or #rrggbb colour, or null for anything else. */
@@ -94,13 +99,14 @@ function chipInk(colour: string): string {
 function header(half: Half, index: number): string {
   const { kid, box } = half;
   const right = box.x + box.w - MARGIN;
-  const nameX = box.x + MARGIN + AVATAR + 10;
+  const avatarSize = box.w < NARROW_HALF ? NARROW_AVATAR : AVATAR;
+  const nameX = box.x + MARGIN + avatarSize + 10;
   const avail = right - nameX;
   const digits = String(Math.floor(kid.points));
   const minName = MIN_CHARS * MIN_NAME_SIZE * GLYPH_W;
-  // Chip at the right edge: full size when the shortest name still fits beside it, otherwise smaller and tighter.
-  const chipFor = (size: number) => ({ size, gap: size === NUMBER_SIZE ? NAME_GAP : 8, w: digits.length * size * GLYPH_W + size * 0.6 });
-  const chip = half.showNumber && kid.found ? (CHIP_SIZES.map(chipFor).find((c) => c.w + c.gap + minName <= avail) ?? chipFor(CHIP_SIZES[CHIP_SIZES.length - 1])) : null;
+  // Chip at the right edge: full size when the shortest name still fits beside it, otherwise tighter, then smaller.
+  const chips = CHIPS.map(([size, gap]) => ({ size, gap, w: digits.length * size * GLYPH_W + size * 0.6 }));
+  const chip = half.showNumber && kid.found ? (chips.find((c) => c.w + c.gap + minName <= avail) ?? chips[chips.length - 1]) : null;
   const room = avail - (chip ? chip.w + chip.gap : 0);
   // Shrink the name first (estimated width; the real font is narrower), then truncate it, never below 3 glyphs and the ellipsis.
   const maxChars = Math.min(18, Math.max(MIN_CHARS, Math.floor(room / (MIN_NAME_SIZE * GLYPH_W))));
@@ -116,7 +122,7 @@ function header(half: Half, index: number): string {
     points = `<g data-points="${esc(kid.id)}"><rect x="${num(x)}" y="${num(cy - h / 2)}" width="${num(chip.w)}" height="${num(h)}" rx="8" fill="${esc(kid.colour)}" stroke="${INK}" stroke-width="2"/>` +
       text(x + chip.w / 2, cy + chip.size * 0.35, chip.size, digits, 'middle', ' font-weight="bold"', chipInk(kid.colour)) + '</g>';
   }
-  return avatar(kid, box.x + MARGIN, index) + name + points;
+  return avatar(kid, box.x + MARGIN, index, avatarSize) + name + points;
 }
 
 /** How many shared jars fit across the board. */
