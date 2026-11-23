@@ -37,6 +37,13 @@ const WINGS = ['#f7a8c8', '#ffd23f', '#9fd3f2'];
 
 const EGG_RX = 8;
 const EGG_RY = 11;
+const RIM_Y = 142; // the basket's rim; its body hangs from here down to BASKET_BOTTOM
+export const BASKET_BOTTOM = 200; // above the heads of the chocolate bunnies in front of it (base 240, 38 tall)
+/** Left and right edge of the basket's body at height `y`: the sides slope in from the rim (x 70..230) to the bottom (x 88..212). */
+export function basketSides(y: number): [number, number] {
+  const t = (y - RIM_Y) / (BASKET_BOTTOM - RIM_Y);
+  return [70 + 18 * t, 230 - 18 * t];
+}
 const BUNNY = 0.58; // chocolate bunny scale: 17 x 38 units, a little taller than an egg
 
 /** Rows of `n` egg slots centred on the basket, `dx` apart. */
@@ -131,26 +138,23 @@ function items(sk: Sketch, eggs: Sketch, p: Placement, ctx: HalfContext): string
 /** The woven basket with its handle and a bow in the kid colour on its front; the eggs are drawn on top of it afterwards. */
 function basket(sk: Sketch, p: Placement, colour: string): string {
   const u = (x: number, y: number) => at(p, x, y).map(num).join(' ');
-  const side = (y: number): [number, number] => {
-    const t = (y - 142) / 72; // the sides slope in from the rim (x 70..230) to the bottom (x 88..212)
-    return [70 + 18 * t, 230 - 18 * t];
-  };
+  const side = basketSides;
   // The arch reaches up to about y 13, just over the top of a full egg heap, so the heap stays inside it.
   const handle = sk.path(`M ${u(80, 142)} C ${u(80, -30)} ${u(220, -30)} ${u(220, 142)}`, { stroke: WICKER_DARK, strokeWidth: 7 * p.s, roughness: 0.5 });
-  const body = sk.polygon([at(p, 70, 142), at(p, 230, 142), at(p, 212, 214), at(p, 88, 214)], { fill: WICKER, strokeWidth: 2.4, roughness: 0.8 });
+  const body = sk.polygon([at(p, 70, RIM_Y), at(p, 230, RIM_Y), at(p, 212, BASKET_BOTTOM), at(p, 88, BASKET_BOTTOM)], { fill: WICKER, strokeWidth: 2.4, roughness: 0.8 });
   let weave = '';
-  for (const y of [162, 182, 202]) {
-    const [l, r] = side(y);
-    weave += `M ${u(l + 2, y)} L ${u(r - 2, y)} `;
-  }
+  // Three woven bands between the rim and the bottom: a row of short upright strokes, then a line across.
+  const band = (BASKET_BOTTOM - RIM_Y - 10) / 3;
   for (let i = 0; i < 3; i++) {
-    const y0 = 146 + i * 20;
-    const [l, r] = side(y0 + 10);
-    for (let x = l + 8 + (i % 2) * 8; x < r - 6; x += 16) weave += `M ${u(x, y0 + 4)} L ${u(x, y0 + 13)} `;
+    const y0 = RIM_Y + 4 + i * band;
+    const [l, r] = side(y0 + band / 2);
+    for (let x = l + 8 + (i % 2) * 8; x < r - 6; x += 16) weave += `M ${u(x, y0 + band * 0.2)} L ${u(x, y0 + band * 0.65)} `;
+    const [ll, lr] = side(y0 + band);
+    weave += `M ${u(ll + 2, y0 + band)} L ${u(lr - 2, y0 + band)} `;
   }
   const lines = `<path d="${weave.trim()}" stroke="${WICKER_DARK}" stroke-width="${num(1.6 * p.s)}" stroke-linecap="round" fill="none"/>`;
-  const rim = sk.ellipse(...at(p, MID, 142), 168 * p.s, 16 * p.s, { fill: RIM, strokeWidth: 2, roughness: 0.6 });
-  const [bx, by] = at(p, MID, 178);
+  const rim = sk.ellipse(...at(p, MID, RIM_Y), 168 * p.s, 16 * p.s, { fill: RIM, strokeWidth: 2, roughness: 0.6 });
+  const [bx, by] = at(p, MID, (RIM_Y + BASKET_BOTTOM) / 2 + 2); // the bow's tails end above the basket's bottom
   const b = 16 * p.s;
   const loop = (d: number) => sk.polygon([[bx, by], [bx + d * b * 1.5, by - b * 0.75], [bx + d * b * 1.5, by + b * 0.75]], { fill: colour, strokeWidth: 1.6, roughness: 0.5 });
   const tail = (d: number) => sk.polygon([[bx, by], [bx + d * b * 0.9, by + b * 1.4], [bx + d * b * 0.4, by + b * 1.5]], { fill: colour, strokeWidth: 1.4, roughness: 0.5 });
