@@ -157,9 +157,9 @@ function scene(theme: Theme, body: string): string {
 }
 
 export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderOptions): string {
-  const { w: W, h: H } = boardSize(opts.size, model.kids.length);
-  if (model.status === 'missing') return svg(W, H, text(W / 2, H / 2, 24, de.missing));
-  if (model.kids.length === 0) return svg(W, H, text(W / 2, H / 2, 24, de.noKids));
+  const { w, h } = boardSize(opts.size, model.kids.length);
+  if (model.status === 'missing') return svg(w, h, text(w / 2, h / 2, 24, de.missing));
+  if (model.kids.length === 0) return svg(w, h, text(w / 2, h / 2, 24, de.noKids));
 
   const season = activeSeason(opts.date, config.seasons, Object.keys(THEMES));
   const seasonTheme = season ? getTheme(season.theme) : null;
@@ -172,9 +172,9 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
   const seasonal = seasonTheme?.renderSeasonScene && birthdayIds.size === 0 ? seasonTheme : null;
 
   // Season scenes use the full picture height; other themes keep the fixed scene height with the ground below.
-  const sceneH = seasonal ? H : SCENE_H;
-  const BOARD: Box = { x: 0, y: 0, w: W, h: sceneH };
-  const hw = W / model.kids.length;
+  const sceneH = seasonal ? h : SCENE_H;
+  const board: Box = { x: 0, y: 0, w, h: sceneH };
+  const hw = w / model.kids.length;
   const halves: Half[] = model.kids.map((kid, i) => {
     const kc = config.kids.find((k) => k.id === kid.id);
     const theme = birthdayIds.has(kid.id) ? THEMES.birthday : seasonal ?? seasonTheme ?? getTheme(kc?.theme ?? '');
@@ -189,35 +189,35 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     return { kid, box, theme, showNumber: kc?.show_number ?? true, ctx };
   });
 
-  const span = sharedSpan(model.sharedJars.length, W);
+  const span = sharedSpan(model.sharedJars.length, w);
   // Season mode: centred in the scene's own bottom band; otherwise centred in the extra height.
-  const jarY = seasonal && H > SCENE_H ? SCENE_BOTTOM * H + ((1 - SCENE_BOTTOM) * H - JAR_H) / 2 : JAR_Y + (H - SCENE_H) / 2;
+  const jarY = seasonal && h > SCENE_H ? SCENE_BOTTOM * h + ((1 - SCENE_BOTTOM) * h - JAR_H) / 2 : JAR_Y + (h - SCENE_H) / 2;
   const colours = Object.fromEntries(model.kids.map((k) => [k.id, k.colour]));
 
   let body = '';
   if (seasonal) {
-    body += scene(seasonal, seasonal.renderSeasonScene!(halves.filter((h) => h.kid.found).map((h) => h.ctx), BOARD));
-    body += ground(seasonal.ground, 0, W, sceneH, H);
+    body += scene(seasonal, seasonal.renderSeasonScene!(halves.filter((half) => half.kid.found).map((half) => half.ctx), board));
+    body += ground(seasonal.ground, 0, w, sceneH, h);
   }
   body += halves.map((half, i) => {
     const { kid, box, theme } = half;
     let inner = '';
     // Season mode: the shared scene sits below every half, so each half gets a transparent hit target above it.
     inner += seasonal
-      ? `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(H)}" fill="transparent" pointer-events="all"/>`
-      : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(H)}" fill="${esc(theme.background)}"/>`;
-    if (!kid.found) inner += text(box.x + box.w / 2, H / 2, 22, de.kidNotFound);
+      ? `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(h)}" fill="transparent" pointer-events="all"/>`
+      : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(h)}" fill="${esc(theme.background)}"/>`;
+    if (!kid.found) inner += text(box.x + box.w / 2, h / 2, 22, de.kidNotFound);
     else if (!seasonal) inner += scene(theme, theme.renderHalf(half.ctx));
-    if (!seasonal) inner += ground(theme.ground, box.x, box.w, sceneH, H);
+    if (!seasonal) inner += ground(theme.ground, box.x, box.w, sceneH, h);
     inner += header(half, i) + jarRow(half, span, jarY);
     const tappable = kid.found && !!config.kids.find((k) => k.id === kid.id)?.tap_path;
     if (tappable) inner += text(box.x + box.w - MARGIN, HINT_Y, 11, de.tapHint, 'end', ' opacity="0.6"');
     return `<g data-kid-half="${esc(kid.id)}"${tappable ? ' data-tappable="true"' : ''}>${inner}</g>`;
   }).join('');
   if (span) {
-    body += model.sharedJars.slice(0, sharedFit(model.sharedJars.length, W)).map((jar, i) =>
+    body += model.sharedJars.slice(0, sharedFit(model.sharedJars.length, w)).map((jar, i) =>
       drawSharedJar(jar, { x: span[0] + i * (JAR_W + GAP), y: jarY, w: JAR_W, h: JAR_H }, colours, `shared:${jar.id}`),
     ).join('');
   }
-  return svg(W, H, body);
+  return svg(w, h, body);
 }
