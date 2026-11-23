@@ -24,6 +24,7 @@ function config(kids: KidConfig[]): CardConfig {
     kids,
     seasons: DEFAULT_SEASONS.map((s) => ({ ...s })),
     reward_icons: {},
+    fill: 'auto',
   };
 }
 

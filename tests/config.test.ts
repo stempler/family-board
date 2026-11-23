@@ -98,6 +98,15 @@ describe('normalizeConfig', () => {
   });
 });
 
+describe('fill option', () => {
+  it.each([[undefined, 'auto'], ['auto', 'auto'], [true, true], [false, false]])('fill %o -> %o', (given, want) => {
+    expect(normalizeConfig({ kids: [{ id: 'a', theme: 'garden' }], ...(given === undefined ? {} : { fill: given }) }).fill).toBe(want);
+  });
+  it.each(['yes', 1, null, 'true'])('rejects fill %o', (bad) => {
+    expect(() => normalizeConfig({ kids: [{ id: 'a', theme: 'garden' }], fill: bad })).toThrow('fill must be auto, true or false');
+  });
+});
+
 describe('kid birthday', () => {
   const withBirthday = (birthday: unknown) => normalizeConfig({ kids: [{ id: 'a', theme: 'bricks', birthday }] });
   it('normalizes and accepts a valid day', () => {

@@ -33,6 +33,7 @@ function board(theme: string | string[], points: number[], date = JUNE, seasons 
     kids,
     seasons: seasons ? DEFAULT_SEASONS.map((s) => ({ ...s })) : [],
     reward_icons: {},
+    fill: 'auto',
   };
   const model: BoardModel = {
     status: 'ok',
