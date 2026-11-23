@@ -10,6 +10,7 @@ export interface Theme {
   label?: string; // German display name for pickers (dev playground); the id is shown without one
   capacity: number; // max drawn items per kid (with `items`, only the upper bound; grouping is the theme's own)
   background: string; // half background colour
+  ground?: string; // colour the scene ends in at its bottom edge; the board continues it behind the jars
   renderHalf(ctx: HalfContext): string; // the kid's scene inside ctx.box, no jars or header
   renderSeasonScene?(halves: HalfContext[], box: Box): string; // shared landscape with one object per kid; only for seasonal themes
   /**

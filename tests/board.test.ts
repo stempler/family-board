@@ -6,6 +6,7 @@ import { de } from '../src/i18n';
 import { groupItems } from '../src/items';
 import type { BoardModel, Kid, SharedJar } from '../src/model';
 import { activeSeason, seasonStart } from '../src/season';
+import { SCENE_BOTTOM } from '../src/draw/units';
 import { THEMES } from '../src/themes/registry';
 
 const JUNE = new Date(2026, 5, 1);
@@ -692,5 +693,52 @@ describe('renderBoard with a size', () => {
   it('gives the season scene the picture width', () => {
     const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: DECEMBER, size: WIDE });
     expect(group(out, 'data-theme="christmas"')).toContain('<rect x="0" y="0" width="720" height="450" fill="');
+  });
+});
+
+describe('ground colour behind the jars', () => {
+  const pirates = config([{ id: 'k1', theme: 'pirates', show_number: true }, { id: 'k2', theme: 'pirates', show_number: true }]);
+  const groundRect = (x: number, y: number, w: number, h: number) =>
+    `<rect data-ground x="${x}" y="${y}" width="${w}" height="${h}" fill="${THEMES.pirates.ground}"/>`;
+
+  it('lists the themes with a ground colour', () => {
+    expect(Object.values(THEMES).filter((t) => t.ground).map((t) => t.id).sort()).toEqual(['birthday', 'construction', 'pirates', 'summer', 'underwater']);
+  });
+
+  it('continues the ground below the scene in each half, between scene and jars', () => {
+    const out = renderBoard(model([kid('k1', 5, { jars: [{ id: 'j', name: 'J', icon: { kind: 'emoji', value: '🎁' }, goal: 10, current: 3 } as never] }), kid('k2', 3)]), pirates, { date: JUNE });
+    const top = SCENE_BOTTOM * 450;
+    expect(top).toBe(355.5);
+    [0, 400].forEach((x, i) => {
+      const half = group(out, `data-kid-half="k${i + 1}"`);
+      const rect = groundRect(x, 355.5, 400, 94.5);
+      expect(half).toContain(rect);
+      expect(half.indexOf(rect)).toBeGreaterThan(half.indexOf('data-theme="pirates"'));
+    });
+    const half = group(out, 'data-kid-half="k1"');
+    expect(half.indexOf(groundRect(0, 355.5, 400, 94.5))).toBeLessThan(half.indexOf('data-jar'));
+  });
+
+  it('reaches the bottom of a taller picture', () => {
+    const five = config(['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, theme: 'pirates', show_number: true })));
+    const out = renderBoard(model(['a', 'b', 'c', 'd', 'e'].map((id) => kid(id, 4))), five, { date: JUNE, size: { w: 1024, h: 768 } });
+    const rects = [...out.matchAll(/<rect data-ground x="[-\d.]+" y="([-\d.]+)" width="[-\d.]+" height="([-\d.]+)"/g)];
+    expect(rects).toHaveLength(5);
+    for (const m of rects) expect(Number(m[1]) + Number(m[2])).toBe(600);
+  });
+
+  it('draws the ground for a kid that was not found', () => {
+    const out = renderBoard(model([kid('k1', 5, { found: false }), kid('k2', 3)]), pirates, { date: JUNE });
+    expect(group(out, 'data-kid-half="k1"')).toContain(groundRect(0, 355.5, 400, 94.5));
+  });
+
+  it('draws one ground across the board in season mode', () => {
+    const out = renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: new Date(2026, 7, 1) });
+    expect(out.match(/data-ground/g)).toHaveLength(1);
+    expect(out).toContain(`<rect data-ground x="0" y="355.5" width="800" height="94.5" fill="${THEMES.summer.ground}"/>`);
+  });
+
+  it('draws no ground for a theme without one', () => {
+    expect(renderBoard(model([kid('k1', 5), kid('k2', 3)]), twoKids, { date: JUNE })).not.toContain('data-ground');
   });
 });

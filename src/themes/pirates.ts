@@ -220,6 +220,7 @@ export const pirates: Theme = {
   label: 'Piraten',
   capacity: CAPACITY,
   background: SKY,
+  ground: SAND,
   renderHalf,
   css,
 };

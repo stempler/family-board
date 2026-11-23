@@ -239,6 +239,7 @@ export const underwater: Theme = {
   label: 'Unterwasser',
   capacity: CAPACITY,
   background: WATER,
+  ground: SAND,
   renderHalf,
   css,
 };

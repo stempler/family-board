@@ -245,6 +245,7 @@ export const construction: Theme = {
   label: 'Baustelle',
   capacity: CAPACITY,
   background: SKY,
+  ground: EARTH,
   renderHalf,
   css,
 };
