@@ -291,6 +291,7 @@ export const birthday: Theme = {
   label: 'Geburtstag',
   capacity: CAPACITY,
   background: WALL,
+  ground: FLOOR,
   renderHalf,
   css,
 };

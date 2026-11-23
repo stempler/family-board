@@ -1,6 +1,7 @@
 import type { CardConfig } from './config';
 import { drawJar, drawSharedJar, type Box } from './draw/jar';
 import { renderIcon } from './draw/icon';
+import { SCENE_BOTTOM } from './draw/units';
 import { esc, INK, num, PAPER, truncate } from './draw/sketch';
 import { de } from './i18n';
 import { groupItems, newItemRange } from './items';
@@ -144,6 +145,13 @@ function jarRow(half: Half, shared: [number, number] | null, jarY: number): stri
   ).join('');
 }
 
+/** The ground colour continued from the scene's bottom edge to the picture's bottom, behind the jars. */
+function ground(colour: string | undefined, x: number, w: number, h: number): string {
+  if (!colour) return '';
+  const top = SCENE_BOTTOM * SCENE_H;
+  return `<rect data-ground x="${num(x)}" y="${num(top)}" width="${num(w)}" height="${num(h - top)}" fill="${esc(colour)}"/>`;
+}
+
 function scene(theme: Theme, body: string): string {
   return `<g data-theme="${esc(theme.id)}">${body}</g>`;
 }
@@ -188,6 +196,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     // A picture taller than the scene: the season's background fills the band below it.
     if (H > SCENE_H) body += `<rect x="0" y="${SCENE_H}" width="${W}" height="${H - SCENE_H}" fill="${esc(seasonal.background)}"/>`;
     body += scene(seasonal, seasonal.renderSeasonScene!(halves.filter((h) => h.kid.found).map((h) => h.ctx), BOARD));
+    body += ground(seasonal.ground, 0, W, H);
   }
   body += halves.map((half, i) => {
     const { kid, box, theme } = half;
@@ -198,6 +207,7 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
       : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(H)}" fill="${esc(theme.background)}"/>`;
     if (!kid.found) inner += text(box.x + box.w / 2, H / 2, 22, de.kidNotFound);
     else if (!seasonal) inner += scene(theme, theme.renderHalf(half.ctx));
+    if (!seasonal) inner += ground(theme.ground, box.x, box.w, H);
     inner += header(half, i) + jarRow(half, span, jarY);
     const tappable = kid.found && !!config.kids.find((k) => k.id === kid.id)?.tap_path;
     if (tappable) inner += text(box.x + box.w - MARGIN, HINT_Y, 11, de.tapHint, 'end', ' opacity="0.6"');

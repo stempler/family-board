@@ -57,6 +57,18 @@ export function loopDurations(svg: string): number[] {
   return [...svg.matchAll(/--t:(-?[\d.]+)s/g)].map((m) => parseFloat(m[1]));
 }
 
+function channel(hex: string, i: number): number {
+  const c = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+/** WCAG contrast ratio between two #rrggbb colours. */
+export function contrast(a: string, b: string): number {
+  const lum = (c: string) => 0.2126 * channel(c, 0) + 0.7152 * channel(c, 1) + 0.0722 * channel(c, 2);
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 export function runThemeContract(theme: Theme): void {
   describe(`theme contract: ${theme.id}`, () => {
     for (const points of [0, 7, 30, 1000]) {
@@ -119,5 +131,15 @@ export function runThemeContract(theme: Theme): void {
       const out = theme.renderHalf(contractCtx(theme, 7, 2, undefined, undefined, 4));
       expect(out.match(/class="fb-item fb-new"/g) ?? []).toHaveLength(2);
     });
+
+    if (theme.ground) {
+      it('keeps the jar outline readable on its ground colour', () => {
+        expect(contrast('#3a2f28', theme.ground!)).toBeGreaterThanOrEqual(3);
+      });
+
+      it('draws its ground colour in the scene', () => {
+        expect(theme.renderHalf(contractCtx(theme, 7))).toContain(`fill="${theme.ground}"`);
+      });
+    }
   });
 }

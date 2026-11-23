@@ -243,6 +243,7 @@ export const summer: Theme = {
   label: 'Sommer',
   capacity: CAPACITY,
   background: SKY,
+  ground: SAND,
   renderHalf,
   renderSeasonScene,
   css,
