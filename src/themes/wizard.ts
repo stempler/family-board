@@ -17,7 +17,7 @@ const UNITS_H = BOTTOM - TOP;
 const UNITS: Units = { mid: MID, top: TOP, w: UNITS_W, h: UNITS_H, fill: 0.92 };
 
 const HG_X = 148;
-const NECK = 122; // narrowest point of the glass
+const NECK = 114; // narrowest point of the glass; high and with a full bell below it, so the top row of crystals stays inside
 const BULB_BOTTOM = 240; // inner bottom of the lower bulb, top of the bottom plate
 const UPPER_TOP = 28; // inner top of the upper bulb, bottom of the top plate
 const BULB_HW = 92; // widest half-width of a bulb
@@ -50,7 +50,7 @@ const BOOKS = ['#7b5ea7', '#3f8f7f'];
 /** Half-width of a bulb at distance `d` from the neck, for a bulb `len` units long: a bell that widens fast near the neck. */
 function bulbHalfWidth(d: number, len: number): number {
   const t = Math.min(1, Math.max(0, d / len));
-  return NECK_HW + (BULB_HW - NECK_HW) * (1 - (1 - t) ** 2.4);
+  return NECK_HW + (BULB_HW - NECK_HW) * (1 - (1 - t) ** 3.2);
 }
 
 /** Left contour of the glass from the top plate down to the bottom plate, in room units. */
@@ -77,9 +77,23 @@ function gemSlots(): Pt[] {
 
 const SLOTS = gemSlots();
 
+const GEM_SHAPE: Pt[] = [[-6, -8.2], [6, -8.2], [9.5, -2.8], [0, 8.2], [-9.5, -2.8]];
+const CRYSTAL_SHAPE: Pt[] = [[-6.5, 9], [6.5, 9], [9, -6], [0, -20], [-9, -6]];
+
+/** The outline of the item in slot `i` in room units (a crystal when `big`, a gem otherwise). */
+export function outline(i: number, big: boolean): Pt[] {
+  const [x, y] = SLOTS[i];
+  return (big ? CRYSTAL_SHAPE : GEM_SHAPE).map(([dx, dy]) => [x + dx, y + dy] as Pt);
+}
+
+/** How far the lower bulb's glass is from the hourglass's axis at height `y`, and the axis's x, in room units. */
+export function glassAt(y: number): { axis: number; halfWidth: number } {
+  return { axis: HG_X, halfWidth: bulbHalfWidth(y - NECK, BULB_BOTTOM - NECK) };
+}
+
 /** A cut gem in the kid's house colour, centred on its slot. */
 function gem(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
-  const body = sk.polygon(around(p, x, y, [[-6, -8.2], [6, -8.2], [9.5, -2.8], [0, 8.2], [-9.5, -2.8]]), { fill: colour, strokeWidth: 1.8, roughness: 0.5 });
+  const body = sk.polygon(around(p, x, y, GEM_SHAPE), { fill: colour, strokeWidth: 1.8, roughness: 0.5 });
   const facets = `<polyline points="${points(around(p, x, y, [[-9.5, -2.8], [9.5, -2.8]]))}" fill="none" stroke="${INK}" stroke-width="1" opacity="0.5"/>` +
     `<polyline points="${points(around(p, x, y, [[-2.8, -8.2], [-3.3, -2.8], [0, 8.2], [3.3, -2.8], [2.8, -8.2]]))}" fill="none" stroke="${INK}" stroke-width="0.8" opacity="0.35"/>`;
   const glint = `<polygon points="${points(around(p, x, y, [[-5, -6.9], [-1.7, -6.9], [-3.8, -4], [-7.1, -4]]))}" fill="#fff" opacity="0.75"/>`;
@@ -88,7 +102,7 @@ function gem(sk: Sketch, p: Placement, x: number, y: number, colour: string): st
 
 /** A large crystal standing in its slot: the house colour lightened, with a white inner edge so it reads as special. */
 function crystal(sk: Sketch, p: Placement, x: number, y: number, colour: string): string {
-  const shape: Pt[] = [[-6.5, 9], [6.5, 9], [9, -6], [0, -20], [-9, -6]];
+  const shape = CRYSTAL_SHAPE;
   const body = sk.polygon(around(p, x, y, shape), { fill: colour, strokeWidth: 2.2, roughness: 0.5 });
   const light = `<polygon points="${points(around(p, x, y, shape))}" fill="#fff" opacity="0.22"/>`;
   const edge = `<polygon points="${points(around(p, x, y, shape.map(([dx, dy]) => [dx * 0.72, dy * 0.72 - 1])))}" fill="none" stroke="#fff" stroke-width="1.6" opacity="0.95"/>`;
