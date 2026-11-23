@@ -9,6 +9,7 @@ export interface CardConfig {
   kids: KidConfig[];
   seasons: SeasonRule[];
   reward_icons: Record<string, string>; // reward id or name -> emoji or "mdi:..."
+  fill: 'auto' | boolean; // stretch the board to the free screen area: auto = only on a wall-panel dashboard
 }
 
 export const DEFAULT_SEASONS: SeasonRule[] = [
@@ -135,6 +136,11 @@ export function normalizeConfig(raw: unknown): CardConfig {
     }
     reward_icons = { ...(raw.reward_icons as Record<string, string>) };
   }
+  let fill: CardConfig['fill'] = 'auto';
+  if (raw.fill !== undefined) {
+    if (raw.fill !== 'auto' && typeof raw.fill !== 'boolean') throw new Error('fill must be auto, true or false');
+    fill = raw.fill;
+  }
   return {
     type: typeof raw.type === 'string' ? raw.type : 'custom:family-board-card',
     overview_entity: nonEmptyString(raw.overview_entity) ? raw.overview_entity : DEFAULT_ENTITIES.overview,
@@ -142,5 +148,6 @@ export function normalizeConfig(raw: unknown): CardConfig {
     kids: uniqueIds(raw.kids.map(normalizeKid)),
     seasons,
     reward_icons,
+    fill,
   };
 }
