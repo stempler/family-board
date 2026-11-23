@@ -2,6 +2,7 @@
 <rect x="0" y="0" width="800" height="450" fill="#fdf8ee"/>
 <g data-kid-half="k1">
 <rect x="0" y="0" width="400" height="450" fill="#9fd6ec"/>
+<rect data-ground x="0" y="354.5" width="400" height="95.5" fill="#f1dca6"/>
 <g data-theme="underwater">
 <g>
 <polygon points="96.5,102.5 112.6,102.5 158.6,229 142.5,229" fill="#c4e7f4" opacity="0.6"/>
@@ -209,7 +210,6 @@
 </g>
 </g>
 </g>
-<rect data-ground x="0" y="354.5" width="400" height="95.5" fill="#f1dca6"/>
 <text x="36" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🦄</text>
 <text x="68" y="47" font-size="30" text-anchor="start" fill="#3a2f28">Mia</text>
 <g data-points="k1">
@@ -232,6 +232,7 @@
 </g>
 <g data-kid-half="k2">
 <rect x="400" y="0" width="400" height="450" fill="#9fd6ec"/>
+<rect data-ground x="400" y="354.5" width="400" height="95.5" fill="#f1dca6"/>
 <g data-theme="underwater">
 <g>
 <polygon points="496.5,102.5 512.6,102.5 558.6,229 542.5,229" fill="#c4e7f4" opacity="0.6"/>
@@ -589,7 +590,6 @@
 </g>
 </g>
 </g>
-<rect data-ground x="400" y="354.5" width="400" height="95.5" fill="#f1dca6"/>
 <text x="436" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🦖</text>
 <text x="468" y="47" font-size="30" text-anchor="start" fill="#3a2f28">Ben</text>
 <g data-points="k2">

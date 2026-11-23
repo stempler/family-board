@@ -767,7 +767,7 @@ describe('ground colour behind the jars', () => {
     expect(Object.values(THEMES).filter((t) => t.ground).map((t) => t.id).sort()).toEqual(['birthday', 'construction', 'garden', 'pirates', 'summer', 'underwater']);
   });
 
-  it('continues the ground below the scene in each half, between scene and jars', () => {
+  it('continues the ground below the scene in each half, drawn before the scene and the jars', () => {
     const out = renderBoard(model([kid('k1', 5, { jars: [{ id: 'j', name: 'J', icon: { kind: 'emoji', value: '🎁' }, goal: 10, current: 3 } as never] }), kid('k2', 3)]), pirates, { date: JUNE });
     const top = SCENE_BOTTOM * 450;
     expect(top - 1).toBe(354.5);
@@ -775,7 +775,8 @@ describe('ground colour behind the jars', () => {
       const half = group(out, `data-kid-half="k${i + 1}"`);
       const rect = groundRect(x, 354.5, 400, 95.5);
       expect(half).toContain(rect);
-      expect(half.indexOf(rect)).toBeGreaterThan(half.indexOf('data-theme="pirates"'));
+      // Before the scene group: items standing on the scene's bottom edge stay on top of the band.
+      expect(half.indexOf(rect)).toBeLessThan(half.indexOf('data-theme="pirates"'));
     });
     const half = group(out, 'data-kid-half="k1"');
     expect(half.indexOf(groundRect(0, 354.5, 400, 95.5))).toBeLessThan(half.indexOf('data-jar'));

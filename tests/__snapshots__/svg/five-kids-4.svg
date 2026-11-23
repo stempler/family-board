@@ -2,6 +2,7 @@
 <rect x="0" y="0" width="800" height="450" fill="#fdf8ee"/>
 <g data-kid-half="k1">
 <rect x="0" y="0" width="266.67" height="450" fill="#cfe7f7"/>
+<rect data-ground x="0" y="354.5" width="266.67" height="95.5" fill="#c99d6e"/>
 <g data-theme="construction">
 <g>
 <g data-part="ground">
@@ -160,7 +161,6 @@
 </g>
 </g>
 </g>
-<rect data-ground x="0" y="354.5" width="266.67" height="95.5" fill="#c99d6e"/>
 <text x="36" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🦄</text>
 <text x="68" y="47" font-size="30" text-anchor="start" fill="#3a2f28">Mia</text>
 <g data-points="k1">
@@ -183,6 +183,7 @@
 </g>
 <g data-kid-half="k2">
 <rect x="266.67" y="0" width="266.67" height="450" fill="#cfe9f7"/>
+<rect data-ground x="266.67" y="354.5" width="266.67" height="95.5" fill="#8cc76a"/>
 <g data-theme="garden">
 <g>
 <g data-part="sun">
@@ -851,7 +852,6 @@
 </g>
 </g>
 </g>
-<rect data-ground x="266.67" y="354.5" width="266.67" height="95.5" fill="#8cc76a"/>
 <text x="302.67" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🦖</text>
 <text x="334.67" y="47" font-size="30" text-anchor="start" fill="#3a2f28">Ben</text>
 <g data-points="k2">
@@ -874,6 +874,7 @@
 </g>
 <g data-kid-half="k3">
 <rect x="533.33" y="0" width="266.67" height="450" fill="#ffefbf"/>
+<rect data-ground x="533.33" y="354.5" width="266.67" height="95.5" fill="#f7cf7d"/>
 <g data-theme="summer">
 <g>
 <g data-part="sea">
@@ -1165,7 +1166,6 @@
 </g>
 </g>
 </g>
-<rect data-ground x="533.33" y="354.5" width="266.67" height="95.5" fill="#f7cf7d"/>
 <text x="569.33" y="51.4" font-size="44" text-anchor="middle" fill="#3a2f28">🐱</text>
 <text x="601.33" y="47" font-size="30" text-anchor="start" fill="#3a2f28">Lena</text>
 <g data-points="k3">
