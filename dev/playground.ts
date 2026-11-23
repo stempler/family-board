@@ -46,11 +46,16 @@ function applyConfig(): void {
 function applyShape(): void {
   if (!shape) {
     delete card.measure;
+    card.style.width = '';
+    card.style.margin = '';
   } else {
     const [sw, sh] = shape;
     card.measure = () => {
       const free = { w: stage.clientWidth - 24, h: window.innerHeight - 24 }; // the stage has 12px padding
       const scale = Math.min(free.w / sw, free.h / sh);
+      // Take the shape's width too, so the card looks like a screen of that shape instead of leaving paper bars at its sides.
+      card.style.width = `${sw * scale}px`;
+      card.style.margin = '0 auto';
       return { w: sw * scale, h: sh * scale };
     };
   }
