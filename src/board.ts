@@ -145,7 +145,7 @@ function jarRow(half: Half, shared: [number, number] | null, jarY: number): stri
   ).join('');
 }
 
-/** The ground colour continued from just above the scene's bottom edge (1 unit of overlap hides the anti-aliased seam) to the picture's bottom, behind the jars. */
+/** The ground colour continued from just above the scene's bottom edge (1 unit of overlap hides the anti-aliased seam) to the picture's bottom, behind the jars. Drawn before a half's scene; after a season scene, whose sky covers the whole box. */
 function ground(colour: string | undefined, x: number, w: number, sceneH: number, h: number): string {
   if (!colour) return '';
   const top = SCENE_BOTTOM * sceneH - 1;
@@ -206,9 +206,10 @@ export function renderBoard(model: BoardModel, config: CardConfig, opts: RenderO
     inner += seasonal
       ? `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(h)}" fill="transparent" pointer-events="all"/>`
       : `<rect x="${num(box.x)}" y="0" width="${num(box.w)}" height="${num(h)}" fill="${esc(theme.background)}"/>`;
+    // The ground band goes below the scene, so items standing on the scene's bottom edge keep their outline.
+    if (!seasonal) inner += ground(theme.ground, box.x, box.w, sceneH, h);
     if (!kid.found) inner += text(box.x + box.w / 2, h / 2, 22, de.kidNotFound);
     else if (!seasonal) inner += scene(theme, theme.renderHalf(half.ctx));
-    if (!seasonal) inner += ground(theme.ground, box.x, box.w, sceneH, h);
     inner += header(half, i) + jarRow(half, span, jarY);
     const tappable = kid.found && !!config.kids.find((k) => k.id === kid.id)?.tap_path;
     if (tappable) inner += text(box.x + box.w - MARGIN, HINT_Y, 11, de.tapHint, 'end', ' opacity="0.6"');
